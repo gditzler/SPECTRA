@@ -20,7 +20,7 @@ Requires Python 3.10+ and Rust 1.83+.
 ```bash
 uv venv --python 3.12 .venv
 source .venv/bin/activate
-uv pip install maturin numpy
+uv pip install maturin numpy pytest
 uv pip install torch --index-url https://download.pytorch.org/whl/cpu
 maturin develop --release
 ```
