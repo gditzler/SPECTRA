@@ -12,6 +12,7 @@ build/
 *.so
 *.dylib
 *.pyd
+*.dSYM/
 
 # uv
 uv.lock
