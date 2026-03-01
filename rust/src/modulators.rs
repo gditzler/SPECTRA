@@ -47,3 +47,20 @@ pub fn generate_qpsk_symbols<'py>(
     });
     symbols.into_pyarray(py)
 }
+
+#[pyfunction]
+pub fn generate_bpsk_symbols<'py>(
+    py: Python<'py>,
+    num_symbols: usize,
+    seed: u64,
+) -> Bound<'py, PyArray1<Complex32>> {
+    let mut rng = Xorshift64::new(seed);
+    let symbols = Array1::from_shape_fn(num_symbols, |_| {
+        if rng.next() % 2 == 0 {
+            Complex32::new(1.0, 0.0)
+        } else {
+            Complex32::new(-1.0, 0.0)
+        }
+    });
+    symbols.into_pyarray(py)
+}
