@@ -1,5 +1,6 @@
 use pyo3::prelude::*;
 
+mod codes;
 mod filters;
 mod modulators;
 mod oscillators;
@@ -13,5 +14,12 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(filters::apply_rrc_filter, m)?)?;
     m.add_function(wrap_pyfunction!(oscillators::generate_chirp, m)?)?;
     m.add_function(wrap_pyfunction!(oscillators::generate_tone, m)?)?;
+    // Polyphase codes
+    m.add_function(wrap_pyfunction!(codes::generate_frank_code, m)?)?;
+    m.add_function(wrap_pyfunction!(codes::generate_p1_code, m)?)?;
+    m.add_function(wrap_pyfunction!(codes::generate_p2_code, m)?)?;
+    m.add_function(wrap_pyfunction!(codes::generate_p3_code, m)?)?;
+    m.add_function(wrap_pyfunction!(codes::generate_p4_code, m)?)?;
+    m.add_function(wrap_pyfunction!(codes::generate_costas_sequence, m)?)?;
     Ok(())
 }

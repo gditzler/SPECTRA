@@ -10,7 +10,10 @@ name = "_rust"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.28", features = ["extension-module"] }
+pyo3 = { version = "0.28", features = ["auto-initialize"] }
 numpy = "0.28"
 num-complex = "0.4"
 rustfft = "6.4"
+
+[features]
+extension-module = ["pyo3/extension-module"]
