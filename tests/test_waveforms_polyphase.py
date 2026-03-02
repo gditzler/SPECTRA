@@ -82,3 +82,56 @@ class TestP2CodeWaveform:
         from spectra.waveforms.polyphase import P2Code
         iq = P2Code().generate(num_symbols=1, sample_rate=sample_rate)
         npt.assert_allclose(np.abs(iq), 1.0, atol=1e-5)
+
+
+class TestP3CodeWaveform:
+    def test_generate_returns_valid_iq(self, assert_valid_iq, sample_rate):
+        from spectra.waveforms.polyphase import P3Code
+        waveform = P3Code()
+        iq = waveform.generate(num_symbols=2, sample_rate=sample_rate)
+        assert_valid_iq(iq)
+
+    def test_label(self):
+        from spectra.waveforms.polyphase import P3Code
+        assert P3Code().label == "P3"
+
+    def test_output_length(self, sample_rate):
+        from spectra.waveforms.polyphase import P3Code
+        waveform = P3Code(code_length=25, samples_per_chip=4)
+        iq = waveform.generate(num_symbols=3, sample_rate=sample_rate)
+        assert len(iq) == 3 * 25 * 4
+
+    def test_unit_magnitude(self, sample_rate):
+        from spectra.waveforms.polyphase import P3Code
+        iq = P3Code().generate(num_symbols=1, sample_rate=sample_rate)
+        npt.assert_allclose(np.abs(iq), 1.0, atol=1e-5)
+
+    def test_arbitrary_length(self, assert_valid_iq, sample_rate):
+        from spectra.waveforms.polyphase import P3Code
+        for n in [9, 25, 64, 100]:
+            waveform = P3Code(code_length=n)
+            iq = waveform.generate(num_symbols=1, sample_rate=sample_rate)
+            assert_valid_iq(iq)
+
+
+class TestP4CodeWaveform:
+    def test_generate_returns_valid_iq(self, assert_valid_iq, sample_rate):
+        from spectra.waveforms.polyphase import P4Code
+        waveform = P4Code()
+        iq = waveform.generate(num_symbols=2, sample_rate=sample_rate)
+        assert_valid_iq(iq)
+
+    def test_label(self):
+        from spectra.waveforms.polyphase import P4Code
+        assert P4Code().label == "P4"
+
+    def test_output_length(self, sample_rate):
+        from spectra.waveforms.polyphase import P4Code
+        waveform = P4Code(code_length=36, samples_per_chip=4)
+        iq = waveform.generate(num_symbols=2, sample_rate=sample_rate)
+        assert len(iq) == 2 * 36 * 4
+
+    def test_unit_magnitude(self, sample_rate):
+        from spectra.waveforms.polyphase import P4Code
+        iq = P4Code().generate(num_symbols=1, sample_rate=sample_rate)
+        npt.assert_allclose(np.abs(iq), 1.0, atol=1e-5)
