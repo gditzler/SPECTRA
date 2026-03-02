@@ -38,9 +38,7 @@ fn p2_code_chips(order: usize) -> Vec<Complex32> {
     let mut chips = Vec::with_capacity(order * order);
     for j in 1..=order {
         for i in 1..=order {
-            let phase = (PI / (2.0 * n))
-                * (2.0 * i as f64 - 1.0 - n)
-                * (2.0 * j as f64 - 1.0 - n);
+            let phase = (PI / (2.0 * n)) * (2.0 * i as f64 - 1.0 - n) * (2.0 * j as f64 - 1.0 - n);
             chips.push(Complex32::new(phase.cos() as f32, phase.sin() as f32));
         }
     }
@@ -72,20 +70,14 @@ fn p4_code_chips(length: usize) -> Vec<Complex32> {
 
 /// Generate Frank code chips (M^2 complex values on unit circle).
 #[pyfunction]
-pub fn generate_frank_code<'py>(
-    py: Python<'py>,
-    order: usize,
-) -> Bound<'py, PyArray1<Complex32>> {
+pub fn generate_frank_code<'py>(py: Python<'py>, order: usize) -> Bound<'py, PyArray1<Complex32>> {
     let chips = frank_code_chips(order);
     Array1::from_vec(chips).into_pyarray(py)
 }
 
 /// Generate P1 polyphase code chips (N^2 complex values).
 #[pyfunction]
-pub fn generate_p1_code<'py>(
-    py: Python<'py>,
-    order: usize,
-) -> Bound<'py, PyArray1<Complex32>> {
+pub fn generate_p1_code<'py>(py: Python<'py>, order: usize) -> Bound<'py, PyArray1<Complex32>> {
     let chips = p1_code_chips(order);
     Array1::from_vec(chips).into_pyarray(py)
 }
@@ -105,20 +97,14 @@ pub fn generate_p2_code<'py>(
 
 /// Generate P3 polyphase code chips (N complex values, arbitrary length).
 #[pyfunction]
-pub fn generate_p3_code<'py>(
-    py: Python<'py>,
-    length: usize,
-) -> Bound<'py, PyArray1<Complex32>> {
+pub fn generate_p3_code<'py>(py: Python<'py>, length: usize) -> Bound<'py, PyArray1<Complex32>> {
     let chips = p3_code_chips(length);
     Array1::from_vec(chips).into_pyarray(py)
 }
 
 /// Generate P4 polyphase code chips (N complex values, arbitrary length).
 #[pyfunction]
-pub fn generate_p4_code<'py>(
-    py: Python<'py>,
-    length: usize,
-) -> Bound<'py, PyArray1<Complex32>> {
+pub fn generate_p4_code<'py>(py: Python<'py>, length: usize) -> Bound<'py, PyArray1<Complex32>> {
     let chips = p4_code_chips(length);
     Array1::from_vec(chips).into_pyarray(py)
 }

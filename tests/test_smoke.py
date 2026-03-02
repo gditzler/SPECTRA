@@ -13,3 +13,15 @@ def test_radar_waveform_imports():
     assert P3Code().label == "P3"
     assert P4Code().label == "P4"
     assert CostasCode().label == "Costas"
+
+
+def test_comms_waveform_imports():
+    from spectra import PSK8, QAM16, QAM64, QAM256, FSK, MSK, GMSK, OFDM
+    assert PSK8().label == "8PSK"
+    assert QAM16().label == "16QAM"
+    assert QAM64().label == "64QAM"
+    assert QAM256().label == "256QAM"
+    assert FSK().label == "FSK"
+    assert MSK().label == "MSK"
+    assert GMSK().label == "GMSK"
+    assert OFDM().label == "OFDM"

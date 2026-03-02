@@ -1,6 +1,6 @@
+use num_complex::Complex32;
 use numpy::ndarray::Array1;
 use numpy::{IntoPyArray, PyArray1};
-use num_complex::Complex32;
 use pyo3::prelude::*;
 
 /// Generate a linear frequency modulated (chirp) signal.

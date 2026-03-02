@@ -1,6 +1,6 @@
+use num_complex::Complex32;
 use numpy::ndarray::Array1;
 use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1};
-use num_complex::Complex32;
 use pyo3::prelude::*;
 
 /// Generate root-raised-cosine filter taps.
@@ -16,8 +16,10 @@ fn rrc_taps(rolloff: f32, span: usize, sps: usize) -> Vec<f32> {
             } else if (t.abs() - 1.0 / (4.0 * rolloff)).abs() < 1e-12 && rolloff > 0.0 {
                 let sqrt2 = std::f32::consts::SQRT_2;
                 rolloff / (sqrt2 * sps_f.sqrt())
-                    * ((1.0 + 2.0 / std::f32::consts::PI) * (std::f32::consts::PI / (4.0 * rolloff)).sin()
-                        + (1.0 - 2.0 / std::f32::consts::PI) * (std::f32::consts::PI / (4.0 * rolloff)).cos())
+                    * ((1.0 + 2.0 / std::f32::consts::PI)
+                        * (std::f32::consts::PI / (4.0 * rolloff)).sin()
+                        + (1.0 - 2.0 / std::f32::consts::PI)
+                            * (std::f32::consts::PI / (4.0 * rolloff)).cos())
             } else {
                 let pi_t = std::f32::consts::PI * t;
                 let num = (pi_t * (1.0 - rolloff)).sin()

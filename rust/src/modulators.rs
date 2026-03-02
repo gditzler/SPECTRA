@@ -5,10 +5,22 @@ use pyo3::prelude::*;
 
 /// QPSK constellation: points at pi/4, 3pi/4, -3pi/4, -pi/4
 const QPSK_CONSTELLATION: [Complex32; 4] = [
-    Complex32::new(std::f32::consts::FRAC_1_SQRT_2, std::f32::consts::FRAC_1_SQRT_2),   // pi/4
-    Complex32::new(-std::f32::consts::FRAC_1_SQRT_2, std::f32::consts::FRAC_1_SQRT_2),  // 3pi/4
-    Complex32::new(-std::f32::consts::FRAC_1_SQRT_2, -std::f32::consts::FRAC_1_SQRT_2), // -3pi/4
-    Complex32::new(std::f32::consts::FRAC_1_SQRT_2, -std::f32::consts::FRAC_1_SQRT_2),  // -pi/4
+    Complex32::new(
+        std::f32::consts::FRAC_1_SQRT_2,
+        std::f32::consts::FRAC_1_SQRT_2,
+    ), // pi/4
+    Complex32::new(
+        -std::f32::consts::FRAC_1_SQRT_2,
+        std::f32::consts::FRAC_1_SQRT_2,
+    ), // 3pi/4
+    Complex32::new(
+        -std::f32::consts::FRAC_1_SQRT_2,
+        -std::f32::consts::FRAC_1_SQRT_2,
+    ), // -3pi/4
+    Complex32::new(
+        std::f32::consts::FRAC_1_SQRT_2,
+        -std::f32::consts::FRAC_1_SQRT_2,
+    ), // -pi/4
 ];
 
 /// Simple seeded PRNG (xorshift64) for deterministic symbol generation.
@@ -23,7 +35,9 @@ impl Xorshift64 {
         s = (s ^ (s >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
         s = (s ^ (s >> 27)).wrapping_mul(0x94d049bb133111eb);
         s ^= s >> 31;
-        Self { state: if s == 0 { 1 } else { s } }
+        Self {
+            state: if s == 0 { 1 } else { s },
+        }
     }
 
     fn next(&mut self) -> u64 {
