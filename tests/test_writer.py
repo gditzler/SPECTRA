@@ -12,6 +12,16 @@ except ImportError:
     HAS_ZARR = False
 
 
+def _open_zarr_group(path, mode):
+    """Open zarr group compatible with both v2 and v3."""
+    if hasattr(zarr, "open_group"):
+        try:
+            return zarr.open_group(path, mode=mode)
+        except TypeError:
+            return zarr.open(path, mode=mode)
+    return zarr.open(path, mode=mode)
+
+
 @pytest.mark.skipif(not HAS_ZARR, reason="zarr not installed")
 class TestZarrHandler:
     def test_write_and_read(self):
@@ -58,6 +68,6 @@ class TestDatasetWriter:
             writer.finalize(metadata={"dataset": "test"})
 
             # Verify
-            root = zarr.open_group(path, mode="r")
+            root = _open_zarr_group(path, mode="r")
             assert "data" in root
             assert root["data"].shape[0] == 8
