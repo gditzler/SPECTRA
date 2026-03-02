@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple
 
 import torch
 
+from spectra.datasets.metadata import DatasetMetadata, NarrowbandMetadata, WidebandMetadata
 from spectra.datasets.narrowband import NarrowbandDataset
 from spectra.datasets.wideband import WidebandDataset
 
@@ -15,4 +16,11 @@ def collate_fn(
     return data, targets
 
 
-__all__ = ["NarrowbandDataset", "WidebandDataset", "collate_fn"]
+__all__ = [
+    "collate_fn",
+    "DatasetMetadata",
+    "NarrowbandDataset",
+    "NarrowbandMetadata",
+    "WidebandDataset",
+    "WidebandMetadata",
+]

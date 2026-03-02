@@ -69,3 +69,93 @@ class OFDM(Waveform):
     @property
     def label(self) -> str:
         return "OFDM"
+
+
+class OFDM72(OFDM):
+    def __init__(self, cp_length: int = 16):
+        super().__init__(num_subcarriers=72, fft_size=128, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-72"
+
+
+class OFDM128(OFDM):
+    def __init__(self, cp_length: int = 16):
+        super().__init__(num_subcarriers=128, fft_size=256, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-128"
+
+
+class OFDM180(OFDM):
+    def __init__(self, cp_length: int = 32):
+        super().__init__(num_subcarriers=180, fft_size=256, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-180"
+
+
+class OFDM256(OFDM):
+    def __init__(self, cp_length: int = 32):
+        super().__init__(num_subcarriers=256, fft_size=512, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-256"
+
+
+class OFDM300(OFDM):
+    def __init__(self, cp_length: int = 32):
+        super().__init__(num_subcarriers=300, fft_size=512, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-300"
+
+
+class OFDM512(OFDM):
+    def __init__(self, cp_length: int = 64):
+        super().__init__(num_subcarriers=512, fft_size=1024, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-512"
+
+
+class OFDM600(OFDM):
+    def __init__(self, cp_length: int = 64):
+        super().__init__(num_subcarriers=600, fft_size=1024, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-600"
+
+
+class OFDM900(OFDM):
+    def __init__(self, cp_length: int = 128):
+        super().__init__(num_subcarriers=900, fft_size=1024, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-900"
+
+
+class OFDM1200(OFDM):
+    def __init__(self, cp_length: int = 128):
+        super().__init__(num_subcarriers=1200, fft_size=2048, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-1200"
+
+
+class OFDM2048(OFDM):
+    def __init__(self, cp_length: int = 256):
+        super().__init__(num_subcarriers=2048, fft_size=4096, cp_length=cp_length)
+
+    @property
+    def label(self) -> str:
+        return "OFDM-2048"

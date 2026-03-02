@@ -25,5 +25,11 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(modulators::generate_8psk_symbols, m)?)?;
     m.add_function(wrap_pyfunction!(modulators::generate_qam_symbols, m)?)?;
     m.add_function(wrap_pyfunction!(modulators::generate_fsk_symbols, m)?)?;
+    m.add_function(wrap_pyfunction!(modulators::generate_psk_symbols, m)?)?;
+    m.add_function(wrap_pyfunction!(modulators::generate_ask_symbols, m)?)?;
+    // Filter utilities
+    m.add_function(wrap_pyfunction!(filters::gaussian_taps, m)?)?;
+    m.add_function(wrap_pyfunction!(filters::lowpass_taps, m)?)?;
+    m.add_function(wrap_pyfunction!(filters::convolve_complex, m)?)?;
     Ok(())
 }

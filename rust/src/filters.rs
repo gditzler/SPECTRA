@@ -45,6 +45,94 @@ fn rrc_taps(rolloff: f32, span: usize, sps: usize) -> Vec<f32> {
     taps
 }
 
+/// Generate Gaussian filter taps for GFSK/GMSK pulse shaping.
+/// Taps sum to 1.0, symmetric, peak at center.
+#[pyfunction]
+pub fn gaussian_taps<'py>(
+    py: Python<'py>,
+    bt: f32,
+    span: usize,
+    sps: usize,
+) -> Bound<'py, PyArray1<f32>> {
+    let half = (span * sps / 2) as i32;
+    let sps_f = sps as f32;
+    let mut taps: Vec<f32> = (-half..=half)
+        .map(|i| {
+            let t = i as f32 / sps_f;
+            let pi = std::f32::consts::PI;
+            let ln2 = 2.0_f32.ln();
+            (2.0 * pi / ln2).sqrt() * bt * (-2.0 * (pi * bt * t).powi(2) / ln2).exp()
+        })
+        .collect();
+    // Normalize so taps sum to 1.0
+    let sum: f32 = taps.iter().sum();
+    if sum > 0.0 {
+        for t in &mut taps {
+            *t /= sum;
+        }
+    }
+    Array1::from_vec(taps).into_pyarray(py)
+}
+
+/// Windowed-sinc (Blackman) FIR lowpass filter design.
+/// cutoff is normalized frequency in (0, 1) where 1 = Nyquist.
+#[pyfunction]
+pub fn lowpass_taps<'py>(
+    py: Python<'py>,
+    num_taps: usize,
+    cutoff: f32,
+) -> Bound<'py, PyArray1<f32>> {
+    let pi = std::f32::consts::PI;
+    let m = (num_taps - 1) as f32;
+    let mut taps: Vec<f32> = (0..num_taps)
+        .map(|i| {
+            let n = i as f32;
+            // Sinc component
+            let sinc = if (n - m / 2.0).abs() < 1e-12 {
+                cutoff
+            } else {
+                let x = n - m / 2.0;
+                (pi * cutoff * x).sin() / (pi * x)
+            };
+            // Blackman window
+            let w = 0.42 - 0.5 * (2.0 * pi * n / m).cos() + 0.08 * (4.0 * pi * n / m).cos();
+            sinc * w
+        })
+        .collect();
+    // Normalize to unit DC gain
+    let sum: f32 = taps.iter().sum();
+    if sum.abs() > 0.0 {
+        for t in &mut taps {
+            *t /= sum;
+        }
+    }
+    Array1::from_vec(taps).into_pyarray(py)
+}
+
+/// General complex convolution: convolve a complex signal with real filter taps.
+#[pyfunction]
+pub fn convolve_complex<'py>(
+    py: Python<'py>,
+    signal: PyReadonlyArray1<'py, Complex32>,
+    taps: PyReadonlyArray1<'py, f32>,
+) -> Bound<'py, PyArray1<Complex32>> {
+    let signal = signal.as_array();
+    let taps = taps.as_array();
+    let sig_len = signal.len();
+    let tap_len = taps.len();
+    let output_len = sig_len + tap_len - 1;
+    let output = Array1::from_shape_fn(output_len, |n| {
+        let mut sum = Complex32::new(0.0, 0.0);
+        for (k, &tap) in taps.iter().enumerate() {
+            if n >= k && (n - k) < sig_len {
+                sum += signal[n - k] * tap;
+            }
+        }
+        sum
+    });
+    output.into_pyarray(py)
+}
+
 /// Apply RRC pulse-shaping filter: upsample by sps, then convolve with RRC taps.
 #[pyfunction]
 pub fn apply_rrc_filter<'py>(

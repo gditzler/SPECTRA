@@ -142,6 +142,68 @@ pub fn generate_qam_symbols<'py>(
     Ok(symbols.into_pyarray(py))
 }
 
+/// Generic M-PSK symbol generator: M equally-spaced points on the unit circle.
+#[pyfunction]
+pub fn generate_psk_symbols<'py>(
+    py: Python<'py>,
+    num_symbols: usize,
+    order: usize,
+    seed: u64,
+) -> PyResult<Bound<'py, PyArray1<Complex32>>> {
+    if order < 2 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "PSK order must be at least 2",
+        ));
+    }
+    let constellation: Vec<Complex32> = (0..order)
+        .map(|k| {
+            let angle = 2.0 * std::f64::consts::PI * k as f64 / order as f64;
+            Complex32::new(angle.cos() as f32, angle.sin() as f32)
+        })
+        .collect();
+    let mut rng = Xorshift64::new(seed);
+    let symbols = Array1::from_shape_fn(num_symbols, |_| {
+        let idx = (rng.next() as usize) % order;
+        constellation[idx]
+    });
+    Ok(symbols.into_pyarray(py))
+}
+
+/// M-ary ASK symbol generator: M amplitude levels on the real axis,
+/// normalized to unit average power. OOK is ASK with M=2.
+#[pyfunction]
+pub fn generate_ask_symbols<'py>(
+    py: Python<'py>,
+    num_symbols: usize,
+    order: usize,
+    seed: u64,
+) -> PyResult<Bound<'py, PyArray1<Complex32>>> {
+    if order < 2 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "ASK order must be at least 2",
+        ));
+    }
+    // Build amplitude levels: 0, 1, 2, ..., M-1
+    let levels: Vec<f64> = (0..order).map(|k| k as f64).collect();
+    // Normalize to unit average power: avg(level^2) = 1
+    let avg_power: f64 = levels.iter().map(|l| l * l).sum::<f64>() / order as f64;
+    let scale = if avg_power > 0.0 {
+        1.0 / avg_power.sqrt()
+    } else {
+        1.0
+    };
+    let constellation: Vec<Complex32> = levels
+        .iter()
+        .map(|l| Complex32::new((l * scale) as f32, 0.0))
+        .collect();
+    let mut rng = Xorshift64::new(seed);
+    let symbols = Array1::from_shape_fn(num_symbols, |_| {
+        let idx = (rng.next() as usize) % order;
+        constellation[idx]
+    });
+    Ok(symbols.into_pyarray(py))
+}
+
 /// Generate random FSK frequency symbols as normalized floats in [-1, 1].
 /// Returns M-ary frequency values: linspace(-1+1/M, 1-1/M, M).
 #[pyfunction]
@@ -229,6 +291,51 @@ mod tests {
             .sum::<f64>()
             / order as f64;
         assert!((norm_power - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn psk_constellation_unit_magnitude() {
+        for order in [4, 8, 16, 32, 64] {
+            let constellation: Vec<Complex32> = (0..order)
+                .map(|k| {
+                    let angle = 2.0 * std::f64::consts::PI * k as f64 / order as f64;
+                    Complex32::new(angle.cos() as f32, angle.sin() as f32)
+                })
+                .collect();
+            assert_eq!(constellation.len(), order);
+            for c in &constellation {
+                let mag = (c.re * c.re + c.im * c.im).sqrt();
+                assert!((mag - 1.0).abs() < 1e-5, "order={order}, mag={mag}");
+            }
+        }
+    }
+
+    #[test]
+    fn ask_unit_avg_power() {
+        for order in [2, 4, 8] {
+            let levels: Vec<f64> = (0..order).map(|k| k as f64).collect();
+            let avg_power: f64 = levels.iter().map(|l| l * l).sum::<f64>() / order as f64;
+            let scale = if avg_power > 0.0 {
+                1.0 / avg_power.sqrt()
+            } else {
+                1.0
+            };
+            let constellation: Vec<f64> = levels.iter().map(|l| l * scale).collect();
+            let norm_power: f64 = constellation.iter().map(|c| c * c).sum::<f64>() / order as f64;
+            assert!(
+                (norm_power - 1.0).abs() < 1e-5,
+                "order={order}, norm_power={norm_power}"
+            );
+        }
+    }
+
+    #[test]
+    fn ask_ook_levels() {
+        // OOK (order=2): levels should be 0 and some positive value
+        let levels: Vec<f64> = (0..2).map(|k| k as f64).collect();
+        assert_eq!(levels.len(), 2);
+        assert_eq!(levels[0], 0.0);
+        assert_eq!(levels[1], 1.0);
     }
 
     #[test]
