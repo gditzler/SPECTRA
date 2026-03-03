@@ -20,6 +20,7 @@ from spectra.waveforms import (
     QAM16,
     QAM64,
     QAM256,
+    ZadoffChu,
 )
 from spectra.scene import Composer, SceneConfig, SignalDescription, STFTParams, to_coco
 from spectra.impairments import (
@@ -58,6 +59,7 @@ __all__ = [
     "QAM64",
     "QAM256",
     "QPSK",
+    "ZadoffChu",
     "Composer",
     "SceneConfig",
     "SignalDescription",

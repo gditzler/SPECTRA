@@ -8,6 +8,7 @@ from spectra.waveforms.ofdm import OFDM
 from spectra.waveforms.polyphase import FrankCode, P1Code, P2Code, P3Code, P4Code
 from spectra.waveforms.psk import BPSK, PSK8, QPSK
 from spectra.waveforms.qam import QAM16, QAM64, QAM256
+from spectra.waveforms.zadoff_chu import ZadoffChu
 
 __all__ = [
     "AM",
@@ -30,4 +31,5 @@ __all__ = [
     "QAM64",
     "QAM256",
     "QPSK",
+    "ZadoffChu",
 ]
