@@ -51,6 +51,9 @@ After any Rust code change, re-run `maturin develop --release` before running Py
 - `impairments/` — `Transform` ABC with `__call__(iq, desc, **kwargs) -> (iq, desc)`. 16 impairments composable via `Compose([AWGN(), FrequencyOffset()])`.
 - `scene/` — `Composer` generates wideband scenes: multiple signals frequency-shifted into a shared capture bandwidth. `SignalDescription` dataclass holds physical-unit ground truth. `to_coco()` converts physical labels to pixel-space bounding boxes.
 - `transforms/` — `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `PSD`, `EnergyDetector`, plus data augmentations (`CutOut`, `TimeReversal`, `PatchShuffle`, etc.).
+- `utils/file_handlers/` — Pluggable RF file readers (`SigMFReader`, `RawIQReader`, `HDF5Reader`, `NumpyReader`) with auto-detection registry, plus `SigMFWriter` for export.
+- `datasets/folder.py` — `SignalFolderDataset`: ImageFolder-style dataset loading IQ recordings from class-per-directory structure.
+- `datasets/manifest.py` — `ManifestDataset`: CSV/JSON manifest-based dataset for flat-file layouts.
 - `datasets/` — `NarrowbandDataset` (single signal → class label), `WidebandDataset` (multi-signal scene → COCO-format detection targets), and `CyclostationaryDataset` (multi-representation CSP features). All use deterministic `(seed, idx)` seeding for DataLoader worker safety.
 - `classifiers/` — `CyclostationaryAMC` for traditional AMC with cumulant/cyclic-peak features and scikit-learn backends. Requires `spectra[classifiers]` optional dep.
 - `benchmarks/` — `load_benchmark()` loads reproducible configs (`spectra-18`, `spectra-18-wideband`).
