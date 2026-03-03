@@ -35,7 +35,7 @@ from spectra.impairments import (
     SampleRateOffset,
 )
 from spectra.datasets import NarrowbandDataset, WidebandDataset, collate_fn
-from spectra.transforms import PSD, STFT
+from spectra.transforms import PSD, SpectrogramNormalize, STFT
 
 __all__ = [
     "__version__",
@@ -78,5 +78,6 @@ __all__ = [
     "WidebandDataset",
     "collate_fn",
     "PSD",
+    "SpectrogramNormalize",
     "STFT",
 ]
