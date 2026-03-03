@@ -18,13 +18,15 @@ dependencies = [
 yaml = ["pyyaml>=6.0"]
 zarr = ["zarr>=2.16"]
 classifiers = ["scikit-learn>=1.0"]
-all = ["pyyaml>=6.0", "zarr>=2.16", "scikit-learn>=1.0"]
+io = ["sigmf>=1.0", "h5py>=3.0"]
+all = ["pyyaml>=6.0", "zarr>=2.16", "scikit-learn>=1.0", "sigmf>=1.0", "h5py>=3.0"]
 dev = [
     "maturin>=1.9,<2",
     "pytest>=8.0",
     "pytest-cov>=5.0",
     "pyyaml>=6.0",
     "zarr>=2.16",
+    "h5py>=3.0",
 ]
 
 [tool.maturin]
@@ -41,4 +43,5 @@ markers = [
     "slow: marks tests as slow",
     "rust: marks tests that exercise Rust FFI directly",
     "csp: marks cyclostationary signal processing tests",
+    "io: marks tests requiring file I/O optional dependencies",
 ]

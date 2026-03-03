@@ -110,3 +110,34 @@ class TestSignalFolderDataset:
         batch_data, batch_labels = next(iter(loader))
         assert batch_data.shape == (2, 2, 128)
         assert batch_labels.shape == (2,)
+
+
+class TestModuleExports:
+    def test_import_from_datasets(self):
+        from spectra.datasets import ManifestDataset, SignalFolderDataset
+
+        assert SignalFolderDataset is not None
+        assert ManifestDataset is not None
+
+    def test_import_from_top_level(self):
+        from spectra import ManifestDataset, SignalFolderDataset
+
+        assert SignalFolderDataset is not None
+        assert ManifestDataset is not None
+
+    def test_import_readers_from_top_level(self):
+        from spectra.utils.file_handlers import (
+            FileReader,
+            NumpyReader,
+            RawIQReader,
+            SigMFReader,
+            SignalMetadata,
+            get_reader,
+        )
+
+        assert FileReader is not None
+        assert SignalMetadata is not None
+        assert get_reader is not None
+        assert NumpyReader is not None
+        assert RawIQReader is not None
+        assert SigMFReader is not None

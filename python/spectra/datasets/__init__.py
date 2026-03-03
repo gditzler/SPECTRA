@@ -3,6 +3,8 @@ from typing import Dict, List, Tuple
 import torch
 
 from spectra.datasets.cyclo import CyclostationaryDataset
+from spectra.datasets.folder import SignalFolderDataset
+from spectra.datasets.manifest import ManifestDataset
 from spectra.datasets.metadata import DatasetMetadata, NarrowbandMetadata, WidebandMetadata
 from spectra.datasets.narrowband import NarrowbandDataset
 from spectra.datasets.wideband import WidebandDataset
@@ -21,8 +23,10 @@ __all__ = [
     "collate_fn",
     "CyclostationaryDataset",
     "DatasetMetadata",
+    "ManifestDataset",
     "NarrowbandDataset",
     "NarrowbandMetadata",
+    "SignalFolderDataset",
     "WidebandDataset",
     "WidebandMetadata",
 ]

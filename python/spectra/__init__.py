@@ -103,8 +103,10 @@ from spectra.datasets import (
     collate_fn,
     CyclostationaryDataset,
     DatasetMetadata,
+    ManifestDataset,
     NarrowbandDataset,
     NarrowbandMetadata,
+    SignalFolderDataset,
     WidebandDataset,
     WidebandMetadata,
 )
@@ -160,6 +162,9 @@ from spectra.classifiers import CyclostationaryAMC
 
 # Writer
 from spectra.utils.writer import DatasetWriter
+
+# File I/O
+from spectra.utils.file_handlers.sigmf_writer import SigMFWriter
 
 __all__ = [
     "__version__",
@@ -259,8 +264,10 @@ __all__ = [
     "collate_fn",
     "CyclostationaryDataset",
     "DatasetMetadata",
+    "ManifestDataset",
     "NarrowbandDataset",
     "NarrowbandMetadata",
+    "SignalFolderDataset",
     "WidebandDataset",
     "WidebandMetadata",
     # Transforms
@@ -307,4 +314,6 @@ __all__ = [
     "CyclostationaryAMC",
     # Writer
     "DatasetWriter",
+    # File I/O
+    "SigMFWriter",
 ]
