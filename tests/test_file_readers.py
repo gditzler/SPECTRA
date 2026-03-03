@@ -75,3 +75,48 @@ class TestNumpyReader:
 
         assert ".npy" in NumpyReader.extensions()
         assert ".npz" in NumpyReader.extensions()
+
+
+class TestRawIQReader:
+    def test_read_cf32(self, tmp_path):
+        from spectra.utils.file_handlers.raw_reader import RawIQReader
+
+        iq = np.array([1 + 2j, 3 + 4j, 5 + 6j], dtype=np.complex64)
+        path = str(tmp_path / "data.cf32")
+        iq.tofile(path)
+        reader = RawIQReader(dtype="complex64")
+        result, meta = reader.read(path)
+        np.testing.assert_array_equal(result, iq)
+        assert result.dtype == np.complex64
+
+    def test_read_cs16_interleaved(self, tmp_path):
+        from spectra.utils.file_handlers.raw_reader import RawIQReader
+
+        interleaved = np.array([100, 200, 300, 400], dtype=np.int16)
+        path = str(tmp_path / "data.cs16")
+        interleaved.tofile(path)
+        reader = RawIQReader(dtype="int16")
+        result, meta = reader.read(path)
+        assert result.dtype == np.complex64
+        assert len(result) == 2
+        np.testing.assert_allclose(result[0].real, 100 / 32767.0, atol=1e-4)
+
+    def test_sample_rate_in_metadata(self, tmp_path):
+        from spectra.utils.file_handlers.raw_reader import RawIQReader
+
+        iq = np.zeros(4, dtype=np.complex64)
+        path = str(tmp_path / "data.raw")
+        iq.tofile(path)
+        reader = RawIQReader(dtype="complex64", sample_rate=2e6)
+        _, meta = reader.read(path)
+        assert meta.sample_rate == 2e6
+
+    def test_extensions(self):
+        from spectra.utils.file_handlers.raw_reader import RawIQReader
+
+        exts = RawIQReader.extensions()
+        assert ".cf32" in exts
+        assert ".cs16" in exts
+        assert ".raw" in exts
+        assert ".iq" in exts
+        assert ".bin" in exts
