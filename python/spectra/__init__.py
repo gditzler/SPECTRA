@@ -89,6 +89,9 @@ from spectra.impairments import (
     SpectralInversion,
 )
 
+# Curriculum
+from spectra.curriculum import CurriculumSchedule
+
 # Datasets
 from spectra.datasets import (
     collate_fn,
@@ -231,6 +234,8 @@ __all__ = [
     "RicianFading",
     "SampleRateOffset",
     "SpectralInversion",
+    # Curriculum
+    "CurriculumSchedule",
     # Datasets
     "collate_fn",
     "DatasetMetadata",
