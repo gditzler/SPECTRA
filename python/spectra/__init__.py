@@ -26,6 +26,8 @@ from spectra.impairments import (
     FrequencyOffset,
     IQImbalance,
     PhaseOffset,
+    RayleighFading,
+    RicianFading,
     SampleRateOffset,
 )
 from spectra.datasets import NarrowbandDataset, WidebandDataset, collate_fn
@@ -61,6 +63,8 @@ __all__ = [
     "FrequencyOffset",
     "IQImbalance",
     "PhaseOffset",
+    "RayleighFading",
+    "RicianFading",
     "SampleRateOffset",
     "NarrowbandDataset",
     "WidebandDataset",

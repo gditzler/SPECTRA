@@ -1,0 +1,121 @@
+import numpy as np
+import numpy.testing as npt
+import pytest
+
+from spectra.scene.signal_desc import SignalDescription
+
+
+def _make_desc():
+    return SignalDescription(0.0, 0.001, -5e3, 5e3, "QPSK", 20.0)
+
+
+class TestRayleighFading:
+    def test_modifies_signal(self, sample_rate):
+        from spectra.impairments.fading import RayleighFading
+
+        iq = np.ones(2048, dtype=np.complex64)
+        desc = _make_desc()
+        result, _ = RayleighFading(max_doppler=100.0)(
+            iq, desc, sample_rate=sample_rate
+        )
+        assert not np.allclose(result, iq, atol=0.1)
+
+    def test_output_shape_and_dtype(self, sample_rate):
+        from spectra.impairments.fading import RayleighFading
+
+        iq = np.ones(1024, dtype=np.complex64)
+        desc = _make_desc()
+        result, _ = RayleighFading(max_doppler=50.0)(
+            iq, desc, sample_rate=sample_rate
+        )
+        assert result.shape == iq.shape
+        assert result.dtype == np.complex64
+
+    def test_no_nans_or_infs(self, sample_rate):
+        from spectra.impairments.fading import RayleighFading
+
+        iq = np.ones(2048, dtype=np.complex64)
+        desc = _make_desc()
+        result, _ = RayleighFading(max_doppler=200.0)(
+            iq, desc, sample_rate=sample_rate
+        )
+        assert not np.any(np.isnan(result))
+        assert not np.any(np.isinf(result))
+
+    def test_requires_sample_rate(self):
+        from spectra.impairments.fading import RayleighFading
+
+        iq = np.ones(512, dtype=np.complex64)
+        desc = _make_desc()
+        with pytest.raises(ValueError, match="sample_rate"):
+            RayleighFading(max_doppler=50.0)(iq, desc)
+
+    def test_desc_unchanged(self, sample_rate):
+        from spectra.impairments.fading import RayleighFading
+
+        iq = np.ones(512, dtype=np.complex64)
+        desc = _make_desc()
+        _, new_desc = RayleighFading(max_doppler=50.0)(
+            iq, desc, sample_rate=sample_rate
+        )
+        assert new_desc.f_low == desc.f_low
+
+    def test_doppler_range_randomizes(self, sample_rate):
+        from spectra.impairments.fading import RayleighFading
+
+        iq = np.ones(1024, dtype=np.complex64)
+        desc = _make_desc()
+        rf = RayleighFading(max_doppler_range=(10.0, 500.0))
+        results = [rf(iq.copy(), desc, sample_rate=sample_rate)[0] for _ in range(10)]
+        # Different Doppler spreads should produce different fading patterns
+        diffs = [np.max(np.abs(results[i] - results[i + 1])) for i in range(9)]
+        assert not all(d < 1e-6 for d in diffs)
+
+
+class TestRicianFading:
+    def test_high_k_preserves_signal(self, sample_rate):
+        from spectra.impairments.fading import RicianFading
+
+        iq = np.ones(2048, dtype=np.complex64)
+        desc = _make_desc()
+        result, _ = RicianFading(k_factor=40.0, max_doppler=50.0)(
+            iq, desc, sample_rate=sample_rate
+        )
+        # Very high K = mostly LOS, signal should be close to original
+        npt.assert_allclose(np.abs(result), 1.0, atol=0.3)
+
+    def test_output_shape_and_dtype(self, sample_rate):
+        from spectra.impairments.fading import RicianFading
+
+        iq = np.ones(1024, dtype=np.complex64)
+        desc = _make_desc()
+        result, _ = RicianFading(k_factor=10.0, max_doppler=50.0)(
+            iq, desc, sample_rate=sample_rate
+        )
+        assert result.shape == iq.shape
+        assert result.dtype == np.complex64
+
+    def test_no_nans_or_infs(self, sample_rate):
+        from spectra.impairments.fading import RicianFading
+
+        iq = np.ones(2048, dtype=np.complex64)
+        desc = _make_desc()
+        result, _ = RicianFading(k_factor=3.0, max_doppler=100.0)(
+            iq, desc, sample_rate=sample_rate
+        )
+        assert not np.any(np.isnan(result))
+        assert not np.any(np.isinf(result))
+
+    def test_requires_sample_rate(self):
+        from spectra.impairments.fading import RicianFading
+
+        iq = np.ones(512, dtype=np.complex64)
+        desc = _make_desc()
+        with pytest.raises(ValueError, match="sample_rate"):
+            RicianFading(k_factor=10.0, max_doppler=50.0)(iq, desc)
+
+    def test_requires_params(self):
+        from spectra.impairments.fading import RicianFading
+
+        with pytest.raises(ValueError):
+            RicianFading(max_doppler=50.0)
