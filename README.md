@@ -6,10 +6,15 @@ SPECTRA generates synthetic RF signals on-the-fly for training machine learning 
 
 ## Features
 
-- **Rust-accelerated DSP** — symbol generation, pulse-shaping filters, and oscillators run in compiled Rust
-- **Composable impairments** — chain AWGN, frequency offset, and other channel effects like torchvision transforms
+- **60+ waveform generators** — PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, polyphase codes, Zadoff-Chu, Barker, and more
+- **16 channel impairments** — AWGN, frequency offset, phase noise, IQ imbalance, fading channels, quantization, adjacent-channel interference, and others composable like torchvision transforms
+- **Cyclostationary signal processing** — Rust-accelerated SCD, SCF, CAF, cumulants, PSD, and energy detection transforms for signal analysis and feature extraction
+- **AMC classifiers** — `CyclostationaryAMC` with cumulant, cyclic-peak, or combined feature sets and scikit-learn tree-based backends
 - **Wideband scene composition** — overlay multiple signals at different frequencies and times with physically correct complex-domain summation
 - **Detection-ready labels** — ground truth in physical units (seconds, Hz) with automatic conversion to COCO-style bounding boxes on spectrograms
+- **Benchmark configs** — reproducible `spectra-18` and `spectra-18-wideband` benchmarks loadable with one function call
+- **Curriculum learning** — `CurriculumSchedule` ramps SNR, signal count, and impairment severity over training epochs
+- **Streaming DataLoader** — `StreamingDataLoader` generates fresh data per epoch with deterministic seeding and curriculum integration
 - **Deterministic generation** — every sample is reproducible from `(seed, index)`, safe across DataLoader workers
 - **No disk I/O** — infinite variability generated on-the-fly in `__getitem__()`
 
@@ -23,6 +28,12 @@ source .venv/bin/activate
 uv pip install maturin numpy pytest
 uv pip install torch --index-url https://download.pytorch.org/whl/cpu
 maturin develop --release
+```
+
+For the AMC classifiers (requires scikit-learn):
+
+```bash
+pip install 'spectra[classifiers]'
 ```
 
 ## Quick Start
@@ -81,15 +92,73 @@ for spectrograms, targets in loader:
     ...
 ```
 
+### CSP Classification
+
+```python
+from spectra import (
+    BPSK, QPSK, PSK8, QAM16,
+    CyclostationaryDataset, CyclostationaryAMC,
+    SCD, Cumulants, AWGN, Compose,
+)
+
+# Multi-representation dataset with SCD + cumulant features
+dataset = CyclostationaryDataset(
+    waveform_pool=[BPSK(), QPSK(), PSK8(), QAM16()],
+    num_samples=400,
+    num_iq_samples=4096,
+    sample_rate=1e6,
+    representations={"scd": SCD(nfft=64, n_alpha=64), "cum": Cumulants()},
+    impairments=Compose([AWGN(snr_range=(10, 25))]),
+    seed=42,
+)
+
+# Train a random-forest AMC from cumulant features
+amc = CyclostationaryAMC(feature_set="cumulants", classifier="random_forest")
+amc.fit_from_dataset(dataset)
+```
+
 ## API Overview
 
-| Module | Classes / Functions | Purpose |
+| Module | Key Classes / Functions | Purpose |
 |---|---|---|
-| `spectra.waveforms` | `QPSK`, `BPSK` | Baseband waveform generators |
-| `spectra.impairments` | `AWGN`, `FrequencyOffset`, `Compose` | Composable channel impairments |
+| `spectra.waveforms` | `BPSK`, `QPSK`, `QAM16`..`QAM1024`, `PSK8`..`PSK64`, `FSK`, `GMSK`, `OFDM`, `LFM`, `OOK`, `ASK4`..`ASK64`, `Tone`, `Noise`, `FM`, `AMDSB`, ... | 60+ baseband waveform generators |
+| `spectra.impairments` | `AWGN`, `FrequencyOffset`, `PhaseNoise`, `IQImbalance`, `RayleighFading`, `RicianFading`, `Quantization`, `Compose`, ... | 16 composable channel impairments |
 | `spectra.scene` | `Composer`, `SceneConfig`, `SignalDescription`, `STFTParams`, `to_coco` | Multi-signal scene composition and labeling |
-| `spectra.transforms` | `STFT` | Spectrogram transform |
-| `spectra.datasets` | `NarrowbandDataset`, `WidebandDataset`, `collate_fn` | PyTorch dataset classes |
+| `spectra.transforms` | `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `PSD`, `EnergyDetector`, `ComplexTo2D`, `Normalize`, `CutOut`, ... | Spectral transforms, CSP features, augmentations |
+| `spectra.datasets` | `NarrowbandDataset`, `WidebandDataset`, `CyclostationaryDataset`, `collate_fn` | PyTorch dataset classes |
+| `spectra.classifiers` | `CyclostationaryAMC` | Traditional AMC with cumulant/cyclic-peak features |
+| `spectra.benchmarks` | `load_benchmark` | Reproducible benchmark dataset loader |
+| `spectra.curriculum` | `CurriculumSchedule` | Progressive difficulty scheduling |
+| `spectra.streaming` | `StreamingDataLoader` | Epoch-aware DataLoader with curriculum |
+| `spectra.utils` | `frequency_shift`, `srrc_taps`, `low_pass`, `DatasetWriter`, ... | DSP utilities and I/O |
+
+## Benchmarks
+
+Load a reproducible benchmark with a single call:
+
+```python
+from spectra import load_benchmark
+
+train_ds, val_ds, test_ds = load_benchmark("spectra-18", split="all")
+# 18-class narrowband AMC: 8000 train / 2000 val / 2000 test
+```
+
+Available benchmarks: `spectra-18` (narrowband AMC), `spectra-18-wideband` (signal detection).
+
+## Examples
+
+See [`examples/`](examples/) for 8 runnable scripts (with matching Jupyter notebooks):
+
+| # | Topic | Level |
+|---|---|---|
+| 01 | Basic Waveform Generation | Novice |
+| 02 | Impairments and Channel Effects | Intermediate |
+| 03 | Transforms and Spectrograms | Intermediate |
+| 04 | Narrowband Classification Dataset | Advanced |
+| 05 | Wideband Scene Composition | Pro |
+| 06 | Full Pipeline: Dataset to Classifier | Pro |
+| 07 | CSP Feature Visualization | Intermediate |
+| 08 | CSP Classification | Advanced |
 
 ## Running Tests
 
@@ -100,6 +169,9 @@ pytest
 # Rust FFI tests only
 pytest -m rust
 
+# Cyclostationary signal processing tests
+pytest -m csp
+
 # Single test
 pytest tests/test_waveforms_psk.py::TestQPSKWaveform::test_bandwidth -v
 ```
@@ -107,4 +179,3 @@ pytest tests/test_waveforms_psk.py::TestQPSKWaveform::test_bandwidth -v
 ## License
 
 MIT
-
