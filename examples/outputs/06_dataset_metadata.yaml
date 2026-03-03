@@ -1,0 +1,18 @@
+impairment_config: {}
+name: amc_8class
+num_iq_samples: 1024
+num_samples: 1600
+sample_rate: 1000000.0
+seed: 42
+snr_range:
+- 0
+- 20
+waveform_labels:
+- BPSK
+- QPSK
+- 8PSK
+- 16QAM
+- 64QAM
+- FSK
+- GMSK
+- OFDM
