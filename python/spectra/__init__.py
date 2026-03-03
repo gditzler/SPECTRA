@@ -19,7 +19,7 @@ from spectra.waveforms import (
     QAM256,
 )
 from spectra.scene import Composer, SceneConfig, SignalDescription, STFTParams, to_coco
-from spectra.impairments import AWGN, Compose, FrequencyOffset, IQImbalance, PhaseOffset
+from spectra.impairments import AWGN, Compose, DCOffset, FrequencyOffset, IQImbalance, PhaseOffset
 from spectra.datasets import NarrowbandDataset, WidebandDataset, collate_fn
 from spectra.transforms import STFT
 
@@ -49,6 +49,7 @@ __all__ = [
     "to_coco",
     "AWGN",
     "Compose",
+    "DCOffset",
     "FrequencyOffset",
     "IQImbalance",
     "PhaseOffset",
