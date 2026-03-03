@@ -95,6 +95,9 @@ from spectra.curriculum import CurriculumSchedule
 # Streaming
 from spectra.streaming import StreamingDataLoader
 
+# Benchmarks
+from spectra.benchmarks import load_benchmark
+
 # Datasets
 from spectra.datasets import (
     collate_fn,
@@ -241,6 +244,8 @@ __all__ = [
     "CurriculumSchedule",
     # Streaming
     "StreamingDataLoader",
+    # Benchmarks
+    "load_benchmark",
     # Datasets
     "collate_fn",
     "DatasetMetadata",
