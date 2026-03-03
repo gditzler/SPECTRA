@@ -1,4 +1,5 @@
 from spectra.waveforms.am import AM
+from spectra.waveforms.barker import BarkerCode
 from spectra.waveforms.costas import CostasCode
 from spectra.waveforms.fsk import FSK, GMSK, MSK
 from spectra.waveforms.lfm import LFM
@@ -10,6 +11,7 @@ from spectra.waveforms.qam import QAM16, QAM64, QAM256
 
 __all__ = [
     "AM",
+    "BarkerCode",
     "BPSK",
     "CostasCode",
     "FrankCode",
