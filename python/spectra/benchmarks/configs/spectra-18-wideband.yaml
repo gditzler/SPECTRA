@@ -1,0 +1,51 @@
+name: "spectra-18-wideband"
+version: "1.0"
+description: >
+  18-class wideband signal detection benchmark.
+  Same signal classes as spectra-18, composed into multi-signal scenes
+  with 1-5 signals per capture for COCO-format object detection.
+task: "wideband"
+
+sample_rate: 2_000_000
+num_iq_samples: 4096
+num_samples:
+  train: 20_000
+  val: 4_000
+  test: 4_000
+
+seed:
+  train: 4000
+  val: 5000
+  test: 6000
+
+waveform_pool:
+  - {type: "BPSK"}
+  - {type: "QPSK"}
+  - {type: "PSK8"}
+  - {type: "QAM16"}
+  - {type: "QAM64"}
+  - {type: "QAM256"}
+  - {type: "FSK", params: {order: 2}}
+  - {type: "FSK", params: {order: 4}}
+  - {type: "MSK"}
+  - {type: "GMSK"}
+  - {type: "OFDM"}
+  - {type: "LFM"}
+  - {type: "CostasCode"}
+  - {type: "FrankCode"}
+  - {type: "P1Code"}
+  - {type: "AMDSB_SC"}
+  - {type: "BarkerCode", params: {length: 13}}
+  - {type: "Noise"}
+
+snr_range: [0, 25]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 25_000}}
+  - {type: "PhaseOffset", params: {max_offset: 1.5708}}
+
+scene:
+  capture_bandwidth: 1_000_000
+  capture_duration: 0.002
+  num_signals: [1, 5]
+  allow_overlap: true
