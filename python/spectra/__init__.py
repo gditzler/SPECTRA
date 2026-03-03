@@ -92,6 +92,9 @@ from spectra.impairments import (
 # Curriculum
 from spectra.curriculum import CurriculumSchedule
 
+# Streaming
+from spectra.streaming import StreamingDataLoader
+
 # Datasets
 from spectra.datasets import (
     collate_fn,
@@ -236,6 +239,8 @@ __all__ = [
     "SpectralInversion",
     # Curriculum
     "CurriculumSchedule",
+    # Streaming
+    "StreamingDataLoader",
     # Datasets
     "collate_fn",
     "DatasetMetadata",
