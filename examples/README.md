@@ -10,6 +10,9 @@ maturin develop --release
 
 # Install dependencies
 pip install numpy matplotlib torch --index-url https://download.pytorch.org/whl/cpu
+
+# For CSP classification examples (08)
+pip install 'spectra[classifiers]'
 ```
 
 ## Examples
@@ -92,9 +95,37 @@ End-to-end workflow from dataset generation to trained classifier.
 cd examples && python 06_full_pipeline.py
 ```
 
+### 07 — CSP Feature Visualization (Intermediate)
+
+Explore cyclostationary signal processing transforms for RF signal analysis.
+
+- Spectral Correlation Density (SCD) comparison across modulations
+- Spectral Coherence Function (SCF) for BPSK vs QPSK
+- Cyclic Autocorrelation Function (CAF) heatmaps
+- Higher-order cumulant feature comparison
+- Rust-backed Welch PSD and energy detection
+
+```bash
+cd examples && python 07_csp_features.py
+```
+
+### 08 — CSP Classification (Advanced)
+
+Build and evaluate a cyclostationary AMC classifier.
+
+- `CyclostationaryDataset` with SCD, cumulant, and PSD representations
+- `CyclostationaryAMC` with random forest classifier
+- Confusion matrix evaluation
+- Feature set comparison (cumulants vs cyclic_peaks vs combined)
+- Accuracy vs SNR sweep
+
+```bash
+cd examples && python 08_csp_classification.py
+```
+
 ## Output
 
-All figures are saved to `examples/outputs/`. Running all six scripts produces 27 PNG figures and 1 YAML metadata file.
+All figures are saved to `examples/outputs/`. Running all eight scripts produces 34+ PNG figures and 1 YAML metadata file.
 
 ## File Structure
 
@@ -107,5 +138,7 @@ examples/
   04_narrowband_dataset.ipynb / .py     # Advanced
   05_wideband_scenes.ipynb / .py        # Pro
   06_full_pipeline.ipynb / .py          # Pro
+  07_csp_features.ipynb / .py           # Intermediate
+  08_csp_classification.ipynb / .py     # Advanced
   outputs/                              # Generated figures
 ```
