@@ -1,5 +1,6 @@
 from spectra._rust import __version__
 from spectra.waveforms import (
+    AM,
     BPSK,
     QPSK,
     CostasCode,
@@ -35,6 +36,7 @@ from spectra.transforms import STFT
 
 __all__ = [
     "__version__",
+    "AM",
     "BPSK",
     "CostasCode",
     "FrankCode",
