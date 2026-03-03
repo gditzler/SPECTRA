@@ -187,3 +187,65 @@ class TestSigMFReader:
         from spectra.utils.file_handlers.sigmf_reader import SigMFReader
 
         assert ".sigmf-meta" in SigMFReader.extensions()
+
+
+try:
+    import h5py
+
+    HAS_H5PY = True
+except ImportError:
+    HAS_H5PY = False
+
+
+@pytest.mark.skipif(not HAS_H5PY, reason="h5py not installed")
+class TestHDF5Reader:
+    def test_read_complex64_dataset(self, tmp_path):
+        from spectra.utils.file_handlers.hdf5_reader import HDF5Reader
+
+        iq = np.zeros(256, dtype=np.complex64)
+        path = str(tmp_path / "data.h5")
+        with h5py.File(path, "w") as f:
+            f.create_dataset("iq", data=iq)
+        reader = HDF5Reader(iq_dataset="iq")
+        result, meta = reader.read(path)
+        assert result.dtype == np.complex64
+        assert len(result) == 256
+
+    def test_read_real_imag_columns(self, tmp_path):
+        from spectra.utils.file_handlers.hdf5_reader import HDF5Reader
+
+        data = np.zeros((128, 2), dtype=np.float32)
+        data[:, 0] = 1.0  # I channel
+        data[:, 1] = 2.0  # Q channel
+        path = str(tmp_path / "data.h5")
+        with h5py.File(path, "w") as f:
+            f.create_dataset("X", data=data)
+        reader = HDF5Reader(iq_dataset="X")
+        result, meta = reader.read(path)
+        assert result.dtype == np.complex64
+        assert len(result) == 128
+        np.testing.assert_allclose(result.real, 1.0)
+        np.testing.assert_allclose(result.imag, 2.0)
+
+    def test_fallback_dataset_names(self, tmp_path):
+        from spectra.utils.file_handlers.hdf5_reader import HDF5Reader
+
+        iq = np.zeros(64, dtype=np.complex64)
+        path = str(tmp_path / "data.h5")
+        with h5py.File(path, "w") as f:
+            f.create_dataset("X", data=iq)
+        reader = HDF5Reader()  # default key is "iq", should fallback to "X"
+        result, _ = reader.read(path)
+        assert len(result) == 64
+
+    def test_metadata_from_attrs(self, tmp_path):
+        from spectra.utils.file_handlers.hdf5_reader import HDF5Reader
+
+        iq = np.zeros(32, dtype=np.complex64)
+        path = str(tmp_path / "data.h5")
+        with h5py.File(path, "w") as f:
+            f.create_dataset("iq", data=iq)
+            f.attrs["sample_rate"] = 1e6
+        reader = HDF5Reader()
+        _, meta = reader.read(path)
+        assert meta.sample_rate == 1e6
