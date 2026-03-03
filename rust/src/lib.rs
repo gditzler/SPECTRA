@@ -1,6 +1,8 @@
 use pyo3::prelude::*;
 
 mod codes;
+mod cyclo_spectral;
+mod cyclo_temporal;
 mod filters;
 mod modulators;
 mod oscillators;
@@ -31,5 +33,12 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(filters::gaussian_taps, m)?)?;
     m.add_function(wrap_pyfunction!(filters::lowpass_taps, m)?)?;
     m.add_function(wrap_pyfunction!(filters::convolve_complex, m)?)?;
+    // Cyclostationary signal processing
+    m.add_function(wrap_pyfunction!(cyclo_spectral::compute_scd_ssca, m)?)?;
+    m.add_function(wrap_pyfunction!(cyclo_spectral::compute_scd_fam, m)?)?;
+    m.add_function(wrap_pyfunction!(cyclo_spectral::compute_psd_welch, m)?)?;
+    m.add_function(wrap_pyfunction!(cyclo_spectral::channelize, m)?)?;
+    m.add_function(wrap_pyfunction!(cyclo_temporal::compute_cumulants, m)?)?;
+    m.add_function(wrap_pyfunction!(cyclo_temporal::compute_caf, m)?)?;
     Ok(())
 }

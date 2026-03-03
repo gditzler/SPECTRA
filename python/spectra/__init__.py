@@ -86,6 +86,7 @@ from spectra.impairments import (
 # Datasets
 from spectra.datasets import (
     collate_fn,
+    CyclostationaryDataset,
     DatasetMetadata,
     NarrowbandDataset,
     NarrowbandMetadata,
@@ -98,17 +99,23 @@ from spectra.transforms import (
     AGC,
     AddSlope,
     BoxesNormalize,
+    CAF,
     ChannelSwap,
     ClassIndex,
     ComplexTo2D,
+    Cumulants,
     CutOut,
+    EnergyDetector,
     FAMILY_MAP,
     FamilyIndex,
     FamilyName,
     Normalize,
+    PSD,
     PatchShuffle,
     RandomDropSamples,
     RandomMagRescale,
+    SCD,
+    SCF,
     Spectrogram,
     STFT,
     TargetTransform,
@@ -132,6 +139,9 @@ from spectra.utils import (
     srrc_taps,
     upsample,
 )
+
+# Classifiers
+from spectra.classifiers import CyclostationaryAMC
 
 # Writer
 from spectra.utils.writer import DatasetWriter
@@ -220,6 +230,7 @@ __all__ = [
     "SpectralInversion",
     # Datasets
     "collate_fn",
+    "CyclostationaryDataset",
     "DatasetMetadata",
     "NarrowbandDataset",
     "NarrowbandMetadata",
@@ -229,17 +240,23 @@ __all__ = [
     "AGC",
     "AddSlope",
     "BoxesNormalize",
+    "CAF",
     "ChannelSwap",
     "ClassIndex",
     "ComplexTo2D",
+    "Cumulants",
     "CutOut",
+    "EnergyDetector",
     "FAMILY_MAP",
     "FamilyIndex",
     "FamilyName",
     "Normalize",
+    "PSD",
     "PatchShuffle",
     "RandomDropSamples",
     "RandomMagRescale",
+    "SCD",
+    "SCF",
     "Spectrogram",
     "STFT",
     "TargetTransform",
@@ -259,6 +276,8 @@ __all__ = [
     "polyphase_interpolator",
     "srrc_taps",
     "upsample",
+    # Classifiers
+    "CyclostationaryAMC",
     # Writer
     "DatasetWriter",
 ]

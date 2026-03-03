@@ -16,7 +16,8 @@ dependencies = [
 [project.optional-dependencies]
 yaml = ["pyyaml>=6.0"]
 zarr = ["zarr>=2.16"]
-all = ["pyyaml>=6.0", "zarr>=2.16"]
+classifiers = ["scikit-learn>=1.0"]
+all = ["pyyaml>=6.0", "zarr>=2.16", "scikit-learn>=1.0"]
 dev = [
     "maturin>=1.9,<2",
     "pytest>=8.0",
@@ -38,4 +39,5 @@ addopts = ["--tb=short", "-v", "--strict-markers"]
 markers = [
     "slow: marks tests as slow",
     "rust: marks tests that exercise Rust FFI directly",
+    "csp: marks cyclostationary signal processing tests",
 ]
