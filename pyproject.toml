@@ -36,6 +36,7 @@ module-name = "spectra._rust"
 bindings = "pyo3"
 
 [tool.pytest.ini_options]
+pythonpath = ["."]
 testpaths = ["tests"]
 python_files = "test_*.py"
 addopts = ["--tb=short", "-v", "--strict-markers"]
