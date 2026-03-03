@@ -249,3 +249,34 @@ class TestHDF5Reader:
         reader = HDF5Reader()
         _, meta = reader.read(path)
         assert meta.sample_rate == 1e6
+
+
+class TestRegistryWiring:
+    def test_numpy_registered(self, tmp_path):
+        from spectra.utils.file_handlers import get_reader
+
+        path = str(tmp_path / "test.npy")
+        np.save(path, np.zeros(4, dtype=np.complex64))
+        reader = get_reader(path)
+        assert type(reader).__name__ == "NumpyReader"
+
+    def test_raw_registered(self, tmp_path):
+        from spectra.utils.file_handlers import get_reader
+
+        path = str(tmp_path / "test.cf32")
+        np.zeros(4, dtype=np.complex64).tofile(path)
+        reader = get_reader(path)
+        assert type(reader).__name__ == "RawIQReader"
+
+    def test_sigmf_registered(self):
+        from spectra.utils.file_handlers import get_reader
+
+        reader = get_reader("/fake/path.sigmf-meta")
+        assert type(reader).__name__ == "SigMFReader"
+
+    def test_supported_extensions_comprehensive(self):
+        from spectra.utils.file_handlers import supported_extensions
+
+        exts = supported_extensions()
+        for ext in (".npy", ".npz", ".cf32", ".cs16", ".raw", ".iq", ".bin", ".sigmf-meta"):
+            assert ext in exts
