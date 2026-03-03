@@ -81,8 +81,10 @@ def iq_to_spectrogram(dataset, cfg, max_samples=None):
         iq_tensor, label = dataset[i]
         # iq_tensor is [2, N] float; convert to complex for STFT
         iq_np = iq_tensor[0].numpy() + 1j * iq_tensor[1].numpy()
-        spec = stft(iq_np)  # returns numpy magnitude spectrogram
-        specs.append(torch.tensor(spec, dtype=torch.float32).unsqueeze(0))
+        spec = stft(iq_np)  # returns [1, F, T] tensor
+        if not isinstance(spec, torch.Tensor):
+            spec = torch.as_tensor(spec, dtype=torch.float32)
+        specs.append(spec.float())
         labels.append(label)
 
     return TensorDataset(torch.stack(specs), torch.tensor(labels, dtype=torch.long))

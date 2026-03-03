@@ -26,3 +26,4 @@ examples/outputs/*.png
 .DS_Store
 .claude/
 .worktrees/
+benchmarks/comparison/results/
