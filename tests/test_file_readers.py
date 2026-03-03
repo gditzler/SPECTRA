@@ -120,3 +120,70 @@ class TestRawIQReader:
         assert ".raw" in exts
         assert ".iq" in exts
         assert ".bin" in exts
+
+
+class TestSigMFReader:
+    def _write_sigmf_pair(self, tmp_path, iq, sample_rate=1e6, center_freq=2.4e9):
+        """Helper: write a SigMF meta+data pair using raw JSON + tofile."""
+        base = str(tmp_path / "recording")
+        iq.astype(np.complex64).tofile(base + ".sigmf-data")
+        meta = {
+            "global": {
+                "core:datatype": "cf32_le",
+                "core:sample_rate": sample_rate,
+                "core:version": "1.0.0",
+            },
+            "captures": [
+                {"core:sample_start": 0, "core:frequency": center_freq}
+            ],
+            "annotations": [],
+        }
+        import json
+
+        with open(base + ".sigmf-meta", "w") as f:
+            json.dump(meta, f)
+        return base + ".sigmf-meta"
+
+    def test_read_cf32_le(self, tmp_path):
+        from spectra.utils.file_handlers.sigmf_reader import SigMFReader
+
+        iq = np.array([1 + 2j, 3 + 4j], dtype=np.complex64)
+        path = self._write_sigmf_pair(tmp_path, iq)
+        reader = SigMFReader()
+        result, meta = reader.read(path)
+        np.testing.assert_array_equal(result, iq)
+        assert result.dtype == np.complex64
+
+    def test_metadata_fields(self, tmp_path):
+        from spectra.utils.file_handlers.sigmf_reader import SigMFReader
+
+        iq = np.zeros(64, dtype=np.complex64)
+        path = self._write_sigmf_pair(tmp_path, iq, sample_rate=2e6, center_freq=915e6)
+        reader = SigMFReader()
+        _, meta = reader.read(path)
+        assert meta.sample_rate == 2e6
+        assert meta.center_frequency == 915e6
+        assert meta.num_samples == 64
+
+    def test_missing_data_file_raises(self, tmp_path):
+        import json
+
+        from spectra.utils.file_handlers.sigmf_reader import SigMFReader
+
+        meta_path = str(tmp_path / "orphan.sigmf-meta")
+        with open(meta_path, "w") as f:
+            json.dump(
+                {
+                    "global": {"core:datatype": "cf32_le"},
+                    "captures": [],
+                    "annotations": [],
+                },
+                f,
+            )
+        with pytest.raises(FileNotFoundError):
+            SigMFReader().read(meta_path)
+
+    def test_extensions(self):
+        from spectra.utils.file_handlers.sigmf_reader import SigMFReader
+
+        assert ".sigmf-meta" in SigMFReader.extensions()
