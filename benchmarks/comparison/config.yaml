@@ -1,0 +1,50 @@
+# benchmarks/comparison/config.yaml
+# Common evaluation protocol for SPECTRA vs TorchSig
+name: "spectra-vs-torchsig"
+version: "1.0"
+
+# Shared parameters
+num_classes: 8
+num_iq_samples: 1024
+sample_rate: 1_000_000
+snr_range: [0, 20]
+
+# Dataset sizes
+num_samples:
+  train: 8000       # 1000 per class
+  test: 2000        # 250 per class
+
+seeds:
+  spectra_train: 42
+  spectra_test: 43
+  torchsig_train: 44
+  torchsig_test: 45
+
+# SPECTRA impairments (applied to both frameworks for fairness)
+impairments:
+  - type: "AWGN"
+  - type: "FrequencyOffset"
+    params: {max_offset: 50000}
+  - type: "PhaseOffset"
+
+# CNN configuration
+cnn:
+  backbone: "resnet18"
+  stft_nfft: 128
+  stft_hop: 32
+  epochs: 30
+  batch_size: 64
+  learning_rate: 0.001
+  weight_decay: 0.0001
+
+# CSP configuration
+csp:
+  feature_set: "cumulants"
+  classifier: "random_forest"
+
+# Speed benchmark
+speed:
+  num_samples: 10000
+  num_warmup: 100
+  batch_size: 64
+  num_workers: 4
