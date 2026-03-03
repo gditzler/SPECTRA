@@ -10,6 +10,7 @@ from spectra.transforms.augmentations import (
 )
 from spectra.transforms.complex_to_2d import ComplexTo2D
 from spectra.transforms.normalize import Normalize
+from spectra.transforms.psd import PSD
 from spectra.transforms.spectrogram import Spectrogram
 from spectra.transforms.stft import STFT
 from spectra.transforms.target_transforms import (
@@ -34,6 +35,7 @@ __all__ = [
     "FamilyIndex",
     "FamilyName",
     "Normalize",
+    "PSD",
     "PatchShuffle",
     "RandomDropSamples",
     "RandomMagRescale",

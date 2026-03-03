@@ -1,5 +1,6 @@
 from spectra.waveforms.am import AMDSB, AMDSB_SC, AMLSB, AMUSB
 from spectra.waveforms.ask import ASK4, ASK8, ASK16, ASK32, ASK64, OOK
+from spectra.waveforms.barker import BarkerCode
 from spectra.waveforms.chirpss import ChirpSS
 from spectra.waveforms.costas import CostasCode
 from spectra.waveforms.fm import FM
@@ -20,6 +21,7 @@ from spectra.waveforms.fsk import (
     MSK8,
 )
 from spectra.waveforms.lfm import LFM
+from spectra.waveforms.noise import Noise
 from spectra.waveforms.ofdm import (
     OFDM,
     OFDM72,
@@ -37,6 +39,7 @@ from spectra.waveforms.polyphase import FrankCode, P1Code, P2Code, P3Code, P4Cod
 from spectra.waveforms.psk import BPSK, PSK8, PSK16, PSK32, PSK64, QPSK
 from spectra.waveforms.qam import QAM16, QAM32, QAM64, QAM128, QAM256, QAM512, QAM1024
 from spectra.waveforms.tone import Tone
+from spectra.waveforms.zadoff_chu import ZadoffChu
 
 __all__ = [
     "AMDSB",
@@ -44,6 +47,7 @@ __all__ = [
     "AMLSB",
     "AMUSB",
     "ASK4",
+    "BarkerCode",
     "ASK8",
     "ASK16",
     "ASK32",
@@ -68,6 +72,7 @@ __all__ = [
     "MSK",
     "MSK4",
     "MSK8",
+    "Noise",
     "OFDM",
     "OFDM72",
     "OFDM128",
@@ -97,4 +102,5 @@ __all__ = [
     "QAM1024",
     "QPSK",
     "Tone",
+    "ZadoffChu",
 ]
