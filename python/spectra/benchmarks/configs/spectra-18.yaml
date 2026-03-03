@@ -1,0 +1,46 @@
+name: "spectra-18"
+version: "1.0"
+description: >
+  18-class narrowband Automatic Modulation Classification benchmark.
+  Covers PSK, QAM, FSK, radar, and analog modulations at SNR range [-10, 30] dB
+  with frequency offset and phase offset impairments.
+task: "narrowband"
+
+sample_rate: 1_000_000
+num_iq_samples: 1024
+num_samples:
+  train: 50_000
+  val: 10_000
+  test: 10_000
+
+seed:
+  train: 1000
+  val: 2000
+  test: 3000
+
+waveform_pool:
+  - {type: "BPSK"}
+  - {type: "QPSK"}
+  - {type: "PSK8"}
+  - {type: "QAM16"}
+  - {type: "QAM64"}
+  - {type: "QAM256"}
+  - {type: "FSK", params: {order: 2}}
+  - {type: "FSK", params: {order: 4}}
+  - {type: "MSK"}
+  - {type: "GMSK"}
+  - {type: "OFDM"}
+  - {type: "LFM"}
+  - {type: "CostasCode"}
+  - {type: "FrankCode"}
+  - {type: "P1Code"}
+  - {type: "AMDSB_SC"}
+  - {type: "BarkerCode", params: {length: 13}}
+  - {type: "Noise"}
+
+snr_range: [-10, 30]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 50_000}}
+  - {type: "PhaseOffset", params: {max_offset: 3.14159}}
+  - {type: "AWGN"}
