@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from spectra.datasets.iq_utils import iq_to_tensor, truncate_pad
 from spectra.utils.file_handlers.base_reader import FileReader
 from spectra.utils.file_handlers.registry import get_reader, supported_extensions
 
@@ -105,11 +106,7 @@ class SignalFolderDataset(Dataset):
         iq, metadata = reader.read(filepath)
 
         # Truncate / pad to num_iq_samples
-        iq = iq[: self.num_iq_samples]
-        if len(iq) < self.num_iq_samples:
-            padded = np.zeros(self.num_iq_samples, dtype=np.complex64)
-            padded[: len(iq)] = iq
-            iq = padded
+        iq = truncate_pad(iq, self.num_iq_samples)
 
         # Apply impairments
         if self.impairments is not None:
@@ -130,9 +127,7 @@ class SignalFolderDataset(Dataset):
         if self.transform is not None:
             data = self.transform(iq)
         else:
-            data = torch.tensor(
-                np.stack([iq.real, iq.imag]), dtype=torch.float32
-            )
+            data = iq_to_tensor(iq)
 
         label = class_idx
         if self.target_transform is not None:

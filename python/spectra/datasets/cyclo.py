@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from spectra.datasets.iq_utils import truncate_pad
 from spectra.impairments.compose import Compose
 from spectra.waveforms.base import Waveform
 
@@ -79,11 +80,7 @@ class CyclostationaryDataset(Dataset):
         )
 
         # Truncate / pad to requested length
-        iq = iq[: self.num_iq_samples]
-        if len(iq) < self.num_iq_samples:
-            padded = np.zeros(self.num_iq_samples, dtype=np.complex64)
-            padded[: len(iq)] = iq
-            iq = padded
+        iq = truncate_pad(iq, self.num_iq_samples)
 
         # Apply impairments
         if self.impairments is not None:

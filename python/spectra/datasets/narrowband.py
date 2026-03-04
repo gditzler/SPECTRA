@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
+from spectra.datasets.iq_utils import iq_to_tensor, truncate_pad
 from spectra.impairments.compose import Compose
 from spectra.waveforms.base import Waveform
 
@@ -51,11 +52,7 @@ class NarrowbandDataset(Dataset):
         )
 
         # Truncate to requested length
-        iq = iq[: self.num_iq_samples]
-        if len(iq) < self.num_iq_samples:
-            padded = np.zeros(self.num_iq_samples, dtype=np.complex64)
-            padded[: len(iq)] = iq
-            iq = padded
+        iq = truncate_pad(iq, self.num_iq_samples)
 
         # Apply impairments
         if self.impairments is not None:
@@ -75,10 +72,7 @@ class NarrowbandDataset(Dataset):
         if self.transform is not None:
             data = self.transform(iq)
         else:
-            buf = np.empty((2, len(iq)), dtype=np.float32)
-            buf[0] = iq.real
-            buf[1] = iq.imag
-            data = torch.from_numpy(buf)
+            data = iq_to_tensor(iq)
 
         label = waveform_idx
         if self.target_transform is not None:
