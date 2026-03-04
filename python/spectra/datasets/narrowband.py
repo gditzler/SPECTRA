@@ -60,11 +60,12 @@ class NarrowbandDataset(Dataset):
         # Apply impairments
         if self.impairments is not None:
             from spectra.scene.signal_desc import SignalDescription
+            bw = waveform.bandwidth(self.sample_rate)
             desc = SignalDescription(
                 t_start=0.0,
                 t_stop=self.num_iq_samples / self.sample_rate,
-                f_low=-waveform.bandwidth(self.sample_rate) / 2,
-                f_high=waveform.bandwidth(self.sample_rate) / 2,
+                f_low=-bw / 2,
+                f_high=bw / 2,
                 label=waveform.label,
                 snr=0.0,
             )
@@ -74,9 +75,10 @@ class NarrowbandDataset(Dataset):
         if self.transform is not None:
             data = self.transform(iq)
         else:
-            data = torch.tensor(
-                np.stack([iq.real, iq.imag]), dtype=torch.float32
-            )
+            buf = np.empty((2, len(iq)), dtype=np.float32)
+            buf[0] = iq.real
+            buf[1] = iq.imag
+            data = torch.from_numpy(buf)
 
         label = waveform_idx
         if self.target_transform is not None:
