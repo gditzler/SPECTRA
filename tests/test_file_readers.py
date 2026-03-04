@@ -280,3 +280,60 @@ class TestRegistryWiring:
         exts = supported_extensions()
         for ext in (".npy", ".npz", ".cf32", ".cs16", ".raw", ".iq", ".bin", ".sigmf-meta"):
             assert ext in exts
+
+
+class TestSQLiteReader:
+    def _make_db(self, tmp_path, n=3):
+        """Create a test .db using SQLiteWriter."""
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+
+        path = str(tmp_path / "test.db")
+        writer = SQLiteWriter(path, sample_rate=1e6)
+        for i in range(n):
+            iq = np.array([float(i) + 1j * float(i + 1)], dtype=np.complex64)
+            writer.write(iq, label=i, class_name=f"class_{i}")
+        writer.close()
+        return path
+
+    def test_read_single_record(self, tmp_path):
+        from spectra.utils.file_handlers.sqlite_reader import SQLiteReader
+
+        path = self._make_db(tmp_path)
+        iq, meta = SQLiteReader().read(path)
+        assert iq.dtype == np.complex64
+        assert len(iq) == 1
+
+    def test_read_metadata(self, tmp_path):
+        from spectra.utils.file_handlers.sqlite_reader import SQLiteReader
+
+        path = self._make_db(tmp_path)
+        _, meta = SQLiteReader().read(path)
+        assert meta.sample_rate == 1e6
+        assert meta.num_samples == 1
+
+    def test_read_by_index(self, tmp_path):
+        from spectra.utils.file_handlers.sqlite_reader import SQLiteReader
+
+        path = self._make_db(tmp_path, n=5)
+        iq0, _ = SQLiteReader(row_index=0).read(path)
+        iq2, _ = SQLiteReader(row_index=2).read(path)
+        # Values differ because each row has a unique IQ value
+        assert not np.array_equal(iq0, iq2)
+
+    def test_roundtrip(self, tmp_path):
+        from spectra.utils.file_handlers.sqlite_reader import SQLiteReader
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+
+        original = np.array([1 + 2j, 3 + 4j, 5 + 6j], dtype=np.complex64)
+        path = str(tmp_path / "rt.db")
+        writer = SQLiteWriter(path)
+        writer.write(original, label=0)
+        writer.close()
+
+        loaded, meta = SQLiteReader().read(path)
+        np.testing.assert_array_equal(loaded, original)
+
+    def test_extensions(self):
+        from spectra.utils.file_handlers.sqlite_reader import SQLiteReader
+
+        assert SQLiteReader.extensions() == (".db",)
