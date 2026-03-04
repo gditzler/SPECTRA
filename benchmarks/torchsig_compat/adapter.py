@@ -1,4 +1,5 @@
-"""Adapter wrapping a TorchSig dataset to match SPECTRA's (tensor[2,N], int) interface."""
+"""Adapter wrapping a TorchSig v2.x iterable dataset into a map-style dataset
+matching SPECTRA's (tensor[2,N], int) interface."""
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
@@ -9,58 +10,58 @@ from benchmarks.torchsig_compat.label_map import torchsig_to_canonical
 
 
 class TorchSigAdapter(Dataset):
-    """Wrap a TorchSig dataset to return (tensor[2, N], int_label).
+    """Materialize a TorchSig iterable dataset into a map-style dataset.
 
-    TorchSig datasets return (complex_iq, metadata_dict). This adapter
-    converts the complex IQ to a real-valued [2, N] tensor (matching
-    SPECTRA's NarrowbandDataset format) and extracts the integer class
-    label from the metadata.
+    TorchSig v2.x uses ``TorchSigIterableDataset`` which yields
+    ``(complex64_array, str_label)`` pairs.  This adapter draws
+    *num_samples* from the iterator and stores them as ``(tensor[2, N],
+    int_label)`` pairs so they can be indexed, matching SPECTRA's
+    ``NarrowbandDataset`` output format.
 
     Args:
-        dataset: A TorchSig dataset instance.
+        iterable_dataset: A TorchSig ``TorchSigIterableDataset`` instance.
+        num_samples: Number of samples to materialize from the iterator.
         class_list: Canonical class names in index order.
-        class_key: Metadata key containing the TorchSig class string.
         transform: Optional transform applied to the [2, N] tensor.
     """
 
     def __init__(
         self,
-        dataset,
+        iterable_dataset,
+        num_samples: int,
         class_list: List[str],
-        class_key: str = "class_name",
         transform: Optional[Callable] = None,
     ):
-        self._dataset = dataset
         self._class_to_idx = {name: i for i, name in enumerate(class_list)}
-        self._class_key = class_key
         self._transform = transform
+        self._data: List[Tuple[torch.Tensor, int]] = []
+
+        for i, (iq, label_str) in enumerate(iterable_dataset):
+            if i >= num_samples:
+                break
+            iq = np.asarray(iq)
+            if np.iscomplexobj(iq):
+                tensor = torch.tensor(
+                    np.stack([iq.real, iq.imag], axis=0), dtype=torch.float32
+                )
+            else:
+                tensor = torch.as_tensor(iq, dtype=torch.float32)
+                if tensor.ndim == 2 and tensor.shape[0] != 2:
+                    tensor = tensor.T
+
+            try:
+                canonical = torchsig_to_canonical(label_str)
+                label = self._class_to_idx[canonical]
+            except KeyError:
+                label = self._class_to_idx.get(label_str, -1)
+
+            self._data.append((tensor, label))
 
     def __len__(self) -> int:
-        return len(self._dataset)
+        return len(self._data)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        iq, meta = self._dataset[idx]
-
-        # Convert complex IQ -> [2, N] real tensor
-        iq = np.asarray(iq)
-        if np.iscomplexobj(iq):
-            data = torch.tensor(
-                np.stack([iq.real, iq.imag], axis=0), dtype=torch.float32
-            )
-        else:
-            data = torch.as_tensor(iq, dtype=torch.float32)
-            if data.ndim == 2 and data.shape[0] != 2:
-                data = data.T
-
-        # Extract label
-        class_str = meta[self._class_key]
-        try:
-            canonical = torchsig_to_canonical(class_str)
-            label = self._class_to_idx[canonical]
-        except KeyError:
-            label = self._class_to_idx.get(class_str, -1)
-
+        tensor, label = self._data[idx]
         if self._transform is not None:
-            data = self._transform(data)
-
-        return data, label
+            tensor = self._transform(tensor)
+        return tensor, label

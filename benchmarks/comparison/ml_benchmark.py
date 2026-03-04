@@ -41,26 +41,45 @@ def build_spectra_dataset(cfg, seed, split="train"):
 
 
 def build_torchsig_dataset(cfg, seed, split="train"):
-    """Build a TorchSig dataset wrapped in the adapter."""
+    """Build a TorchSig v2.x dataset wrapped in the adapter."""
     from benchmarks.torchsig_compat.adapter import TorchSigAdapter
     from benchmarks.torchsig_compat.label_map import torchsig_class_names
 
     try:
-        from torchsig.datasets import Sig53
+        from torchsig.datasets.datasets import TorchSigIterableDataset
+        from torchsig.utils.defaults import TorchSigDefaults
     except ImportError:
         raise ImportError(
             "TorchSig not installed. Run: python benchmarks/torchsig_compat/install.py"
         )
-    is_train = split == "train"
-    ts_dataset = Sig53(
-        root="./torchsig_data",
-        train=is_train,
-        impaired=True,
-        class_list=torchsig_class_names(),
-        num_iq_samples=cfg["num_iq_samples"],
-        num_samples_per_class=cfg["num_samples"][split] // cfg["num_classes"],
+
+    n_iq = cfg["num_iq_samples"]
+    sr = cfg["sample_rate"]
+    defaults = TorchSigDefaults()
+    metadata = defaults.default_dataset_metadata
+    metadata.update({
+        "num_iq_samples_dataset": n_iq,
+        "sample_rate": sr,
+        "signal_duration_in_samples_min": int(n_iq * 0.8),
+        "signal_duration_in_samples_max": n_iq,
+        "bandwidth_min": int(sr * 0.25),
+        "bandwidth_max": int(sr * 0.33),
+        "signal_center_freq_min": int(-sr * 0.25),
+        "signal_center_freq_max": int(sr * 0.25) - 1,
+        "frequency_min": int(-sr * 0.25),
+        "frequency_max": int(sr * 0.25) - 1,
+    })
+
+    iterable_ds = TorchSigIterableDataset(
+        signal_generators=torchsig_class_names(),
+        target_labels=["class_name"],
+        metadata=metadata,
     )
-    return TorchSigAdapter(ts_dataset, class_list=CANONICAL_CLASSES)
+    return TorchSigAdapter(
+        iterable_ds,
+        num_samples=cfg["num_samples"][split],
+        class_list=CANONICAL_CLASSES,
+    )
 
 
 # ---------------------------------------------------------------------------
