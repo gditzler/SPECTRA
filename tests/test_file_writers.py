@@ -350,3 +350,173 @@ class TestHDF5WriteFromDataset:
         assert len(loaded) == 4
         data, label = loaded[0]
         assert data.shape == (2, 128)
+
+
+class TestSQLiteWriter:
+    def test_write_creates_db(self, tmp_path):
+        import sqlite3
+
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+
+        iq = np.zeros(128, dtype=np.complex64)
+        path = str(tmp_path / "data.db")
+        writer = SQLiteWriter(path)
+        writer.write(iq, label=0, class_name="BPSK")
+        writer.close()
+        assert os.path.exists(path)
+        conn = sqlite3.connect(path)
+        count = conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
+        conn.close()
+        assert count == 1
+
+    def test_data_fidelity(self, tmp_path):
+        import sqlite3
+
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+
+        iq = np.array([1 + 2j, 3 + 4j], dtype=np.complex64)
+        path = str(tmp_path / "data.db")
+        writer = SQLiteWriter(path)
+        writer.write(iq, label=0)
+        writer.close()
+
+        conn = sqlite3.connect(path)
+        row = conn.execute("SELECT iq, num_samples FROM samples").fetchone()
+        conn.close()
+        loaded = np.frombuffer(row[0], dtype=np.complex64)
+        np.testing.assert_array_equal(loaded, iq)
+        assert row[1] == 2
+
+    def test_schema_tables_exist(self, tmp_path):
+        import sqlite3
+
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+
+        path = str(tmp_path / "data.db")
+        writer = SQLiteWriter(path)
+        writer.close()
+
+        conn = sqlite3.connect(path)
+        tables = {
+            r[0]
+            for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            ).fetchall()
+        }
+        conn.close()
+        assert "samples" in tables
+        assert "metadata" in tables
+
+    def test_write_with_metadata(self, tmp_path):
+        import sqlite3
+
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+
+        path = str(tmp_path / "data.db")
+        writer = SQLiteWriter(path, sample_rate=1e6)
+        writer.write_metadata("description", "test dataset")
+        writer.close()
+
+        conn = sqlite3.connect(path)
+        row = conn.execute(
+            "SELECT value FROM metadata WHERE key='description'"
+        ).fetchone()
+        conn.close()
+        assert row[0] == "test dataset"
+
+    def test_write_multiple_records(self, tmp_path):
+        import sqlite3
+
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+
+        path = str(tmp_path / "data.db")
+        writer = SQLiteWriter(path)
+        for i in range(5):
+            writer.write(np.zeros(64, dtype=np.complex64), label=i % 2)
+        writer.close()
+
+        conn = sqlite3.connect(path)
+        count = conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
+        conn.close()
+        assert count == 5
+
+    def test_extensions(self):
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+
+        assert SQLiteWriter.extensions() == (".db",)
+
+
+class TestSQLiteWriteFromDataset:
+    def test_bulk_export(self, tmp_path):
+        import sqlite3
+
+        from spectra.datasets import NarrowbandDataset
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+        from spectra.waveforms import BPSK, QPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK(), QPSK()],
+            num_samples=6,
+            num_iq_samples=128,
+            sample_rate=1e6,
+            seed=42,
+        )
+        path = str(tmp_path / "dataset.db")
+        SQLiteWriter.write_from_dataset(
+            ds, output_path=path, class_list=["BPSK", "QPSK"], sample_rate=1e6
+        )
+        conn = sqlite3.connect(path)
+        count = conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
+        conn.close()
+        assert count == 6
+
+    def test_class_names_stored(self, tmp_path):
+        import sqlite3
+
+        from spectra.datasets import NarrowbandDataset
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+        from spectra.waveforms import BPSK, QPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK(), QPSK()],
+            num_samples=4,
+            num_iq_samples=128,
+            sample_rate=1e6,
+            seed=42,
+        )
+        path = str(tmp_path / "dataset.db")
+        SQLiteWriter.write_from_dataset(
+            ds, output_path=path, class_list=["BPSK", "QPSK"]
+        )
+        conn = sqlite3.connect(path)
+        names = {
+            r[0]
+            for r in conn.execute(
+                "SELECT DISTINCT class_name FROM samples"
+            ).fetchall()
+        }
+        conn.close()
+        assert names.issubset({"BPSK", "QPSK"})
+
+    def test_max_samples(self, tmp_path):
+        import sqlite3
+
+        from spectra.datasets import NarrowbandDataset
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+        from spectra.waveforms import BPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK()],
+            num_samples=10,
+            num_iq_samples=64,
+            sample_rate=1e6,
+            seed=42,
+        )
+        path = str(tmp_path / "dataset.db")
+        SQLiteWriter.write_from_dataset(
+            ds, output_path=path, class_list=["BPSK"], max_samples=3
+        )
+        conn = sqlite3.connect(path)
+        count = conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
+        conn.close()
+        assert count == 3
