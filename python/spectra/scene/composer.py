@@ -4,6 +4,7 @@ from typing import List, Optional, Tuple, Union
 import numpy as np
 
 from spectra.scene.signal_desc import SignalDescription
+from spectra.utils.dsp import frequency_shift
 from spectra.waveforms.base import Waveform
 
 
@@ -94,8 +95,7 @@ class Composer:
                 iq, desc_temp = impairments(iq, desc_temp, sample_rate=cfg.sample_rate)
 
             # Frequency-shift to center frequency
-            t = np.arange(len(iq)) / cfg.sample_rate
-            iq = iq * np.exp(1j * 2.0 * np.pi * f_center * t).astype(np.complex64)
+            iq = frequency_shift(iq, f_center, cfg.sample_rate)
 
             # Scale to target SNR (relative to unit noise)
             sig_power = np.mean(np.abs(iq) ** 2)
