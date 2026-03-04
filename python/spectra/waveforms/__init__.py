@@ -2,6 +2,7 @@ from spectra.waveforms.am import AMDSB, AMDSB_SC, AMLSB, AMUSB
 from spectra.waveforms.ask import ASK4, ASK8, ASK16, ASK32, ASK64, OOK
 from spectra.waveforms.barker import BarkerCode
 from spectra.waveforms.chirpss import ChirpSS
+from spectra.waveforms.dsss import DSSS_BPSK
 from spectra.waveforms.costas import CostasCode
 from spectra.waveforms.fm import FM
 from spectra.waveforms.fsk import (
@@ -55,6 +56,7 @@ __all__ = [
     "BPSK",
     "ChirpSS",
     "CostasCode",
+    "DSSS_BPSK",
     "FM",
     "FrankCode",
     "FSK",

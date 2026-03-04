@@ -8,8 +8,9 @@ use num_complex::Complex32;
 use numpy::ndarray::Array2;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1};
 use pyo3::prelude::*;
+use std::f32::consts::PI;
 
-use crate::cyclo_spectral::{channelize_frames, fftshift_rows};
+use crate::cyclo_spectral::{channelize_frames, fftshift_rows, hann_window};
 use crate::modulators::Xorshift64;
 use crate::sfft::sfft;
 
@@ -69,7 +70,10 @@ pub(crate) fn compidx(n: usize, kappa: usize, seed: u64) -> SfftParams {
 
 /// Form the Channel Data Product (CDP) for S3CA.
 ///
-/// CDP[k][t] = frames[t][k] * conj(raw_sample_at_center_of_frame_t)
+/// CDP[k][t] = X_T(t, f_k) * conj(x(center_of_frame_t))
+///
+/// where X_T(t, f_k) = channelizer_output[t][k] * e^{-j2πk·t·hop/Np}
+/// includes the down-conversion phase from Eq. (1) of Li et al.
 ///
 /// This differs from SSCA's cross-spectral product: S3CA multiplies
 /// each channelizer output by the conjugate of the raw input, then
@@ -85,7 +89,10 @@ fn form_cdp(
         return vec![];
     }
 
-    // cdp[k][t] = frame[t][k] * conj(raw[center_of_frame_t])
+    // cdp[k][t] = frame[t][k] * e^{-j2πk·t·hop/nfft} * conj(raw[center_of_frame_t])
+    // The e^{-j2πk·t·hop/nfft} is the down-conversion phase from Eq. (1).
+    let nfft_f = nfft as f32;
+    let hop_f = hop as f32;
     let mut cdp = vec![vec![Complex32::new(0.0, 0.0); n_frames]; nfft];
     for (t, frame) in frames.iter().enumerate() {
         let center = t * hop + nfft / 2;
@@ -94,8 +101,12 @@ fn form_cdp(
         } else {
             Complex32::new(0.0, 0.0)
         };
+        let t_f = t as f32;
         for (k, &fval) in frame.iter().enumerate().take(nfft) {
-            cdp[k][t] = fval * raw_conj;
+            // Down-conversion: e^{-j2π·k·t·hop/Np}
+            let phase = -2.0 * PI * (k as f32) * t_f * hop_f / nfft_f;
+            let dc = Complex32::new(phase.cos(), phase.sin());
+            cdp[k][t] = fval * dc * raw_conj;
         }
     }
     cdp
@@ -140,11 +151,16 @@ pub fn compute_scd_s3ca<'py>(
     let kappa_clamped = kappa.min(n_alpha);
     let mut scd = Array2::<Complex32>::zeros((nfft, n_alpha));
 
+    // Window for CDP columns (Eq. 2: g(m) windowing before the N-point FFT)
+    let copy_len = n_frames.min(n_alpha);
+    let cdp_window = hann_window(copy_len);
+
     for k in 0..nfft {
-        // Zero-pad or truncate CDP column to n_alpha length
+        // Window and zero-pad CDP column to n_alpha length
         let mut cdp_col = vec![Complex32::new(0.0, 0.0); n_alpha];
-        let copy_len = n_frames.min(n_alpha);
-        cdp_col[..copy_len].copy_from_slice(&cdp[k][..copy_len]);
+        for i in 0..copy_len {
+            cdp_col[i] = Complex32::new(cdp[k][i].re * cdp_window[i], cdp[k][i].im * cdp_window[i]);
+        }
 
         // Per-band seed for independent randomization
         let band_seed = seed.wrapping_add(k as u64);
@@ -221,8 +237,9 @@ mod tests {
 
     #[test]
     fn test_form_cdp_conjugate_product() {
-        // frame[0][0] = (3+4j), raw sample at center = (1+1j)
-        // cdp[0][0] = (3+4j) * conj(1+1j) = (3+4j) * (1-1j) = 7+j
+        // frame[0][0] = (3+4j), raw sample at center = (1+1j), k=0, t=0
+        // Down-conversion phase: e^{-j2π·0·0·hop/nfft} = 1 (k=0 → no phase)
+        // cdp[0][0] = (3+4j) * 1 * conj(1+1j) = (3+4j) * (1-1j) = 7+j
         let frames = vec![vec![Complex32::new(3.0, 4.0)]];
         let raw = vec![Complex32::new(1.0, 1.0); 2];
         let cdp = form_cdp(&frames, &raw, 1, 1);

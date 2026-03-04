@@ -87,8 +87,7 @@ pub fn apply_rrc_filter_with_taps<'py>(
 ) -> Bound<'py, PyArray1<Complex32>> {
     let symbols = symbols.as_array();
     let taps = taps.as_array();
-    upsample_convolve(symbols.as_slice().unwrap(), taps.as_slice().unwrap(), sps)
-        .into_pyarray(py)
+    upsample_convolve(symbols.as_slice().unwrap(), taps.as_slice().unwrap(), sps).into_pyarray(py)
 }
 
 /// Generate Gaussian filter taps for GFSK/GMSK pulse shaping.

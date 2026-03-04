@@ -476,26 +476,85 @@ class TestEnergyDetectorTransform:
 @pytest.mark.csp
 @pytest.mark.slow
 def test_s3ca_captures_bpsk_cyclic_features():
-    """S3CA should recover the dominant cyclic features of a BPSK signal,
-    matching the peak structure found by the full SSCA."""
-    iq = _make_bpsk(n_symbols=1024, sps=8, seed=42)
-    nfft, n_alpha = 64, 64
+    """S3CA (sparse) should recover the dominant cyclic features, matching
+    the peak structure found by S3CA with full kappa (equivalent to full FFT).
 
-    ssca = SCD(nfft=nfft, n_alpha=n_alpha, hop=16, method="ssca")
-    s3ca = SCD(nfft=nfft, n_alpha=n_alpha, hop=16, method="s3ca",
+    Uses n_alpha >= n_frames so the CDP is not truncated, and compares a
+    sparse S3CA (kappa=16) against a reference S3CA (kappa=n_alpha).
+    """
+    iq = _make_bpsk(n_symbols=1024, sps=8, seed=42)
+    nfft = 64
+    hop = 16
+
+    # n_alpha must be >= n_frames to avoid truncating CDP
+    n_frames = (len(iq) - nfft) // hop + 1
+    n_alpha = 1
+    while n_alpha < n_frames:
+        n_alpha *= 2
+
+    ref = SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca",
+              kappa=n_alpha, seed=0)
+    s3ca = SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca",
                kappa=16, seed=0)
 
-    ssca_result = ssca(iq)
+    ref_result = ref(iq)
     s3ca_result = s3ca(iq)
 
     # Both should produce non-trivial output
-    assert ssca_result.max() > 0.0
+    assert ref_result.max() > 0.0
     assert s3ca_result.max() > 0.0
 
-    # S3CA peak should be within a few bins of SSCA peak
-    ssca_peak = torch.argmax(ssca_result.view(-1)).item()
+    # S3CA peak should be within a few bins of the reference peak
+    ref_peak = torch.argmax(ref_result.view(-1)).item()
     s3ca_peak = torch.argmax(s3ca_result.view(-1)).item()
-    ssca_r, ssca_c = ssca_peak // n_alpha, ssca_peak % n_alpha
+    ref_r, ref_c = ref_peak // n_alpha, ref_peak % n_alpha
     s3ca_r, s3ca_c = s3ca_peak // n_alpha, s3ca_peak % n_alpha
-    assert abs(ssca_r - s3ca_r) <= 4, f"Freq peak mismatch: SSCA={ssca_r}, S3CA={s3ca_r}"
-    assert abs(ssca_c - s3ca_c) <= 4, f"Alpha peak mismatch: SSCA={ssca_c}, S3CA={s3ca_c}"
+    assert abs(ref_r - s3ca_r) <= 4, f"Freq peak mismatch: ref={ref_r}, S3CA={s3ca_r}"
+    assert abs(ref_c - s3ca_c) <= 4, f"Alpha peak mismatch: ref={ref_c}, S3CA={s3ca_c}"
+
+
+@pytest.mark.csp
+@pytest.mark.slow
+def test_s3ca_dsss_bpsk_cycle_frequencies():
+    """S3CA should detect cycle frequencies at multiples of the data rate
+    for a DSSS-BPSK signal, matching the test signal from Li et al."""
+    from spectra.waveforms.dsss import DSSS_BPSK
+
+    dsss = DSSS_BPSK(processing_gain=31, samples_per_chip=4)
+    iq = dsss.generate(num_symbols=200, sample_rate=1.0, seed=42)
+    N = len(iq)
+    nfft = 64
+    hop = 16
+
+    n_frames = (N - nfft) // hop + 1
+    n_alpha = 1
+    while n_alpha < n_frames:
+        n_alpha *= 2
+
+    scd = SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca",
+              output_format="magnitude", kappa=n_alpha, seed=0)
+    result = scd(iq).squeeze(0).numpy()
+
+    # Alpha profile: max over spectral frequency for each alpha
+    alpha_profile = np.max(result, axis=0)
+    alpha_axis = np.linspace(-1.0, 1.0, n_alpha, endpoint=False)
+
+    # Data rate = 1 / (4 * 31) ≈ 0.00806
+    data_rate = 1.0 / (4 * 31)
+
+    # Find peaks in positive alpha range
+    pos_mask = alpha_axis > 0.001
+    pos_alphas = alpha_axis[pos_mask]
+    pos_profile = alpha_profile[pos_mask]
+
+    # The peak in the alpha profile should be near a multiple of data_rate
+    peak_idx = np.argmax(pos_profile)
+    peak_alpha = pos_alphas[peak_idx]
+
+    # Check peak is near a multiple of data_rate (within 2 * alpha_resolution)
+    alpha_res = 2.0 / n_alpha  # full range / n_alpha
+    nearest_multiple = round(peak_alpha / data_rate) * data_rate
+    assert abs(peak_alpha - nearest_multiple) < 4 * alpha_res, (
+        f"Peak alpha={peak_alpha:.6f} not near data_rate multiple "
+        f"(nearest={nearest_multiple:.6f}, res={alpha_res:.6f})"
+    )
