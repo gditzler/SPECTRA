@@ -115,3 +115,15 @@ The cross-framework matrix reveals how well models generalize between data gener
 - **Off-diagonal** (train on A, test on B): Cross-framework generalization
 
 Large diagonal-vs-off-diagonal gaps indicate the frameworks generate systematically different waveforms or impairments.
+
+## Speed Benchmark Methodology
+
+The speed benchmark measures three complementary metrics:
+
+- **Raw `__getitem__` latency**: Time per index lookup. Note that TorchSig
+  pre-generates all data during initialization, making `__getitem__` a trivial
+  list lookup. SPECTRA generates waveforms on-the-fly.
+- **Initialization time**: Time to construct the dataset object. For TorchSig
+  this includes generating all samples; for SPECTRA this is near-zero.
+- **Amortized cost**: `(init_time + total_getitem_time) / num_samples`. This
+  is the fair apples-to-apples comparison of total per-sample generation cost.
