@@ -272,6 +272,79 @@ class TestSCDFamTransform:
 
 
 # ---------------------------------------------------------------------------
+# SCD with S3CA method
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.csp
+class TestSCDS3caTransform:
+    def test_s3ca_output_shape(self):
+        iq = _make_noise(4096)
+        scd = SCD(nfft=64, n_alpha=64, hop=16, method="s3ca", kappa=4, seed=42)
+        result = scd(iq)
+        assert result.shape == (1, 64, 64)
+
+    def test_s3ca_output_dtype(self):
+        iq = _make_noise(4096)
+        scd = SCD(nfft=64, n_alpha=64, hop=16, method="s3ca", kappa=4, seed=42)
+        result = scd(iq)
+        assert result.dtype == torch.float32
+
+    def test_s3ca_no_nan_inf(self):
+        iq = _make_noise(4096)
+        scd = SCD(nfft=64, n_alpha=64, hop=16, method="s3ca", kappa=4, seed=42)
+        result = scd(iq)
+        assert not torch.any(torch.isnan(result))
+        assert not torch.any(torch.isinf(result))
+
+    def test_s3ca_mag_phase_shape(self):
+        iq = _make_noise(4096)
+        scd = SCD(
+            nfft=64, n_alpha=64, hop=16, method="s3ca",
+            output_format="mag_phase", kappa=4, seed=42,
+        )
+        result = scd(iq)
+        assert result.shape == (2, 64, 64)
+
+    def test_s3ca_real_imag_shape(self):
+        iq = _make_noise(4096)
+        scd = SCD(
+            nfft=64, n_alpha=64, hop=16, method="s3ca",
+            output_format="real_imag", kappa=4, seed=42,
+        )
+        result = scd(iq)
+        assert result.shape == (2, 64, 64)
+
+    def test_s3ca_db_scale(self):
+        iq = _make_noise(4096)
+        scd_lin = SCD(
+            nfft=64, n_alpha=64, hop=16, method="s3ca",
+            db_scale=False, kappa=8, seed=42,
+        )
+        scd_db = SCD(
+            nfft=64, n_alpha=64, hop=16, method="s3ca",
+            db_scale=True, kappa=8, seed=42,
+        )
+        lin = scd_lin(iq)
+        db = scd_db(iq)
+        assert db.max() < lin.max()
+
+    def test_s3ca_deterministic(self):
+        iq = _make_noise(4096, seed=99)
+        scd = SCD(nfft=64, n_alpha=64, hop=16, method="s3ca", kappa=4, seed=42)
+        r1 = scd(iq)
+        r2 = scd(iq)
+        torch.testing.assert_close(r1, r2)
+
+    def test_s3ca_accepts_non_contiguous(self):
+        iq = _make_noise(8192)
+        iq_strided = iq[::2]
+        scd = SCD(nfft=64, n_alpha=64, hop=16, method="s3ca", kappa=4, seed=42)
+        result = scd(iq_strided)
+        assert result.shape == (1, 64, 64)
+
+
+# ---------------------------------------------------------------------------
 # SCF transform
 # ---------------------------------------------------------------------------
 
