@@ -236,9 +236,7 @@ mod tests {
 
     #[test]
     fn test_fb_output_length() {
-        let u: Vec<Complex32> = (0..16)
-            .map(|i| Complex32::new(i as f32, 0.0))
-            .collect();
+        let u: Vec<Complex32> = (0..16).map(|i| Complex32::new(i as f32, 0.0)).collect();
         let filter = vec![1.0f32; 8];
         let result = frequency_bucketize(&u, 1, 0, &filter, 4);
         assert_eq!(result.len(), 4);
@@ -247,9 +245,7 @@ mod tests {
     #[test]
     fn test_fb_identity_permutation() {
         let n = 8;
-        let u: Vec<Complex32> = (0..n)
-            .map(|i| Complex32::new(i as f32, 0.0))
-            .collect();
+        let u: Vec<Complex32> = (0..n).map(|i| Complex32::new(i as f32, 0.0)).collect();
         let filter = vec![1.0f32; 4];
         let result = frequency_bucketize(&u, 1, 0, &filter, 4);
         assert_eq!(result.len(), 4);

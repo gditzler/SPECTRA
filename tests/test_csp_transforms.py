@@ -466,3 +466,36 @@ class TestEnergyDetectorTransform:
         assert result.sum().item() > 0
         # But not all bins (noise bins should not be detected)
         assert result.sum().item() < 256
+
+
+# ---------------------------------------------------------------------------
+# S3CA vs SSCA accuracy validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.csp
+@pytest.mark.slow
+def test_s3ca_captures_bpsk_cyclic_features():
+    """S3CA should recover the dominant cyclic features of a BPSK signal,
+    matching the peak structure found by the full SSCA."""
+    iq = _make_bpsk(n_symbols=1024, sps=8, seed=42)
+    nfft, n_alpha = 64, 64
+
+    ssca = SCD(nfft=nfft, n_alpha=n_alpha, hop=16, method="ssca")
+    s3ca = SCD(nfft=nfft, n_alpha=n_alpha, hop=16, method="s3ca",
+               kappa=16, seed=0)
+
+    ssca_result = ssca(iq)
+    s3ca_result = s3ca(iq)
+
+    # Both should produce non-trivial output
+    assert ssca_result.max() > 0.0
+    assert s3ca_result.max() > 0.0
+
+    # S3CA peak should be within a few bins of SSCA peak
+    ssca_peak = torch.argmax(ssca_result.view(-1)).item()
+    s3ca_peak = torch.argmax(s3ca_result.view(-1)).item()
+    ssca_r, ssca_c = ssca_peak // n_alpha, ssca_peak % n_alpha
+    s3ca_r, s3ca_c = s3ca_peak // n_alpha, s3ca_peak % n_alpha
+    assert abs(ssca_r - s3ca_r) <= 4, f"Freq peak mismatch: SSCA={ssca_r}, S3CA={s3ca_r}"
+    assert abs(ssca_c - s3ca_c) <= 4, f"Alpha peak mismatch: SSCA={ssca_c}, S3CA={s3ca_c}"
