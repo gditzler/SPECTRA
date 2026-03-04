@@ -4,9 +4,6 @@
 //! accelerates SCD estimation by combining sparse channelizer evaluation
 //! with the Sparse FFT.
 
-// Imports used by compute_scd_s3ca (added in the next commit).
-#![allow(unused_imports, dead_code)]
-
 use num_complex::Complex32;
 use numpy::ndarray::Array2;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1};
@@ -17,6 +14,7 @@ use crate::modulators::Xorshift64;
 use crate::sfft::sfft;
 
 /// Pre-computed SFFT parameters and sparse index set.
+#[allow(dead_code)]
 pub(crate) struct SfftParams {
     /// Union of all CDP row indices needed by all FB calls (sorted, unique).
     pub w_prime: Vec<usize>,
@@ -26,6 +24,7 @@ pub(crate) struct SfftParams {
 ///
 /// Generates random permutation parameters and computes which CDP row
 /// indices will be accessed by all frequency bucketization calls.
+#[allow(dead_code)]
 pub(crate) fn compidx(n: usize, kappa: usize, seed: u64) -> SfftParams {
     if n == 0 || kappa == 0 {
         return SfftParams { w_prime: vec![] };
@@ -102,6 +101,69 @@ fn form_cdp(
     cdp
 }
 
+/// Compute the SCD via the Sparse Strip Spectral Correlation Analyzer (S3CA).
+///
+/// S3CA accelerates SSCA by replacing N-point FFTs with Sparse FFTs
+/// that recover only the `kappa` most significant cycle frequencies
+/// per frequency band.
+///
+/// Returns a dense `[nfft, n_alpha]` complex array for API compatibility
+/// with SSCA and FAM. Sparse SFFT results fill the corresponding bins;
+/// all other bins are zero.
+#[pyfunction]
+pub fn compute_scd_s3ca<'py>(
+    py: Python<'py>,
+    iq: PyReadonlyArray1<'py, Complex32>,
+    nfft: usize,
+    n_alpha: usize,
+    hop: usize,
+    kappa: usize,
+    seed: u64,
+) -> Bound<'py, PyArray2<Complex32>> {
+    let samples: Vec<Complex32> = iq.as_array().to_vec();
+
+    if samples.len() < nfft || nfft == 0 || hop == 0 || kappa == 0 {
+        return Array2::<Complex32>::zeros((nfft, n_alpha)).into_pyarray(py);
+    }
+
+    // Step 1: Channelizer (reuse existing implementation)
+    let frames = channelize_frames(&samples, nfft, hop);
+    let n_frames = frames.len();
+    if n_frames == 0 {
+        return Array2::<Complex32>::zeros((nfft, n_alpha)).into_pyarray(py);
+    }
+
+    // Step 2: Form CDP
+    let cdp = form_cdp(&frames, &samples, nfft, hop);
+
+    // Step 3: For each frequency band, apply SFFT to the CDP time series
+    let kappa_clamped = kappa.min(n_alpha);
+    let mut scd = Array2::<Complex32>::zeros((nfft, n_alpha));
+
+    for k in 0..nfft {
+        // Zero-pad or truncate CDP column to n_alpha length
+        let mut cdp_col = vec![Complex32::new(0.0, 0.0); n_alpha];
+        let copy_len = n_frames.min(n_alpha);
+        cdp_col[..copy_len].copy_from_slice(&cdp[k][..copy_len]);
+
+        // Per-band seed for independent randomization
+        let band_seed = seed.wrapping_add(k as u64);
+        let mut rng = Xorshift64::new(band_seed);
+
+        let result = sfft(&cdp_col, kappa_clamped, &mut rng);
+
+        // Place sparse results into dense output
+        for (&idx, &val) in result.indices.iter().zip(result.values.iter()) {
+            if idx < n_alpha {
+                scd[[k, idx]] = val;
+            }
+        }
+    }
+
+    // DC-centre along frequency axis
+    fftshift_rows(&scd).into_pyarray(py)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -167,5 +229,37 @@ mod tests {
         let val = cdp[0][0];
         assert!((val.re - 7.0).abs() < 1e-5);
         assert!((val.im - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn test_s3ca_integration_output_shape() {
+        let n = 1024;
+        let nfft = 32;
+        let samples: Vec<Complex32> = (0..n)
+            .map(|i| {
+                let phase = 2.0 * std::f32::consts::PI * 0.1 * i as f32;
+                Complex32::new(phase.cos(), phase.sin())
+            })
+            .collect();
+        let frames = channelize_frames(&samples, nfft, nfft / 4);
+        let cdp = form_cdp(&frames, &samples, nfft, nfft / 4);
+        assert_eq!(cdp.len(), nfft);
+        if !cdp.is_empty() {
+            assert_eq!(cdp[0].len(), frames.len());
+        }
+    }
+
+    #[test]
+    fn test_s3ca_sfft_per_band() {
+        let n_frames = 128;
+        let cdp_column: Vec<Complex32> = (0..n_frames)
+            .map(|i| {
+                let phase = 2.0 * std::f32::consts::PI * 5.0 * i as f32 / n_frames as f32;
+                Complex32::new(phase.cos(), phase.sin())
+            })
+            .collect();
+        let mut rng = Xorshift64::new(42);
+        let result = sfft(&cdp_column, 4, &mut rng);
+        assert!(!result.indices.is_empty());
     }
 }

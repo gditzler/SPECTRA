@@ -44,5 +44,6 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(cyclo_spectral::channelize, m)?)?;
     m.add_function(wrap_pyfunction!(cyclo_temporal::compute_cumulants, m)?)?;
     m.add_function(wrap_pyfunction!(cyclo_temporal::compute_caf, m)?)?;
+    m.add_function(wrap_pyfunction!(s3ca::compute_scd_s3ca, m)?)?;
     Ok(())
 }
