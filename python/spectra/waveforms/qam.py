@@ -2,7 +2,8 @@ from typing import Optional
 
 import numpy as np
 
-from spectra._rust import apply_rrc_filter, generate_qam_symbols
+from spectra._rust import apply_rrc_filter_with_taps, generate_qam_symbols
+from spectra.utils.rrc_cache import cached_rrc_taps
 from spectra.waveforms.base import Waveform
 
 
@@ -29,9 +30,8 @@ class _QAMBase(Waveform):
     ) -> np.ndarray:
         s = seed if seed is not None else np.random.randint(0, 2**32)
         symbols = generate_qam_symbols(num_symbols, self._order, seed=s)
-        filtered = apply_rrc_filter(
-            symbols, self.rolloff, self.filter_span, self.samples_per_symbol
-        )
+        taps = cached_rrc_taps(self.rolloff, self.filter_span, self.samples_per_symbol)
+        filtered = apply_rrc_filter_with_taps(symbols, taps, self.samples_per_symbol)
         return filtered
 
     def bandwidth(self, sample_rate: float) -> float:
@@ -124,9 +124,8 @@ class _CrossQAMBase(Waveform):
         constellation = self._cross_constellation(self._order)
         indices = rng.integers(0, len(constellation), size=num_symbols)
         symbols = constellation[indices]
-        filtered = apply_rrc_filter(
-            symbols, self.rolloff, self.filter_span, self.samples_per_symbol
-        )
+        taps = cached_rrc_taps(self.rolloff, self.filter_span, self.samples_per_symbol)
+        filtered = apply_rrc_filter_with_taps(symbols, taps, self.samples_per_symbol)
         return filtered
 
     def bandwidth(self, sample_rate: float) -> float:
