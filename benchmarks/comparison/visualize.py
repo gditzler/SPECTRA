@@ -24,36 +24,92 @@ def load_json(path):
 # ---------------------------------------------------------------------------
 
 def plot_speed(results, out_dir):
-    """Bar chart of __getitem__ latency and DataLoader throughput."""
-    sources = list(results.keys())
+    """Bar charts of speed metrics with amortized cost when available."""
+    sources = [s for s in results if s != "methodology"]
     if not sources:
         return
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    colors = ["#2196F3", "#FF9800", "#4CAF50", "#E91E63"][:len(sources)]
+    has_amortized = any("amortized_cost_ms" in results[s] for s in sources)
 
-    # Latency
-    ax = axes[0]
-    means = [results[s]["getitem_mean_ms"] for s in sources]
-    stds = [results[s]["getitem_std_ms"] for s in sources]
-    bars = ax.bar(sources, means, yerr=stds, capsize=5, color=["#2196F3", "#FF9800"][:len(sources)])
-    ax.set_ylabel("Latency (ms)")
-    ax.set_title("__getitem__ Latency")
-    for bar, val in zip(bars, means):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:.2f}", ha="center", va="bottom", fontsize=10)
+    if has_amortized:
+        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
-    # Throughput
-    ax = axes[1]
-    throughputs = [results[s]["dataloader_throughput_sps"] for s in sources]
-    bars = ax.bar(sources, throughputs, color=["#2196F3", "#FF9800"][:len(sources)])
-    ax.set_ylabel("Samples/second")
-    ax.set_title("DataLoader Throughput")
-    for bar, val in zip(bars, throughputs):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
-                f"{val:.0f}", ha="center", va="bottom", fontsize=10)
+        # (0,0) Raw __getitem__ latency
+        ax = axes[0][0]
+        means = [results[s]["getitem_mean_ms"] for s in sources]
+        stds = [results[s]["getitem_std_ms"] for s in sources]
+        bars = ax.bar(sources, means, yerr=stds, capsize=5, color=colors)
+        ax.set_ylabel("Latency (ms)")
+        ax.set_title("Raw __getitem__ Latency*")
+        for bar, val in zip(bars, means):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f"{val:.3f}", ha="center", va="bottom", fontsize=10)
 
-    fig.suptitle("Dataset Generation Speed Comparison", fontsize=14)
-    fig.tight_layout()
+        # (0,1) DataLoader throughput
+        ax = axes[0][1]
+        throughputs = [results[s]["dataloader_throughput_sps"] for s in sources]
+        bars = ax.bar(sources, throughputs, color=colors)
+        ax.set_ylabel("Samples/second")
+        ax.set_title("DataLoader Throughput")
+        for bar, val in zip(bars, throughputs):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f"{val:.0f}", ha="center", va="bottom", fontsize=10)
+
+        # (1,0) Initialization time
+        ax = axes[1][0]
+        init_times = [results[s].get("init_time_s", 0) for s in sources]
+        bars = ax.bar(sources, init_times, color=colors)
+        ax.set_ylabel("Time (s)")
+        ax.set_title("Initialization Time")
+        for bar, val in zip(bars, init_times):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f"{val:.3f}", ha="center", va="bottom", fontsize=10)
+
+        # (1,1) Amortized cost per sample
+        ax = axes[1][1]
+        amortized = [results[s].get("amortized_cost_ms", 0) for s in sources]
+        bars = ax.bar(sources, amortized, color=colors)
+        ax.set_ylabel("Cost (ms/sample)")
+        ax.set_title("Amortized Cost per Sample (Fair Comparison)")
+        for bar, val in zip(bars, amortized):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f"{val:.3f}", ha="center", va="bottom", fontsize=10)
+
+        fig.suptitle("Dataset Generation Speed Comparison", fontsize=14)
+        fig.text(
+            0.5, 0.01,
+            "*TorchSig pre-materializes data in __init__; "
+            "SPECTRA generates on-the-fly. Amortized cost is the fair metric.",
+            ha="center", fontsize=9, style="italic",
+        )
+        fig.tight_layout(rect=[0, 0.03, 1, 0.96])
+    else:
+        # Backward compat: old result files without amortized data
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+        ax = axes[0]
+        means = [results[s]["getitem_mean_ms"] for s in sources]
+        stds = [results[s]["getitem_std_ms"] for s in sources]
+        bars = ax.bar(sources, means, yerr=stds, capsize=5, color=colors)
+        ax.set_ylabel("Latency (ms)")
+        ax.set_title("__getitem__ Latency")
+        for bar, val in zip(bars, means):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f"{val:.2f}", ha="center", va="bottom", fontsize=10)
+
+        ax = axes[1]
+        throughputs = [results[s]["dataloader_throughput_sps"] for s in sources]
+        bars = ax.bar(sources, throughputs, color=colors)
+        ax.set_ylabel("Samples/second")
+        ax.set_title("DataLoader Throughput")
+        for bar, val in zip(bars, throughputs):
+            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height(),
+                    f"{val:.0f}", ha="center", va="bottom", fontsize=10)
+
+        fig.suptitle("Dataset Generation Speed Comparison", fontsize=14)
+        fig.tight_layout()
+
     path = out_dir / "speed_comparison.png"
     fig.savefig(path, dpi=150)
     plt.close(fig)
