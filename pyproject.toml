@@ -45,4 +45,5 @@ markers = [
     "rust: marks tests that exercise Rust FFI directly",
     "csp: marks cyclostationary signal processing tests",
     "io: marks tests requiring file I/O optional dependencies",
+    "benchmark: marks benchmark output format and logic tests",
 ]
