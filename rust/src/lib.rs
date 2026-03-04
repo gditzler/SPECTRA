@@ -6,6 +6,7 @@ mod cyclo_temporal;
 mod filters;
 mod modulators;
 mod oscillators;
+mod sfft;
 
 /// SPECTRA Rust backend for high-performance DSP primitives.
 #[pymodule]
