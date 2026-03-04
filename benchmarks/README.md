@@ -127,3 +127,17 @@ The speed benchmark measures three complementary metrics:
   this includes generating all samples; for SPECTRA this is near-zero.
 - **Amortized cost**: `(init_time + total_getitem_time) / num_samples`. This
   is the fair apples-to-apples comparison of total per-sample generation cost.
+
+### Example Results (10,000 samples)
+
+| Metric | SPECTRA | TorchSig |
+|--------|---------|----------|
+| Init time | 0.000 s | 18.816 s |
+| `__getitem__` mean | 0.160 ms | 0.000 ms |
+| **Amortized cost** | **0.160 ms/sample** | **1.882 ms/sample** |
+| DataLoader throughput | 464 sps | 1541 sps |
+
+SPECTRA is ~12x cheaper per sample on amortized cost. The total wall time to
+get 10,000 samples is ~1.6s (SPECTRA) vs ~18.8s (TorchSig). TorchSig's higher
+DataLoader throughput reflects serving pre-computed data from RAM, not faster
+generation — the 18.8s initialization cost is paid upfront regardless.
