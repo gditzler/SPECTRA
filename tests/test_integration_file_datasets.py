@@ -77,3 +77,115 @@ class TestEndToEndPipeline:
         d1, l1 = ds[1]
         assert d0.shape == (2, 64)
         assert l0 != l1
+
+    def test_generate_export_reload_numpy(self, tmp_path):
+        """Full pipeline: NarrowbandDataset -> NumpyWriter -> SignalFolderDataset -> DataLoader."""
+        from spectra.datasets import NarrowbandDataset
+        from spectra.datasets.folder import SignalFolderDataset
+        from spectra.utils.file_handlers.numpy_writer import NumpyWriter
+        from spectra.waveforms import BPSK, QPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK(), QPSK()],
+            num_samples=8,
+            num_iq_samples=128,
+            sample_rate=1e6,
+            seed=99,
+        )
+        out = str(tmp_path / "numpy_export")
+        NumpyWriter.write_from_dataset(
+            ds, output_dir=out, class_list=["BPSK", "QPSK"],
+        )
+        loaded = SignalFolderDataset(root=out, num_iq_samples=128)
+        loader = DataLoader(loaded, batch_size=4)
+        batch_data, batch_labels = next(iter(loader))
+        assert batch_data.shape == (4, 2, 128)
+        assert batch_data.dtype == torch.float32
+
+    def test_generate_export_reload_raw(self, tmp_path):
+        """Full pipeline: NarrowbandDataset -> RawIQWriter -> SignalFolderDataset -> DataLoader."""
+        from spectra.datasets import NarrowbandDataset
+        from spectra.datasets.folder import SignalFolderDataset
+        from spectra.utils.file_handlers.raw_writer import RawIQWriter
+        from spectra.waveforms import BPSK, QPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK(), QPSK()],
+            num_samples=8,
+            num_iq_samples=128,
+            sample_rate=1e6,
+            seed=99,
+        )
+        out = str(tmp_path / "raw_export")
+        RawIQWriter.write_from_dataset(
+            ds, output_dir=out, class_list=["BPSK", "QPSK"],
+        )
+        loaded = SignalFolderDataset(root=out, num_iq_samples=128)
+        loader = DataLoader(loaded, batch_size=4)
+        batch_data, batch_labels = next(iter(loader))
+        assert batch_data.shape == (4, 2, 128)
+        assert batch_data.dtype == torch.float32
+
+    def test_generate_export_reload_hdf5(self, tmp_path):
+        """Full pipeline: NarrowbandDataset -> HDF5Writer -> SignalFolderDataset -> DataLoader."""
+        h5py = pytest.importorskip("h5py")
+        from spectra.datasets import NarrowbandDataset
+        from spectra.datasets.folder import SignalFolderDataset
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+        from spectra.waveforms import BPSK, QPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK(), QPSK()],
+            num_samples=8,
+            num_iq_samples=128,
+            sample_rate=1e6,
+            seed=99,
+        )
+        out = str(tmp_path / "hdf5_export")
+        HDF5Writer.write_from_dataset(
+            ds, output_dir=out, class_list=["BPSK", "QPSK"],
+        )
+        loaded = SignalFolderDataset(root=out, num_iq_samples=128)
+        loader = DataLoader(loaded, batch_size=4)
+        batch_data, batch_labels = next(iter(loader))
+        assert batch_data.shape == (4, 2, 128)
+        assert batch_data.dtype == torch.float32
+
+    def test_generate_export_to_sqlite(self, tmp_path):
+        """Full pipeline: NarrowbandDataset -> SQLiteWriter -> verify SQLite contents."""
+        import sqlite3
+
+        from spectra.datasets import NarrowbandDataset
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+        from spectra.utils.file_handlers.sqlite_reader import SQLiteReader
+        from spectra.waveforms import BPSK, QPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK(), QPSK()],
+            num_samples=8,
+            num_iq_samples=128,
+            sample_rate=1e6,
+            seed=99,
+        )
+        db_path = str(tmp_path / "export.db")
+        SQLiteWriter.write_from_dataset(
+            ds,
+            output_path=db_path,
+            class_list=["BPSK", "QPSK"],
+            sample_rate=1e6,
+        )
+
+        # Verify via raw SQL
+        conn = sqlite3.connect(db_path)
+        row_count = conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
+        assert row_count == 8
+        classes = {r[0] for r in conn.execute("SELECT DISTINCT class_name FROM samples")}
+        assert classes == {"BPSK", "QPSK"}
+        conn.close()
+
+        # Verify via SQLiteReader roundtrip
+        reader = SQLiteReader(row_index=0)
+        iq, meta = reader.read(db_path)
+        assert iq.dtype == np.complex64
+        assert len(iq) == 128
+        assert meta.num_samples == 128
