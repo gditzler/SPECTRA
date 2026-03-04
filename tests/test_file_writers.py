@@ -238,3 +238,115 @@ class TestRawIQWriteFromDataset:
         assert len(loaded) == 4
         data, label = loaded[0]
         assert data.shape == (2, 128)
+
+
+try:
+    import h5py
+
+    HAS_H5PY = True
+except ImportError:
+    HAS_H5PY = False
+
+
+@pytest.mark.skipif(not HAS_H5PY, reason="h5py not installed")
+class TestHDF5Writer:
+    def test_write_creates_file(self, tmp_path):
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+
+        iq = np.zeros(128, dtype=np.complex64)
+        path = str(tmp_path / "signal.h5")
+        HDF5Writer(path).write(iq)
+        assert os.path.exists(path)
+
+    def test_data_fidelity(self, tmp_path):
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+
+        iq = np.array([1 + 2j, 3 + 4j, 5 + 6j], dtype=np.complex64)
+        path = str(tmp_path / "signal.h5")
+        HDF5Writer(path).write(iq)
+        with h5py.File(path, "r") as f:
+            loaded = f["iq"][:]
+        np.testing.assert_array_equal(loaded, iq)
+
+    def test_metadata_as_attrs(self, tmp_path):
+        from spectra.utils.file_handlers.base_reader import SignalMetadata
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+
+        iq = np.zeros(64, dtype=np.complex64)
+        path = str(tmp_path / "signal.h5")
+        meta = SignalMetadata(sample_rate=2e6, center_frequency=915e6)
+        HDF5Writer(path).write(iq, metadata=meta)
+        with h5py.File(path, "r") as f:
+            assert f.attrs["sample_rate"] == 2e6
+            assert f.attrs["center_frequency"] == 915e6
+
+    def test_custom_dataset_name(self, tmp_path):
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+
+        iq = np.zeros(64, dtype=np.complex64)
+        path = str(tmp_path / "signal.h5")
+        HDF5Writer(path, iq_dataset="data").write(iq)
+        with h5py.File(path, "r") as f:
+            assert "data" in f
+            assert "iq" not in f
+
+    def test_roundtrip_with_reader(self, tmp_path):
+        from spectra.utils.file_handlers.hdf5_reader import HDF5Reader
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+
+        iq = np.array([1 + 2j, 3 + 4j], dtype=np.complex64)
+        path = str(tmp_path / "rt.h5")
+        HDF5Writer(path).write(iq)
+        result, meta = HDF5Reader().read(path)
+        np.testing.assert_array_equal(result, iq)
+
+    def test_extensions(self):
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+
+        assert HDF5Writer.extensions() == (".h5", ".hdf5")
+
+
+@pytest.mark.skipif(not HAS_H5PY, reason="h5py not installed")
+class TestHDF5WriteFromDataset:
+    def test_creates_folder_structure(self, tmp_path):
+        from spectra.datasets import NarrowbandDataset
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+        from spectra.waveforms import BPSK, QPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK(), QPSK()],
+            num_samples=4,
+            num_iq_samples=128,
+            sample_rate=1e6,
+            seed=42,
+        )
+        out = str(tmp_path / "export")
+        HDF5Writer.write_from_dataset(
+            ds, output_dir=out, class_list=["BPSK", "QPSK"]
+        )
+        h5_files = []
+        for root, dirs, files in os.walk(out):
+            h5_files.extend(f for f in files if f.endswith(".h5"))
+        assert len(h5_files) == 4
+
+    def test_roundtrip_to_folder_dataset(self, tmp_path):
+        from spectra.datasets import NarrowbandDataset
+        from spectra.datasets.folder import SignalFolderDataset
+        from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+        from spectra.waveforms import BPSK, QPSK
+
+        ds = NarrowbandDataset(
+            waveform_pool=[BPSK(), QPSK()],
+            num_samples=4,
+            num_iq_samples=128,
+            sample_rate=1e6,
+            seed=42,
+        )
+        out = str(tmp_path / "export")
+        HDF5Writer.write_from_dataset(
+            ds, output_dir=out, class_list=["BPSK", "QPSK"]
+        )
+        loaded = SignalFolderDataset(root=out, num_iq_samples=128)
+        assert len(loaded) == 4
+        data, label = loaded[0]
+        assert data.shape == (2, 128)
