@@ -57,6 +57,26 @@ pub fn rrc_taps_py<'py>(
     Array1::from_vec(taps).into_pyarray(py)
 }
 
+/// Upsample symbols by sps (zero-insertion) then convolve with filter taps.
+fn upsample_convolve(symbols: &[Complex32], taps: &[f32], sps: usize) -> Array1<Complex32> {
+    let upsampled_len = symbols.len() * sps;
+    let mut upsampled = vec![Complex32::new(0.0, 0.0); upsampled_len];
+    for (i, &s) in symbols.iter().enumerate() {
+        upsampled[i * sps] = s;
+    }
+
+    let output_len = upsampled_len + taps.len() - 1;
+    Array1::from_shape_fn(output_len, |n| {
+        let mut sum = Complex32::new(0.0, 0.0);
+        for (k, &tap) in taps.iter().enumerate() {
+            if n >= k && (n - k) < upsampled_len {
+                sum += upsampled[n - k] * tap;
+            }
+        }
+        sum
+    })
+}
+
 /// Apply pulse-shaping with pre-computed filter taps: upsample then convolve.
 #[pyfunction]
 pub fn apply_rrc_filter_with_taps<'py>(
@@ -67,25 +87,8 @@ pub fn apply_rrc_filter_with_taps<'py>(
 ) -> Bound<'py, PyArray1<Complex32>> {
     let symbols = symbols.as_array();
     let taps = taps.as_array();
-    let tap_len = taps.len();
-
-    let upsampled_len = symbols.len() * sps;
-    let mut upsampled = vec![Complex32::new(0.0, 0.0); upsampled_len];
-    for (i, &s) in symbols.iter().enumerate() {
-        upsampled[i * sps] = s;
-    }
-
-    let output_len = upsampled_len + tap_len - 1;
-    let output = Array1::from_shape_fn(output_len, |n| {
-        let mut sum = Complex32::new(0.0, 0.0);
-        for (k, &tap) in taps.iter().enumerate() {
-            if n >= k && (n - k) < upsampled_len {
-                sum += upsampled[n - k] * tap;
-            }
-        }
-        sum
-    });
-    output.into_pyarray(py)
+    upsample_convolve(symbols.as_slice().unwrap(), taps.as_slice().unwrap(), sps)
+        .into_pyarray(py)
 }
 
 /// Generate Gaussian filter taps for GFSK/GMSK pulse shaping.
@@ -187,24 +190,5 @@ pub fn apply_rrc_filter<'py>(
 ) -> Bound<'py, PyArray1<Complex32>> {
     let symbols = symbols.as_array();
     let taps = rrc_taps(rolloff, span, sps);
-
-    // Upsample: insert sps-1 zeros between each symbol
-    let upsampled_len = symbols.len() * sps;
-    let mut upsampled = vec![Complex32::new(0.0, 0.0); upsampled_len];
-    for (i, &s) in symbols.iter().enumerate() {
-        upsampled[i * sps] = s;
-    }
-
-    // Convolve
-    let output_len = upsampled_len + taps.len() - 1;
-    let output = Array1::from_shape_fn(output_len, |n| {
-        let mut sum = Complex32::new(0.0, 0.0);
-        for (k, &tap) in taps.iter().enumerate() {
-            if n >= k && (n - k) < upsampled_len {
-                sum += upsampled[n - k] * tap;
-            }
-        }
-        sum
-    });
-    output.into_pyarray(py)
+    upsample_convolve(symbols.as_slice().unwrap(), &taps, sps).into_pyarray(py)
 }
