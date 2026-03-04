@@ -10,6 +10,7 @@ from spectra._rust import (
     compute_cumulants,
     compute_psd_welch,
     compute_scd_fam,
+    compute_scd_s3ca,
     compute_scd_ssca,
 )
 
@@ -314,3 +315,58 @@ class TestComputeCaf:
         r0 = caf[alpha_zero_row, 0]
         # At lag 0, R(0) = E[|x|^2] ≈ 1.0 for unit-variance noise
         assert abs(r0.real - 1.0) < 0.1, f"R(0) = {r0}, expected ~1.0"
+
+
+# ---------------------------------------------------------------------------
+# compute_scd_s3ca
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.rust
+class TestComputeScdS3ca:
+    def test_output_shape(self):
+        iq = _make_noise(4096)
+        scd = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=4, seed=42)
+        assert scd.shape == (64, 64)
+
+    def test_output_dtype(self):
+        iq = _make_noise(4096)
+        scd = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=4, seed=42)
+        assert scd.dtype == np.complex64
+
+    def test_no_nan_inf(self):
+        iq = _make_noise(4096)
+        scd = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=4, seed=42)
+        assert not np.any(np.isnan(scd))
+        assert not np.any(np.isinf(scd))
+
+    def test_deterministic_same_seed(self):
+        iq = _make_noise(4096, seed=42)
+        s1 = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=4, seed=42)
+        s2 = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=4, seed=42)
+        npt.assert_array_equal(s1, s2)
+
+    def test_short_signal_returns_zeros(self):
+        iq = _make_noise(10)
+        scd = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=4, seed=42)
+        assert scd.shape == (64, 64)
+        npt.assert_array_equal(scd, np.zeros((64, 64), dtype=np.complex64))
+
+    def test_sparse_output_has_zeros(self):
+        iq = _make_noise(4096)
+        scd = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=2, seed=42)
+        zero_fraction = np.sum(np.abs(scd) < 1e-10) / scd.size
+        assert zero_fraction > 0.5, f"Expected mostly zeros with kappa=2"
+
+    def test_tone_has_nonzero_output(self):
+        iq = _make_tone(freq=0.1, n_samples=8192)
+        scd = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=8, seed=0)
+        assert np.abs(scd).max() > 0.0
+
+    def test_configurable_sizes(self):
+        iq = _make_noise(4096)
+        for nfft, na in [(32, 64), (128, 32), (64, 128)]:
+            scd = compute_scd_s3ca(
+                iq, nfft=nfft, n_alpha=na, hop=nfft // 4, kappa=4, seed=0,
+            )
+            assert scd.shape == (nfft, na)
