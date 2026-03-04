@@ -3,6 +3,7 @@ import torch
 
 from spectra._rust import compute_psd_welch as _compute_psd_welch
 from spectra._rust import compute_scd_ssca as _compute_scd_ssca
+from spectra.transforms.csp_utils import format_csp_output
 
 
 class SCF:
@@ -58,29 +59,8 @@ class SCF:
         psd = np.maximum(psd, self.eps)
 
         # Normalise: SCF = SCD / sqrt(PSD(f+a/2) * PSD(f-a/2))
-        # Approximate using PSD at each spectral bin (ignoring the alpha/2 shift
-        # for the denominator, which is standard practice for discrete grids).
         psd_col = np.sqrt(psd).astype(np.float32)  # shape [nfft]
-        # Broadcast: divide each column of SCD by PSD
         denom = psd_col[:, None] * np.ones(self.n_alpha, dtype=np.float32)[None, :]
         scf_complex = scd / (denom + self.eps)
 
-        return self._format_output(scf_complex)
-
-    def _format_output(self, scf_complex: np.ndarray) -> torch.Tensor:
-        if self.output_format == "magnitude":
-            result = np.abs(scf_complex).astype(np.float32)
-            return torch.from_numpy(result).unsqueeze(0).float()
-
-        if self.output_format == "mag_phase":
-            mag = np.abs(scf_complex).astype(np.float32)
-            phase = np.angle(scf_complex).astype(np.float32)
-            stacked = np.stack([mag, phase], axis=0)
-            return torch.from_numpy(stacked).float()
-
-        # real_imag
-        ri = np.stack(
-            [scf_complex.real.astype(np.float32), scf_complex.imag.astype(np.float32)],
-            axis=0,
-        )
-        return torch.from_numpy(ri).float()
+        return format_csp_output(scf_complex, self.output_format)

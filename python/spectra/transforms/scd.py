@@ -2,6 +2,7 @@ import numpy as np
 import torch
 
 from spectra._rust import compute_scd_fam, compute_scd_ssca
+from spectra.transforms.csp_utils import format_csp_output
 
 
 class SCD:
@@ -58,26 +59,4 @@ class SCD:
             scd_complex = np.asarray(
                 compute_scd_ssca(iq, self.nfft, self.n_alpha, self.hop)
             )
-        return self._format_output(scd_complex)
-
-    def _format_output(self, scd_complex: np.ndarray) -> torch.Tensor:
-        if self.output_format == "magnitude":
-            result = np.abs(scd_complex).astype(np.float32)
-            if self.db_scale:
-                result = 10.0 * np.log10(result + 1e-12)
-            return torch.from_numpy(result).unsqueeze(0).float()
-
-        if self.output_format == "mag_phase":
-            mag = np.abs(scd_complex).astype(np.float32)
-            phase = np.angle(scd_complex).astype(np.float32)
-            if self.db_scale:
-                mag = 10.0 * np.log10(mag + 1e-12)
-            stacked = np.stack([mag, phase], axis=0)
-            return torch.from_numpy(stacked).float()
-
-        # real_imag
-        ri = np.stack(
-            [scd_complex.real.astype(np.float32), scd_complex.imag.astype(np.float32)],
-            axis=0,
-        )
-        return torch.from_numpy(ri).float()
+        return format_csp_output(scd_complex, self.output_format, self.db_scale)
