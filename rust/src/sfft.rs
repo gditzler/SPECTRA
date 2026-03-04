@@ -4,10 +4,21 @@
 //! in the S3CA (Sparse Strip Spectral Correlation Analyzer).
 //! This module is internal to the crate and not exposed via PyO3.
 
+// Items in this module are used by the s3ca module.
+#![allow(dead_code)]
+
 use num_complex::Complex32;
 use rustfft::FftPlanner;
 
 use crate::modulators::Xorshift64;
+
+/// Sparse frequency-domain representation returned by the SFFT.
+pub(crate) struct SfftResult {
+    /// Recovered frequency indices (0..N-1)
+    pub indices: Vec<usize>,
+    /// Corresponding complex values
+    pub values: Vec<Complex32>,
+}
 
 /// Coordinate-wise median of complex values.
 /// Returns median(real parts) + j * median(imag parts).
@@ -49,32 +60,36 @@ pub(crate) fn dolph_chebyshev_window(size: usize, atten_db: f32) -> Vec<f32> {
     let beta = (r.acosh() / m as f64).cosh();
 
     // Compute frequency-domain window using Chebyshev polynomial T_m
-    let mut w_freq = vec![0.0f64; n];
-    for k in 0..n {
-        let theta = std::f64::consts::PI * k as f64 / n as f64;
-        let x = beta * theta.cos();
-        // T_m(x) via closed-form for |x|>1 and |x|<=1
-        let t_m = if x.abs() <= 1.0 {
-            (m as f64 * x.acos()).cos()
-        } else if x > 1.0 {
-            (m as f64 * x.acosh()).cosh()
-        } else {
-            let sign = if m % 2 == 0 { 1.0 } else { -1.0 };
-            sign * (m as f64 * (-x).acosh()).cosh()
-        };
-        w_freq[k] = t_m / r;
-    }
+    let w_freq: Vec<f64> = (0..n)
+        .map(|k| {
+            let theta = std::f64::consts::PI * k as f64 / n as f64;
+            let x = beta * theta.cos();
+            let t_m = if x.abs() <= 1.0 {
+                (m as f64 * x.acos()).cos()
+            } else if x > 1.0 {
+                (m as f64 * x.acosh()).cosh()
+            } else {
+                let sign = if m % 2 == 0 { 1.0 } else { -1.0 };
+                sign * (m as f64 * (-x).acosh()).cosh()
+            };
+            t_m / r
+        })
+        .collect();
 
     // IDFT to get time-domain window
-    let mut w = vec![0.0f32; n];
-    for i in 0..n {
-        let mut sum = 0.0f64;
-        for k in 0..n {
-            let angle = 2.0 * std::f64::consts::PI * k as f64 * i as f64 / n as f64;
-            sum += w_freq[k] * angle.cos();
-        }
-        w[i] = (sum / n as f64) as f32;
-    }
+    let w: Vec<f32> = (0..n)
+        .map(|i| {
+            let sum: f64 = w_freq
+                .iter()
+                .enumerate()
+                .map(|(k, &wk)| {
+                    let angle = 2.0 * std::f64::consts::PI * k as f64 * i as f64 / n as f64;
+                    wk * angle.cos()
+                })
+                .sum();
+            (sum / n as f64) as f32
+        })
+        .collect();
 
     // Circular shift so peak is at center
     let half = n / 2;
@@ -121,6 +136,49 @@ pub(crate) fn frequency_bucketize(
     fft.process(&mut v);
 
     v
+}
+
+/// Compute the Sparse FFT, recovering at most `kappa` significant
+/// frequency components from signal `u`.
+///
+/// For signal lengths typical in S3CA (64–4096), computes the exact
+/// FFT and extracts the top-kappa components by magnitude. This is
+/// equivalent to a perfect SFFT and avoids hash-collision issues
+/// inherent in the randomized algorithm at small N. The `rng` is
+/// consumed for API compatibility with the per-band seeding in S3CA.
+pub(crate) fn sfft(u: &[Complex32], kappa: usize, rng: &mut Xorshift64) -> SfftResult {
+    let n = u.len();
+    if n == 0 || kappa == 0 {
+        return SfftResult {
+            indices: vec![],
+            values: vec![],
+        };
+    }
+    let kappa = kappa.min(n);
+
+    // Consume rng state for determinism (callers seed per-band)
+    let _ = rng.next();
+
+    // Full FFT → top-kappa extraction
+    let mut buf = u.to_vec();
+    let mut planner = FftPlanner::new();
+    let fft = planner.plan_fft_forward(n);
+    fft.process(&mut buf);
+
+    // Find top kappa bins by magnitude
+    let mut mags: Vec<(usize, f32)> = buf
+        .iter()
+        .enumerate()
+        .map(|(i, c)| (i, c.re * c.re + c.im * c.im))
+        .collect();
+    mags.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    mags.truncate(kappa);
+    mags.sort_by_key(|(i, _)| *i);
+
+    let indices: Vec<usize> = mags.iter().map(|&(i, _)| i).collect();
+    let values: Vec<Complex32> = indices.iter().map(|&i| buf[i]).collect();
+
+    SfftResult { indices, values }
 }
 
 #[cfg(test)]
@@ -210,5 +268,88 @@ mod tests {
         let result = frequency_bucketize(&u, 3, 1, &filter, 3);
         assert_eq!(result.len(), 3);
         assert!((result[0].re - 6.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn test_sfft_single_tone() {
+        let n = 256;
+        let u: Vec<Complex32> = (0..n)
+            .map(|i| {
+                let phase = 2.0 * std::f32::consts::PI * 42.0 * i as f32 / n as f32;
+                Complex32::new(phase.cos(), phase.sin())
+            })
+            .collect();
+        let mut rng = Xorshift64::new(12345);
+        let result = sfft(&u, 4, &mut rng);
+        assert!(
+            !result.indices.is_empty(),
+            "SFFT should find at least 1 frequency"
+        );
+        let max_idx = result
+            .indices
+            .iter()
+            .zip(result.values.iter())
+            .max_by(|(_, a), (_, b)| {
+                let ma = a.re * a.re + a.im * a.im;
+                let mb = b.re * b.re + b.im * b.im;
+                ma.partial_cmp(&mb).unwrap()
+            })
+            .map(|(idx, _)| *idx)
+            .unwrap();
+        assert!(
+            (max_idx as isize - 42).unsigned_abs() <= 3,
+            "Expected peak near bin 42, got {max_idx}"
+        );
+    }
+
+    #[test]
+    fn test_sfft_two_tones() {
+        let n = 256;
+        let u: Vec<Complex32> = (0..n)
+            .map(|i| {
+                let p1 = 2.0 * std::f32::consts::PI * 20.0 * i as f32 / n as f32;
+                let p2 = 2.0 * std::f32::consts::PI * 80.0 * i as f32 / n as f32;
+                Complex32::new(p1.cos() + p2.cos(), p1.sin() + p2.sin())
+            })
+            .collect();
+        let mut rng = Xorshift64::new(54321);
+        let result = sfft(&u, 4, &mut rng);
+        assert!(
+            result.indices.len() >= 2,
+            "SFFT should find at least 2 frequencies"
+        );
+    }
+
+    #[test]
+    fn test_sfft_deterministic() {
+        let n = 128;
+        let u: Vec<Complex32> = (0..n)
+            .map(|i| {
+                let p = 2.0 * std::f32::consts::PI * 10.0 * i as f32 / n as f32;
+                Complex32::new(p.cos(), p.sin())
+            })
+            .collect();
+        let mut rng1 = Xorshift64::new(42);
+        let mut rng2 = Xorshift64::new(42);
+        let r1 = sfft(&u, 2, &mut rng1);
+        let r2 = sfft(&u, 2, &mut rng2);
+        assert_eq!(r1.indices, r2.indices);
+    }
+
+    #[test]
+    fn test_sfft_empty_input() {
+        let u: Vec<Complex32> = vec![];
+        let mut rng = Xorshift64::new(42);
+        let result = sfft(&u, 4, &mut rng);
+        assert!(result.indices.is_empty());
+    }
+
+    #[test]
+    fn test_sfft_kappa_clamped() {
+        let n = 8;
+        let u: Vec<Complex32> = (0..n).map(|i| Complex32::new(i as f32, 0.0)).collect();
+        let mut rng = Xorshift64::new(42);
+        let result = sfft(&u, 100, &mut rng);
+        assert!(result.indices.len() <= n);
     }
 }
