@@ -45,6 +45,49 @@ fn rrc_taps(rolloff: f32, span: usize, sps: usize) -> Vec<f32> {
     taps
 }
 
+/// Expose RRC filter taps to Python for caching.
+#[pyfunction]
+pub fn rrc_taps_py<'py>(
+    py: Python<'py>,
+    rolloff: f32,
+    span: usize,
+    sps: usize,
+) -> Bound<'py, PyArray1<f32>> {
+    let taps = rrc_taps(rolloff, span, sps);
+    Array1::from_vec(taps).into_pyarray(py)
+}
+
+/// Apply pulse-shaping with pre-computed filter taps: upsample then convolve.
+#[pyfunction]
+pub fn apply_rrc_filter_with_taps<'py>(
+    py: Python<'py>,
+    symbols: PyReadonlyArray1<'py, Complex32>,
+    taps: PyReadonlyArray1<'py, f32>,
+    sps: usize,
+) -> Bound<'py, PyArray1<Complex32>> {
+    let symbols = symbols.as_array();
+    let taps = taps.as_array();
+    let tap_len = taps.len();
+
+    let upsampled_len = symbols.len() * sps;
+    let mut upsampled = vec![Complex32::new(0.0, 0.0); upsampled_len];
+    for (i, &s) in symbols.iter().enumerate() {
+        upsampled[i * sps] = s;
+    }
+
+    let output_len = upsampled_len + tap_len - 1;
+    let output = Array1::from_shape_fn(output_len, |n| {
+        let mut sum = Complex32::new(0.0, 0.0);
+        for (k, &tap) in taps.iter().enumerate() {
+            if n >= k && (n - k) < upsampled_len {
+                sum += upsampled[n - k] * tap;
+            }
+        }
+        sum
+    });
+    output.into_pyarray(py)
+}
+
 /// Generate Gaussian filter taps for GFSK/GMSK pulse shaping.
 /// Taps sum to 1.0, symmetric, peak at center.
 #[pyfunction]

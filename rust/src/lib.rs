@@ -14,6 +14,8 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(modulators::generate_qpsk_symbols, m)?)?;
     m.add_function(wrap_pyfunction!(modulators::generate_bpsk_symbols, m)?)?;
     m.add_function(wrap_pyfunction!(filters::apply_rrc_filter, m)?)?;
+    m.add_function(wrap_pyfunction!(filters::rrc_taps_py, m)?)?;
+    m.add_function(wrap_pyfunction!(filters::apply_rrc_filter_with_taps, m)?)?;
     m.add_function(wrap_pyfunction!(oscillators::generate_chirp, m)?)?;
     m.add_function(wrap_pyfunction!(oscillators::generate_tone, m)?)?;
     // Polyphase codes
