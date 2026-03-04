@@ -40,7 +40,7 @@ impl Xorshift64 {
         }
     }
 
-    fn next(&mut self) -> u64 {
+    pub(crate) fn next(&mut self) -> u64 {
         self.state ^= self.state << 13;
         self.state ^= self.state >> 7;
         self.state ^= self.state << 17;

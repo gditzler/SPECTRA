@@ -6,7 +6,7 @@ use rustfft::FftPlanner;
 use std::f32::consts::PI;
 
 /// Hann window of given size.
-fn hann_window(size: usize) -> Vec<f32> {
+pub(crate) fn hann_window(size: usize) -> Vec<f32> {
     if size <= 1 {
         return vec![1.0; size];
     }
@@ -51,7 +51,7 @@ pub(crate) fn channelize_frames(
 }
 
 /// fftshift along the row (first) axis of a 2-D array.
-fn fftshift_rows(arr: &Array2<Complex32>) -> Array2<Complex32> {
+pub(crate) fn fftshift_rows(arr: &Array2<Complex32>) -> Array2<Complex32> {
     let (nrows, ncols) = arr.dim();
     let half = nrows / 2;
     let mut shifted = Array2::<Complex32>::zeros((nrows, ncols));
