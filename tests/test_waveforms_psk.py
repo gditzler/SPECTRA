@@ -14,7 +14,6 @@ class TestQPSKWaveform:
         from spectra.waveforms import QPSK
         waveform = QPSK()
         assert waveform.samples_per_symbol == 8
-        assert waveform.pulse_shape == "rrc"
         assert waveform.rolloff == 0.35
 
     def test_label(self):

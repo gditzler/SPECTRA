@@ -4,39 +4,19 @@ import numpy as np
 
 from spectra._rust import apply_rrc_filter_with_taps, generate_qam_symbols
 from spectra.utils.rrc_cache import cached_rrc_taps
-from spectra.waveforms.base import Waveform
+from spectra.waveforms.rrc_base import _RRCWaveformBase
 
 
-class _QAMBase(Waveform):
+class _QAMBase(_RRCWaveformBase):
     """Base class for square QAM waveforms."""
 
     _order: int = 16
 
-    def __init__(
-        self,
-        samples_per_symbol: int = 8,
-        rolloff: float = 0.35,
-        filter_span: int = 10,
-    ):
-        self.samples_per_symbol = samples_per_symbol
-        self.rolloff = rolloff
-        self.filter_span = filter_span
-
-    def generate(
-        self,
-        num_symbols: int,
-        sample_rate: float,
-        seed: Optional[int] = None,
-    ) -> np.ndarray:
-        s = seed if seed is not None else np.random.randint(0, 2**32)
-        symbols = generate_qam_symbols(num_symbols, self._order, seed=s)
-        taps = cached_rrc_taps(self.rolloff, self.filter_span, self.samples_per_symbol)
-        filtered = apply_rrc_filter_with_taps(symbols, taps, self.samples_per_symbol)
-        return filtered
-
-    def bandwidth(self, sample_rate: float) -> float:
-        symbol_rate = sample_rate / self.samples_per_symbol
-        return symbol_rate * (1.0 + self.rolloff)
+    def _generate_symbols(self, num_symbols, seed):
+        return np.array(
+            generate_qam_symbols(num_symbols, self._order, seed=seed),
+            dtype=np.complex64,
+        )
 
 
 class QAM16(_QAMBase):
@@ -71,32 +51,17 @@ class QAM1024(_QAMBase):
         return "1024QAM"
 
 
-class _CrossQAMBase(Waveform):
+class _CrossQAMBase(_RRCWaveformBase):
     """Base class for non-square cross QAM constellations (32, 128, 512)."""
 
     _order: int = 32
 
-    def __init__(
-        self,
-        samples_per_symbol: int = 8,
-        rolloff: float = 0.35,
-        filter_span: int = 10,
-    ):
-        self.samples_per_symbol = samples_per_symbol
-        self.rolloff = rolloff
-        self.filter_span = filter_span
-
     @staticmethod
     def _cross_constellation(order: int) -> np.ndarray:
-        """Build a cross QAM constellation for non-square orders.
-
-        Uses the next larger square grid and removes corner points
-        to reach the desired order.
-        """
+        """Build a cross QAM constellation for non-square orders."""
         side = int(np.ceil(np.sqrt(order)))
         if side % 2 != 0:
             side += 1
-        # Build full square grid
         points = []
         for i in range(side):
             for j in range(side):
@@ -104,33 +69,19 @@ class _CrossQAMBase(Waveform):
                 im = 2.0 * j - (side - 1)
                 points.append(complex(re, im))
         points = np.array(points)
-        # Sort by magnitude to keep inner points
         mags = np.abs(points)
         indices = np.argsort(mags)
         constellation = points[indices[:order]]
-        # Normalize to unit average power
         avg_power = np.mean(np.abs(constellation) ** 2)
         if avg_power > 0:
             constellation /= np.sqrt(avg_power)
         return constellation.astype(np.complex64)
 
-    def generate(
-        self,
-        num_symbols: int,
-        sample_rate: float,
-        seed: Optional[int] = None,
-    ) -> np.ndarray:
+    def _generate_symbols(self, num_symbols, seed):
         rng = np.random.default_rng(seed)
         constellation = self._cross_constellation(self._order)
         indices = rng.integers(0, len(constellation), size=num_symbols)
-        symbols = constellation[indices]
-        taps = cached_rrc_taps(self.rolloff, self.filter_span, self.samples_per_symbol)
-        filtered = apply_rrc_filter_with_taps(symbols, taps, self.samples_per_symbol)
-        return filtered
-
-    def bandwidth(self, sample_rate: float) -> float:
-        symbol_rate = sample_rate / self.samples_per_symbol
-        return symbol_rate * (1.0 + self.rolloff)
+        return constellation[indices]
 
 
 class QAM32(_CrossQAMBase):
