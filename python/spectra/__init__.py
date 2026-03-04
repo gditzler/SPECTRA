@@ -165,6 +165,18 @@ from spectra.utils.writer import DatasetWriter
 
 # File I/O
 from spectra.utils.file_handlers.sigmf_writer import SigMFWriter
+from spectra.utils.file_handlers.base_writer import FileWriter
+from spectra.utils.file_handlers.dataset_export import export_dataset_to_folder
+from spectra.utils.file_handlers.numpy_writer import NumpyWriter
+from spectra.utils.file_handlers.raw_writer import RawIQWriter
+from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
+from spectra.utils.file_handlers.sqlite_reader import SQLiteReader
+
+# Optional File I/O (h5py)
+try:
+    from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
+except ImportError:
+    pass
 
 __all__ = [
     "__version__",
@@ -315,5 +327,11 @@ __all__ = [
     # Writer
     "DatasetWriter",
     # File I/O
+    "FileWriter",
+    "export_dataset_to_folder",
     "SigMFWriter",
+    "NumpyWriter",
+    "RawIQWriter",
+    "SQLiteWriter",
+    "SQLiteReader",
 ]
