@@ -81,6 +81,35 @@ def time_dataloader(dataset, cfg):
     return count, elapsed
 
 
+def time_init(factory_fn):
+    """Time construction/initialization of a dataset.
+
+    Returns (dataset, elapsed_seconds).
+    """
+    t0 = time.perf_counter()
+    dataset = factory_fn()
+    elapsed = time.perf_counter() - t0
+    return dataset, elapsed
+
+
+def build_result_dict(init_time, getitem_times, dl_count, dl_elapsed):
+    """Build a standardized result dict from timing measurements."""
+    n = len(getitem_times)
+    total_getitem = float(np.sum(getitem_times))
+    return {
+        "init_time_s": init_time,
+        "getitem_mean_ms": float(np.mean(getitem_times) * 1000),
+        "getitem_std_ms": float(np.std(getitem_times) * 1000),
+        "getitem_median_ms": float(np.median(getitem_times) * 1000),
+        "total_getitem_time_s": total_getitem,
+        "num_samples_measured": n,
+        "amortized_cost_ms": (init_time + total_getitem) / n * 1000,
+        "dataloader_samples": dl_count,
+        "dataloader_elapsed_s": dl_elapsed,
+        "dataloader_throughput_sps": dl_count / dl_elapsed,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Speed benchmark: SPECTRA vs TorchSig"
@@ -100,50 +129,43 @@ def main():
 
     # SPECTRA
     print("=== SPECTRA Speed Benchmark ===")
-    ds_sp = build_spectra_dataset(cfg, seed=cfg["seeds"]["spectra_train"])
+    ds_sp, init_sp = time_init(
+        lambda: build_spectra_dataset(cfg, seed=cfg["seeds"]["spectra_train"])
+    )
     times_sp = time_getitem(
         ds_sp, n=cfg["speed"]["num_samples"], warmup=cfg["speed"]["num_warmup"]
     )
     count_sp, elapsed_sp = time_dataloader(ds_sp, cfg)
-    results["spectra"] = {
-        "getitem_mean_ms": float(np.mean(times_sp) * 1000),
-        "getitem_std_ms": float(np.std(times_sp) * 1000),
-        "getitem_median_ms": float(np.median(times_sp) * 1000),
-        "dataloader_samples": count_sp,
-        "dataloader_elapsed_s": elapsed_sp,
-        "dataloader_throughput_sps": count_sp / elapsed_sp,
-    }
-    print(
-        f"  __getitem__: {results['spectra']['getitem_mean_ms']:.3f} ms (mean)"
-    )
-    print(
-        f"  DataLoader:  {results['spectra']['dataloader_throughput_sps']:.0f} samples/s"
-    )
+    results["spectra"] = build_result_dict(init_sp, times_sp, count_sp, elapsed_sp)
+    print(f"  Init time:       {init_sp:.3f} s")
+    print(f"  __getitem__:     {results['spectra']['getitem_mean_ms']:.3f} ms (mean)")
+    print(f"  Amortized cost:  {results['spectra']['amortized_cost_ms']:.3f} ms/sample")
+    print(f"  DataLoader:      {results['spectra']['dataloader_throughput_sps']:.0f} samples/s")
 
     # TorchSig
     if not args.skip_torchsig:
         print("\n=== TorchSig Speed Benchmark ===")
-        ds_ts = build_torchsig_dataset(cfg, seed=cfg["seeds"]["torchsig_train"])
+        ds_ts, init_ts = time_init(
+            lambda: build_torchsig_dataset(cfg, seed=cfg["seeds"]["torchsig_train"])
+        )
         times_ts = time_getitem(
             ds_ts,
             n=cfg["speed"]["num_samples"],
             warmup=cfg["speed"]["num_warmup"],
         )
         count_ts, elapsed_ts = time_dataloader(ds_ts, cfg)
-        results["torchsig"] = {
-            "getitem_mean_ms": float(np.mean(times_ts) * 1000),
-            "getitem_std_ms": float(np.std(times_ts) * 1000),
-            "getitem_median_ms": float(np.median(times_ts) * 1000),
-            "dataloader_samples": count_ts,
-            "dataloader_elapsed_s": elapsed_ts,
-            "dataloader_throughput_sps": count_ts / elapsed_ts,
-        }
-        print(
-            f"  __getitem__: {results['torchsig']['getitem_mean_ms']:.3f} ms (mean)"
-        )
-        print(
-            f"  DataLoader:  {results['torchsig']['dataloader_throughput_sps']:.0f} samples/s"
-        )
+        results["torchsig"] = build_result_dict(init_ts, times_ts, count_ts, elapsed_ts)
+        print(f"  Init time:       {init_ts:.3f} s")
+        print(f"  __getitem__:     {results['torchsig']['getitem_mean_ms']:.3f} ms (mean)")
+        print(f"  Amortized cost:  {results['torchsig']['amortized_cost_ms']:.3f} ms/sample")
+        print(f"  DataLoader:      {results['torchsig']['dataloader_throughput_sps']:.0f} samples/s")
+
+    results["methodology"] = (
+        "TorchSig materializes all data during __init__(); "
+        "SPECTRA generates on-the-fly in __getitem__(). "
+        "amortized_cost_ms = (init_time + total_getitem_time) / num_samples "
+        "is the fair per-sample comparison."
+    )
 
     # Save
     results_path = out_dir / "speed_results.json"
