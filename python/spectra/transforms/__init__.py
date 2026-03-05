@@ -9,7 +9,7 @@ from spectra.transforms.augmentations import (
     TimeReversal,
 )
 from spectra.transforms.complex_to_2d import ComplexTo2D
-from spectra.transforms.normalize import Normalize
+from spectra.transforms.normalize import Normalize, SpectrogramNormalize
 from spectra.transforms.psd import PSD
 from spectra.transforms.spectrogram import Spectrogram
 from spectra.transforms.caf import CAF
@@ -44,6 +44,7 @@ __all__ = [
     "FamilyName",
     "Normalize",
     "PSD",
+    "SpectrogramNormalize",
     "PatchShuffle",
     "RandomDropSamples",
     "RandomMagRescale",
