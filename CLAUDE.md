@@ -73,3 +73,5 @@ Tests live in `tests/` with shared fixtures in `conftest.py` (`rng`, `sample_rat
 ## CI
 
 GitHub Actions (`.github/workflows/ci.yml`): Rust checks (fmt, clippy, test) on Ubuntu; Python tests on matrix of (Ubuntu, macOS) × (Python 3.10, 3.11, 3.12) with CPU-only PyTorch.
+
+
