@@ -20,22 +20,23 @@ class FakeTorchSigDataset:
         rng = np.random.default_rng(idx)
         iq = (rng.standard_normal(self.num_iq) +
               1j * rng.standard_normal(self.num_iq)).astype(np.complex64)
-        meta = {
-            "class_name": ["bpsk", "qpsk", "8psk", "16qam"][idx % 4],
-            "snr": rng.uniform(0, 20),
-        }
-        return iq, meta
+        label = ["bpsk", "qpsk", "8psk", "16qam"][idx % 4]
+        return iq, label
+
+    def __iter__(self):
+        for i in range(self.n):
+            yield self[i]
 
 
 def test_adapter_len():
     ds = FakeTorchSigDataset(n=50)
-    adapter = TorchSigAdapter(ds, class_list=CANONICAL_CLASSES[:4])
+    adapter = TorchSigAdapter(ds, num_samples=50, class_list=CANONICAL_CLASSES[:4])
     assert len(adapter) == 50
 
 
 def test_adapter_returns_tensor_and_int():
     ds = FakeTorchSigDataset(n=10, num_iq=512)
-    adapter = TorchSigAdapter(ds, class_list=CANONICAL_CLASSES[:4])
+    adapter = TorchSigAdapter(ds, num_samples=10, class_list=CANONICAL_CLASSES[:4])
     data, label = adapter[0]
     assert isinstance(data, torch.Tensor)
     assert data.shape == (2, 512)
@@ -45,7 +46,7 @@ def test_adapter_returns_tensor_and_int():
 
 def test_adapter_label_mapping():
     ds = FakeTorchSigDataset(n=4)
-    adapter = TorchSigAdapter(ds, class_list=CANONICAL_CLASSES[:4])
+    adapter = TorchSigAdapter(ds, num_samples=4, class_list=CANONICAL_CLASSES[:4])
     # idx=0 -> "bpsk" -> 0, idx=1 -> "qpsk" -> 1, etc.
     _, l0 = adapter[0]
     _, l1 = adapter[1]
@@ -56,7 +57,7 @@ def test_adapter_label_mapping():
 def test_adapter_with_transform():
     ds = FakeTorchSigDataset(n=5, num_iq=512)
     transform = lambda x: x[:, :256]  # Crop
-    adapter = TorchSigAdapter(ds, class_list=CANONICAL_CLASSES[:4],
+    adapter = TorchSigAdapter(ds, num_samples=5, class_list=CANONICAL_CLASSES[:4],
                               transform=transform)
     data, _ = adapter[0]
     assert data.shape == (2, 256)
