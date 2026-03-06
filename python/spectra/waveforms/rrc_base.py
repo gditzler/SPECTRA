@@ -10,9 +10,24 @@ from spectra.waveforms.base import Waveform
 
 
 class _RRCWaveformBase(Waveform):
-    """Base for waveforms that generate symbols then apply RRC pulse shaping.
+    """Base class for waveforms that pulse-shape symbols through an RRC filter.
+
+    Generates discrete symbols, upsamples by ``samples_per_symbol``, then
+    convolves with a Root-Raised-Cosine (RRC) filter. The matched RRC at the
+    receiver yields a Raised-Cosine response with zero ISI at symbol boundaries.
 
     Subclasses must define ``label`` and implement ``_generate_symbols()``.
+
+    Args:
+        rolloff: RRC excess bandwidth factor in [0, 1]. Higher values widen
+            the spectrum but reduce ISI sensitivity. Default 0.35.
+        filter_span: Filter half-length in symbols (filter has
+            ``2 * filter_span * samples_per_symbol + 1`` taps). Default 10.
+        samples_per_symbol: Upsampling factor (samples per symbol). Default 8.
+
+    Note:
+        Bandwidth = ``symbol_rate * (1 + rolloff)``
+        where ``symbol_rate = sample_rate / samples_per_symbol``.
     """
 
     def __init__(

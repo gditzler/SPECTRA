@@ -7,6 +7,26 @@ from spectra.scene.signal_desc import SignalDescription
 
 
 class AWGN(Transform):
+    """Additive White Gaussian Noise.
+
+    Computes noise power from measured signal power and target SNR, then adds
+    complex circular Gaussian noise. Exactly one of ``snr`` or ``snr_range``
+    must be provided.
+
+    Args:
+        snr: Fixed signal-to-noise ratio in dB.
+        snr_range: ``(min_db, max_db)`` tuple; actual SNR is drawn uniformly
+            per call. Useful for dataset diversity.
+
+    Raises:
+        ValueError: If both or neither of ``snr`` and ``snr_range`` are given.
+
+    Example::
+
+        awgn = AWGN(snr_range=(-5.0, 30.0))
+        iq_noisy, desc = awgn(iq, desc, sample_rate=1e6)
+    """
+
     def __init__(
         self,
         snr: Optional[float] = None,

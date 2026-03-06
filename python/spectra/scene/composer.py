@@ -10,6 +10,32 @@ from spectra.waveforms.base import Waveform
 
 @dataclass
 class SceneConfig:
+    """Configuration for a wideband multi-signal scene.
+
+    Attributes:
+        capture_duration: Total capture duration in seconds.
+        capture_bandwidth: Total capture bandwidth in Hz, centered at DC.
+        sample_rate: Sample rate in samples per second.
+        num_signals: Number of signals to place. Either a fixed int or a
+            ``(min, max)`` tuple for uniform random count per scene.
+        signal_pool: List of :class:`~spectra.waveforms.base.Waveform` instances
+            to draw from uniformly at random.
+        snr_range: ``(min_db, max_db)`` per-signal SNR range drawn uniformly.
+        allow_overlap: If ``False``, signals are frequency-packed to avoid
+            spectral overlap. Default ``True``.
+
+    Example::
+
+        config = SceneConfig(
+            capture_duration=0.001,
+            capture_bandwidth=10e6,
+            sample_rate=20e6,
+            num_signals=(1, 5),
+            signal_pool=[QPSK(), BPSK(), QAM16()],
+            snr_range=(5.0, 20.0),
+        )
+    """
+
     capture_duration: float
     capture_bandwidth: float
     sample_rate: float

@@ -10,6 +10,33 @@ from spectra.waveforms.base import Waveform
 
 
 class NarrowbandDataset(Dataset):
+    """On-the-fly narrowband IQ dataset for AMC classification.
+
+    Generates signals deterministically from ``(base_seed, idx)`` pairs using
+    NumPy's ``default_rng(seed=(base_seed, idx))``. This makes the dataset safe
+    for use with ``num_workers > 0`` — every worker produces the same sample
+    for a given index regardless of process ordering.
+
+    Args:
+        waveform_pool: List of :class:`~spectra.waveforms.base.Waveform` instances.
+            Class labels are the pool indices.
+        num_samples: Total dataset size (number of IQ segments).
+        num_iq_samples: Number of complex samples per segment.
+        sample_rate: Receiver sample rate in Hz.
+        impairments: Optional :class:`~spectra.impairments.compose.Compose`
+            pipeline applied after generation.
+        transform: Optional callable applied to the IQ tensor before returning.
+            If ``None``, returns ``Tensor[2, num_iq_samples]`` (I/Q channels).
+        target_transform: Optional callable applied to the integer class label.
+        seed: Base integer seed. ``None`` gives non-deterministic behavior.
+
+    Returns (from ``__getitem__``):
+        Tuple of ``(iq_tensor, label_int)`` where ``iq_tensor`` has shape
+        ``[2, num_iq_samples]`` (channel 0 = I, channel 1 = Q) and dtype
+        ``float32``. If ``transform`` is applied (e.g., ``STFT``), shape changes
+        accordingly.
+    """
+
     def __init__(
         self,
         waveform_pool: List[Waveform],

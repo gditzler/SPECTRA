@@ -10,6 +10,15 @@ from spectra.waveforms.rrc_base import _RRCWaveformBase
 
 
 class QPSK(_RRCWaveformBase):
+    """Quadrature Phase-Shift Keying (QPSK) waveform with RRC pulse shaping.
+
+    Uses a pi/4, 3pi/4, -3pi/4, -pi/4 Gray-coded symbol constellation.
+    Symbols are generated in Rust via xorshift64 PRNG for speed.
+
+    Inherits ``samples_per_symbol``, ``rolloff``, and ``filter_span``
+    constructor arguments from :class:`_RRCWaveformBase`.
+    """
+
     @property
     def label(self) -> str:
         return "QPSK"
@@ -19,6 +28,15 @@ class QPSK(_RRCWaveformBase):
 
 
 class BPSK(_RRCWaveformBase):
+    """Binary Phase-Shift Keying (BPSK) waveform with RRC pulse shaping.
+
+    Uses a +1/-1 BPSK constellation (0 and pi phase states).
+    Symbols are generated in Rust via xorshift64 PRNG for speed.
+
+    Inherits ``samples_per_symbol``, ``rolloff``, and ``filter_span``
+    constructor arguments from :class:`_RRCWaveformBase`.
+    """
+
     @property
     def label(self) -> str:
         return "BPSK"
