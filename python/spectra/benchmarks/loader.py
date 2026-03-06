@@ -171,6 +171,39 @@ def _build_wideband(
     )
 
 
+def _build_channel(config: dict, condition: str) -> NarrowbandDataset:
+    conditions = config.get("conditions", {})
+    if condition not in conditions:
+        raise ValueError(
+            f"condition='{condition}' not found. Available: {sorted(conditions.keys())}"
+        )
+    pool = _build_waveform_pool(config["waveform_pool"])
+    # _build_impairments handles AWGN with explicit params (snr=10) correctly
+    impairments = _build_impairments(conditions[condition]["impairments"])
+    return NarrowbandDataset(
+        waveform_pool=pool,
+        num_samples=config["num_samples_per_condition"],
+        num_iq_samples=config["num_iq_samples"],
+        sample_rate=config["sample_rate"],
+        impairments=impairments,
+        seed=config["seed"][condition],
+    )
+
+
+def load_channel_benchmark(name: str, condition: str) -> NarrowbandDataset:
+    """Load one impairment condition from a channel-robustness benchmark."""
+    path = _resolve_config_path(name)
+    with open(path, "r") as f:
+        config = yaml.safe_load(f)
+
+    task = config.get("task", "")
+    if task != "narrowband_channel":
+        raise ValueError(
+            f"Config '{name}' has task='{task}', expected 'narrowband_channel'."
+        )
+    return _build_channel(config, condition)
+
+
 def _build_snr_sweep(config: dict, split: str) -> SNRSweepDataset:
     pool = _build_waveform_pool(config["waveform_pool"])
 

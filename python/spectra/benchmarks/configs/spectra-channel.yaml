@@ -1,0 +1,69 @@
+name: "spectra-channel"
+version: "1.0"
+description: >
+  Channel-robustness benchmark. 18 classes evaluated under 5 named
+  impairment conditions at SNR=10 dB. Each condition × class = 200 samples.
+task: "narrowband_channel"
+
+sample_rate: 1_000_000
+num_iq_samples: 1024
+num_samples_per_condition: 3600    # 18 classes × 200 samples
+
+waveform_pool:
+  - {type: "BPSK"}
+  - {type: "QPSK"}
+  - {type: "PSK8"}
+  - {type: "QAM16"}
+  - {type: "QAM64"}
+  - {type: "QAM256"}
+  - {type: "FSK", params: {order: 2}}
+  - {type: "FSK", params: {order: 4}}
+  - {type: "MSK"}
+  - {type: "GMSK"}
+  - {type: "OFDM"}
+  - {type: "LFM"}
+  - {type: "CostasCode"}
+  - {type: "FrankCode"}
+  - {type: "P1Code"}
+  - {type: "AMDSB_SC"}
+  - {type: "BarkerCode", params: {length: 13}}
+  - {type: "Noise"}
+
+seed:
+  awgn:        20000
+  fading_los:  21000
+  fading_nlos: 22000
+  hardware:    23000
+  full:        24000
+
+conditions:
+  awgn:
+    impairments:
+      - {type: "AWGN", params: {snr: 10}}
+
+  fading_los:
+    impairments:
+      - {type: "RicianFading", params: {k_factor: 4.0, num_taps: 8}}
+      - {type: "AWGN",         params: {snr: 10}}
+
+  fading_nlos:
+    impairments:
+      - {type: "RayleighFading", params: {num_taps: 8}}
+      - {type: "AWGN",           params: {snr: 10}}
+
+  hardware:
+    impairments:
+      - {type: "IQImbalance"}
+      - {type: "DCOffset",   params: {max_offset: 0.05}}
+      - {type: "PhaseNoise"}
+      - {type: "AWGN",       params: {snr: 10}}
+
+  full:
+    impairments:
+      - {type: "FrequencyOffset", params: {max_offset: 50000}}
+      - {type: "PhaseOffset",     params: {max_offset: 3.14159}}
+      - {type: "RayleighFading",  params: {num_taps: 8}}
+      - {type: "IQImbalance"}
+      - {type: "DCOffset",        params: {max_offset: 0.05}}
+      - {type: "PhaseNoise"}
+      - {type: "AWGN",            params: {snr: 10}}
