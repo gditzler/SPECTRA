@@ -1,0 +1,45 @@
+# spectra.impairments
+
+Channel impairment transforms. All classes implement `Transform.__call__(iq, desc, **kwargs)`
+and can be chained with `Compose`.
+
+## Base & Composition
+
+::: spectra.impairments.base.Transform
+
+::: spectra.impairments.compose.Compose
+
+## Noise
+
+::: spectra.impairments.awgn.AWGN
+::: spectra.impairments.colored_noise.ColoredNoise
+
+## Frequency Effects
+
+::: spectra.impairments.frequency_offset.FrequencyOffset
+::: spectra.impairments.frequency_drift.FrequencyDrift
+::: spectra.impairments.doppler.DopplerShift
+
+## Phase Effects
+
+::: spectra.impairments.phase_noise.PhaseNoise
+::: spectra.impairments.phase_offset.PhaseOffset
+::: spectra.impairments.spectral_inversion.SpectralInversion
+
+## Hardware Impairments
+
+::: spectra.impairments.iq_imbalance.IQImbalance
+::: spectra.impairments.dc_offset.DCOffset
+::: spectra.impairments.quantization.Quantization
+::: spectra.impairments.sample_rate_offset.SampleRateOffset
+::: spectra.impairments.passband_ripple.PassbandRipple
+
+## Channel Models
+
+::: spectra.impairments.fading.RayleighFading
+::: spectra.impairments.fading.RicianFading
+
+## Interference
+
+::: spectra.impairments.adjacent_channel.AdjacentChannelInterference
+::: spectra.impairments.intermod.IntermodulationProducts
