@@ -15,6 +15,9 @@ from spectra.impairments.phase_offset import PhaseOffset
 from spectra.impairments.quantization import Quantization
 from spectra.impairments.sample_rate_offset import SampleRateOffset
 from spectra.impairments.spectral_inversion import SpectralInversion
+from spectra.impairments.tdl_channel import TDLChannel
+from spectra.impairments.power_amplifier import RappPA, SalehPA
+from spectra.impairments.timing import FractionalDelay, SamplingJitter
 
 __all__ = [
     "AdjacentChannelInterference",
@@ -35,4 +38,9 @@ __all__ = [
     "RicianFading",
     "SampleRateOffset",
     "SpectralInversion",
+    "TDLChannel",
+    "RappPA",
+    "SalehPA",
+    "FractionalDelay",
+    "SamplingJitter",
 ]

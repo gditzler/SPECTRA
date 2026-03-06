@@ -28,6 +28,17 @@ jobs:
       - run: cargo clippy --manifest-path rust/Cargo.toml --all-targets -- -D warnings
       - run: cargo test --manifest-path rust/Cargo.toml
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff
+      - run: ruff check python/ tests/
+      - run: ruff format --check python/ tests/
+
   python-tests:
     runs-on: ${{ matrix.os }}
     strategy:

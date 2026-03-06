@@ -46,6 +46,7 @@ from spectra.waveforms import (
     OFDM1200,
     OFDM2048,
     OOK,
+    SCFDMA,
     P1Code,
     P2Code,
     P3Code,
@@ -88,6 +89,11 @@ from spectra.impairments import (
     RicianFading,
     SampleRateOffset,
     SpectralInversion,
+    TDLChannel,
+    RappPA,
+    SalehPA,
+    FractionalDelay,
+    SamplingJitter,
 )
 
 # Curriculum
@@ -167,6 +173,12 @@ from spectra.utils import (
     upsample,
 )
 
+# Models
+from spectra.models import CNNAMC, ResNetAMC
+
+# Metrics
+from spectra.metrics import accuracy, classification_report, confusion_matrix, per_snr_accuracy
+
 # Classifiers
 from spectra.classifiers import CyclostationaryAMC
 
@@ -235,6 +247,7 @@ __all__ = [
     "OFDM1200",
     "OFDM2048",
     "OOK",
+    "SCFDMA",
     "P1Code",
     "P2Code",
     "P3Code",
@@ -277,6 +290,11 @@ __all__ = [
     "RicianFading",
     "SampleRateOffset",
     "SpectralInversion",
+    "TDLChannel",
+    "RappPA",
+    "SalehPA",
+    "FractionalDelay",
+    "SamplingJitter",
     # Curriculum
     "CurriculumSchedule",
     # Streaming
@@ -339,6 +357,14 @@ __all__ = [
     "polyphase_interpolator",
     "srrc_taps",
     "upsample",
+    # Models
+    "CNNAMC",
+    "ResNetAMC",
+    # Metrics
+    "accuracy",
+    "classification_report",
+    "confusion_matrix",
+    "per_snr_accuracy",
     # Classifiers
     "CyclostationaryAMC",
     # Writer

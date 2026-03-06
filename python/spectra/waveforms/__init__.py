@@ -35,6 +35,7 @@ from spectra.waveforms.ofdm import (
     OFDM900,
     OFDM1200,
     OFDM2048,
+    SCFDMA,
 )
 from spectra.waveforms.polyphase import FrankCode, P1Code, P2Code, P3Code, P4Code
 from spectra.waveforms.psk import BPSK, PSK8, PSK16, PSK32, PSK64, QPSK
@@ -87,6 +88,7 @@ __all__ = [
     "OFDM1200",
     "OFDM2048",
     "OOK",
+    "SCFDMA",
     "P1Code",
     "P2Code",
     "P3Code",
