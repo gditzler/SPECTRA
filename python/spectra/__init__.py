@@ -97,7 +97,13 @@ from spectra.curriculum import CurriculumSchedule
 from spectra.streaming import StreamingDataLoader
 
 # Benchmarks
-from spectra.benchmarks import load_benchmark
+from spectra.benchmarks import (
+    load_benchmark,
+    load_snr_sweep,
+    load_channel_benchmark,
+    evaluate_snr_sweep,
+    evaluate_channel_conditions,
+)
 
 # Datasets
 from spectra.datasets import (
@@ -108,6 +114,7 @@ from spectra.datasets import (
     NarrowbandDataset,
     NarrowbandMetadata,
     SignalFolderDataset,
+    SNRSweepDataset,
     WidebandDataset,
     WidebandMetadata,
 )
@@ -275,6 +282,10 @@ __all__ = [
     "StreamingDataLoader",
     # Benchmarks
     "load_benchmark",
+    "load_snr_sweep",
+    "load_channel_benchmark",
+    "evaluate_snr_sweep",
+    "evaluate_channel_conditions",
     # Datasets
     "collate_fn",
     "CyclostationaryDataset",
@@ -283,6 +294,7 @@ __all__ = [
     "NarrowbandDataset",
     "NarrowbandMetadata",
     "SignalFolderDataset",
+    "SNRSweepDataset",
     "WidebandDataset",
     "WidebandMetadata",
     # Transforms
