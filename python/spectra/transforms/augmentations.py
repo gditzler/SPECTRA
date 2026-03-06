@@ -112,3 +112,43 @@ class AGC:
             scale = np.sqrt(self._target_power / power)
             return (iq * scale).astype(iq.dtype)
         return iq.copy()
+
+
+class MixUp:
+    """Blend IQ signal with a random permutation of itself.
+
+    Args:
+        alpha: Beta distribution parameter for mixing coefficient.
+    """
+
+    def __init__(self, alpha: float = 0.2):
+        self._alpha = alpha
+
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+        if rng is None:
+            rng = np.random.default_rng()
+        lam = rng.beta(self._alpha, self._alpha)
+        perm = rng.permutation(len(iq))
+        return (lam * iq + (1 - lam) * iq[perm]).astype(iq.dtype)
+
+
+class CutMix:
+    """Replace a random time segment with shuffled samples.
+
+    Args:
+        alpha: Beta distribution parameter for cut ratio.
+    """
+
+    def __init__(self, alpha: float = 1.0):
+        self._alpha = alpha
+
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+        if rng is None:
+            rng = np.random.default_rng()
+        lam = rng.beta(self._alpha, self._alpha)
+        cut_len = int((1 - lam) * len(iq))
+        start = rng.integers(0, max(1, len(iq) - cut_len))
+        out = iq.copy()
+        perm = rng.permutation(len(iq))
+        out[start : start + cut_len] = iq[perm[start : start + cut_len]]
+        return out

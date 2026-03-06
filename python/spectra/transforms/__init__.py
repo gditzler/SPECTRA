@@ -1,8 +1,11 @@
+from spectra.transforms.ambiguity import AmbiguityFunction
 from spectra.transforms.augmentations import (
     AGC,
     AddSlope,
     ChannelSwap,
+    CutMix,
     CutOut,
+    MixUp,
     PatchShuffle,
     RandomDropSamples,
     RandomMagRescale,
@@ -19,6 +22,7 @@ from spectra.transforms.energy import EnergyDetector, PSD
 from spectra.transforms.scd import SCD
 from spectra.transforms.scf import SCF
 from spectra.transforms.stft import STFT
+from spectra.transforms.wvd import WVD
 from spectra.transforms.target_transforms import (
     BoxesNormalize,
     ClassIndex,
@@ -30,6 +34,7 @@ from spectra.transforms.target_transforms import (
 )
 
 __all__ = [
+    "AmbiguityFunction",
     "AGC",
     "AddSlope",
     "BoxesNormalize",
@@ -38,9 +43,11 @@ __all__ = [
     "ClassIndex",
     "ComplexTo2D",
     "Cumulants",
+    "CutMix",
     "CutOut",
     "EnergyDetector",
     "InstantaneousFrequency",
+    "MixUp",
     "FAMILY_MAP",
     "FamilyIndex",
     "FamilyName",
@@ -56,5 +63,6 @@ __all__ = [
     "STFT",
     "TargetTransform",
     "TimeReversal",
+    "WVD",
     "YOLOLabel",
 ]
