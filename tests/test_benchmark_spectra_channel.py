@@ -35,3 +35,20 @@ class TestLoadChannelBenchmark:
         ds1 = load_channel_benchmark("spectra-channel", condition="hardware")
         ds2 = load_channel_benchmark("spectra-channel", condition="hardware")
         assert ds1[42][1] == ds2[42][1]
+
+
+class TestEvaluateChannelConditions:
+    @pytest.mark.slow
+    def test_returns_all_conditions(self):
+        from spectra.benchmarks import evaluate_channel_conditions
+        def predict(batch): return torch.zeros(batch.shape[0], dtype=torch.long)
+        results = evaluate_channel_conditions(predict, "spectra-channel")
+        assert set(results.keys()) == {"awgn", "fading_los", "fading_nlos", "hardware", "full"}
+
+    @pytest.mark.slow
+    def test_accuracy_in_range(self):
+        from spectra.benchmarks import evaluate_channel_conditions
+        def predict(batch): return torch.zeros(batch.shape[0], dtype=torch.long)
+        results = evaluate_channel_conditions(predict, "spectra-channel")
+        for cond, metrics in results.items():
+            assert 0.0 <= metrics["accuracy"] <= 1.0

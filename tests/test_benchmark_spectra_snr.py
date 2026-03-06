@@ -40,3 +40,29 @@ class TestLoadSNRSweep:
         from spectra.benchmarks import load_snr_sweep
         with pytest.raises(ValueError, match="task"):
             load_snr_sweep("spectra-18", split="test")  # wrong task
+
+
+class TestEvaluateSNRSweep:
+    @pytest.mark.slow
+    def test_returns_all_snr_levels(self):
+        from spectra.benchmarks import load_snr_sweep, evaluate_snr_sweep
+        ds = load_snr_sweep("spectra-snr", split="test")
+        def predict(batch): return torch.zeros(batch.shape[0], dtype=torch.long)
+        results = evaluate_snr_sweep(predict, ds)
+        assert len(results) == 26
+        assert all("accuracy" in v and "per_class" in v for v in results.values())
+
+    @pytest.mark.slow
+    def test_accuracy_in_range(self):
+        from spectra.benchmarks import load_snr_sweep, evaluate_snr_sweep
+        ds = load_snr_sweep("spectra-snr", split="test")
+        def predict(batch): return torch.zeros(batch.shape[0], dtype=torch.long)
+        results = evaluate_snr_sweep(predict, ds)
+        for snr, metrics in results.items():
+            assert 0.0 <= metrics["accuracy"] <= 1.0
+
+    def test_wrong_dataset_type_raises(self):
+        from spectra.benchmarks import load_benchmark, evaluate_snr_sweep
+        ds = load_benchmark("spectra-18", split="test")
+        with pytest.raises(TypeError):
+            evaluate_snr_sweep(lambda x: x, ds)
