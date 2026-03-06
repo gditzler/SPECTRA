@@ -20,6 +20,12 @@ zarr = ["zarr>=2.16"]
 classifiers = ["scikit-learn>=1.0"]
 io = ["sigmf>=1.0", "h5py>=3.0"]
 all = ["pyyaml>=6.0", "zarr>=2.16", "scikit-learn>=1.0", "sigmf>=1.0", "h5py>=3.0"]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.26",
+    "pymdown-extensions>=10.0",
+]
 dev = [
     "maturin>=1.9,<2",
     "pytest>=8.0",
