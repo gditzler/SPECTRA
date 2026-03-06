@@ -7,6 +7,7 @@ from spectra.datasets.folder import SignalFolderDataset
 from spectra.datasets.manifest import ManifestDataset
 from spectra.datasets.metadata import DatasetMetadata, NarrowbandMetadata, WidebandMetadata
 from spectra.datasets.narrowband import NarrowbandDataset
+from spectra.datasets.snr_sweep import SNRSweepDataset
 from spectra.datasets.wideband import WidebandDataset
 
 
@@ -27,6 +28,7 @@ __all__ = [
     "NarrowbandDataset",
     "NarrowbandMetadata",
     "SignalFolderDataset",
+    "SNRSweepDataset",
     "WidebandDataset",
     "WidebandMetadata",
 ]
