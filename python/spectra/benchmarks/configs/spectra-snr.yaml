@@ -1,0 +1,50 @@
+name: "spectra-snr"
+version: "1.0"
+description: >
+  SNR-sweep evaluation benchmark. 18 classes at 26 fixed SNR levels
+  (-20 to +30 dB, step 2 dB). Produces accuracy-vs-SNR curves.
+task: "narrowband_snr_sweep"
+
+sample_rate: 1_000_000
+num_iq_samples: 1024
+
+snr_levels:
+  start: -20
+  stop:  30
+  step:  2
+
+samples_per_cell:
+  train: 200
+  val:   100
+  test:  50
+
+seed:
+  train: 10000
+  val:   11000
+  test:  12000
+
+waveform_pool:
+  - {type: "BPSK"}
+  - {type: "QPSK"}
+  - {type: "PSK8"}
+  - {type: "QAM16"}
+  - {type: "QAM64"}
+  - {type: "QAM256"}
+  - {type: "FSK", params: {order: 2}}
+  - {type: "FSK", params: {order: 4}}
+  - {type: "MSK"}
+  - {type: "GMSK"}
+  - {type: "OFDM"}
+  - {type: "LFM"}
+  - {type: "CostasCode"}
+  - {type: "FrankCode"}
+  - {type: "P1Code"}
+  - {type: "AMDSB_SC"}
+  - {type: "BarkerCode", params: {length: 13}}
+  - {type: "Noise"}
+
+# Extra channel impairments applied at every SNR level.
+# AWGN is NOT listed here — it is injected per SNR level by load_snr_sweep.
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 50_000}}
+  - {type: "PhaseOffset",     params: {max_offset: 3.14159}}

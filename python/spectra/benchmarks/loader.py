@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import yaml
 
 from spectra.datasets import NarrowbandDataset, WidebandDataset
+from spectra.datasets.snr_sweep import SNRSweepDataset
 from spectra.impairments import AWGN, Compose
 from spectra.scene.composer import SceneConfig
 from spectra.waveforms.base import Waveform
@@ -168,6 +169,53 @@ def _build_wideband(
         impairments=impairments,
         seed=config["seed"][split],
     )
+
+
+def _build_snr_sweep(config: dict, split: str) -> SNRSweepDataset:
+    pool = _build_waveform_pool(config["waveform_pool"])
+
+    slc = config["snr_levels"]
+    snr_levels = [
+        float(v)
+        for v in range(int(slc["start"]), int(slc["stop"]) + 1, int(slc["step"]))
+    ]
+
+    # Extra impairments (FrequencyOffset, PhaseOffset, etc.) — no AWGN here
+    extra = _build_impairments(
+        [e for e in config.get("impairments", []) if e.get("type") != "AWGN"]
+    )
+
+    def impairments_fn(snr_db: float) -> Compose:
+        awgn = AWGN(snr=snr_db)
+        base = list(extra.transforms) if extra is not None else []
+        return Compose([*base, awgn])
+
+    return SNRSweepDataset(
+        waveform_pool=pool,
+        snr_levels=snr_levels,
+        samples_per_cell=config["samples_per_cell"][split],
+        num_iq_samples=config["num_iq_samples"],
+        sample_rate=config["sample_rate"],
+        impairments_fn=impairments_fn,
+        seed=config["seed"][split],
+    )
+
+
+def load_snr_sweep(name: str, split: str = "test") -> SNRSweepDataset:
+    """Load an SNR-sweep benchmark. split ∈ {"train", "val", "test"} (no "all")."""
+    if split not in {"train", "val", "test"}:
+        raise ValueError(f"split must be 'train', 'val', or 'test', got '{split}'")
+
+    path = _resolve_config_path(name)
+    with open(path, "r") as f:
+        config = yaml.safe_load(f)
+
+    task = config.get("task", "")
+    if task != "narrowband_snr_sweep":
+        raise ValueError(
+            f"Config '{name}' has task='{task}', expected 'narrowband_snr_sweep'."
+        )
+    return _build_snr_sweep(config, split)
 
 
 def load_benchmark(
