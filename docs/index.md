@@ -12,9 +12,13 @@ composition, impairments, and PyTorch DataLoader integration.
 ## Features
 
 - **60+ waveform generators** — PSK, QAM, FSK, OFDM, AM/FM, chirp, polyphase codes, and more
-- **16 channel impairments** — AWGN, fading, phase noise, IQ imbalance, Doppler, and more
+- **22 channel impairments** — AWGN, fading, phase noise, IQ imbalance, Doppler, TDL, MIMO, PA nonlinearity, and more
+- **MIMO multi-antenna support** — flat/TDL channels, spatial correlation, steering vectors, seamless dataset integration
 - **Wideband scene composition** — mix multiple signals with COCO-format bounding-box labels
 - **Cyclostationary processing** — SCD (SSCA/FAM/S3CA), SCF, CAF, cumulants, PSD via Rust
+- **Time-frequency analysis** — Wigner-Ville Distribution, Ambiguity Function
+- **Data augmentations** — CutOut, MixUp, CutMix, PatchShuffle, TimeReversal, and more
+- **Class balancing** — built-in `class_weights` and `balanced_sampler` for imbalanced datasets
 - **Reproducible benchmarks** — `spectra-18` (18-class AMC) and `spectra-18-wideband` (detection)
 - **Curriculum learning** — progressive difficulty ramps with `CurriculumSchedule`
 - **Pluggable file I/O** — SigMF, HDF5, raw IQ, SQLite, Zarr, NumPy

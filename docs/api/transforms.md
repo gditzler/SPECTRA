@@ -24,11 +24,18 @@ Spectral, CSP, and augmentation transforms compatible with PyTorch DataLoaders.
 
 ::: spectra.transforms.complex_to_2d.ComplexTo2D
 
+## Time-Frequency Representations
+
+::: spectra.transforms.wvd.WVD
+::: spectra.transforms.ambiguity.AmbiguityFunction
+
 ## Data Augmentations
 
 ::: spectra.transforms.augmentations.CutOut
 ::: spectra.transforms.augmentations.TimeReversal
 ::: spectra.transforms.augmentations.PatchShuffle
+::: spectra.transforms.augmentations.MixUp
+::: spectra.transforms.augmentations.CutMix
 
 ## Target Transforms
 

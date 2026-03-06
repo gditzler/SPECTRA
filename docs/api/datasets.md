@@ -14,7 +14,16 @@ PyTorch `Dataset` classes for synthetic and disk-based RF data.
 ::: spectra.datasets.folder.SignalFolderDataset
 ::: spectra.datasets.manifest.ManifestDataset
 
-## Utilities
+## Dataset Wrappers
+
+::: spectra.datasets.mixing.MixUpDataset
+::: spectra.datasets.mixing.CutMixDataset
+
+## Sampling Utilities
+
+::: spectra.datasets.sampler.balanced_sampler
+
+## Metadata
 
 ::: spectra.datasets.metadata.DatasetMetadata
 ::: spectra.datasets.metadata.NarrowbandMetadata

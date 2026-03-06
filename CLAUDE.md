@@ -43,12 +43,16 @@ After any Rust code change, re-run `maturin develop --release` before running Py
 - `modulators.rs` — QPSK/BPSK symbol generation (xorshift64 PRNG with splitmix64 seeding)
 - `filters.rs` — Root-Raised-Cosine pulse-shaping filter (upsample + convolve)
 - `oscillators.rs` — chirp and tone complex sinusoid generation
-- `csp.rs` — SCD (SSCA + FAM), SCF, CAF, cumulants, PSD (Welch), energy detection
+- `codes.rs` — polyphase code generators (Frank, P1–P4, Costas)
+- `cyclo_spectral.rs` — SCD (SSCA, FAM), PSD (Welch), channelizer
+- `cyclo_temporal.rs` — cumulants, CAF
+- `s3ca.rs` — S³CA-based SCD estimation
+- `sfft.rs` — sliding FFT utilities
 - `lib.rs` — PyO3 module entry point, registers all Rust functions as `spectra._rust`
 
 **Python layer** (`python/spectra/`) — orchestration and PyTorch integration:
 - `waveforms/` — `Waveform` ABC with `generate()`, `bandwidth()`, `label`. 60+ implementations across PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, and polyphase code families.
-- `impairments/` — `Transform` ABC with `__call__(iq, desc, **kwargs) -> (iq, desc)`. 16 impairments composable via `Compose([AWGN(), FrequencyOffset()])`.
+- `impairments/` — `Transform` ABC with `__call__(iq, desc, **kwargs) -> (iq, desc)`. 22 impairments (including `MIMOChannel`) composable via `Compose([AWGN(), FrequencyOffset()])`.
 - `scene/` — `Composer` generates wideband scenes: multiple signals frequency-shifted into a shared capture bandwidth. `SignalDescription` dataclass holds physical-unit ground truth. `to_coco()` converts physical labels to pixel-space bounding boxes.
 - `transforms/` — `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `PSD`, `EnergyDetector`, plus data augmentations (`CutOut`, `TimeReversal`, `PatchShuffle`, etc.).
 - `utils/file_handlers/` — Pluggable RF file readers (`SigMFReader`, `RawIQReader`, `HDF5Reader`, `NumpyReader`) with auto-detection registry, plus `SigMFWriter` for export.
@@ -59,6 +63,7 @@ After any Rust code change, re-run `maturin develop --release` before running Py
 - `benchmarks/` — `load_benchmark()` loads reproducible configs (`spectra-18`, `spectra-18-wideband`).
 - `curriculum.py` — `CurriculumSchedule` for progressive difficulty ramps.
 - `streaming.py` — `StreamingDataLoader` for epoch-aware data generation with curriculum.
+- `models/` — PyTorch model architectures for AMC (`CNN1D`, `ResNetAMC`).
 
 **Key design rule:** Rust functions are pure/stateless. All state, composition, and randomness management lives in Python.
 

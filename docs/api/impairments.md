@@ -39,6 +39,30 @@ and can be chained with `Compose`.
 ::: spectra.impairments.fading.RayleighFading
 ::: spectra.impairments.fading.RicianFading
 
+## MIMO Channels
+
+::: spectra.impairments.mimo_channel.MIMOChannel
+
+## MIMO Utilities
+
+::: spectra.impairments.mimo_utils.steering_vector
+::: spectra.impairments.mimo_utils.exponential_correlation
+::: spectra.impairments.mimo_utils.kronecker_correlation
+
+## 3GPP TDL Channel Models
+
+::: spectra.impairments.tdl_channel.TDLChannel
+
+## Power Amplifier Nonlinearity
+
+::: spectra.impairments.power_amplifier.RappPA
+::: spectra.impairments.power_amplifier.SalehPA
+
+## Timing Impairments
+
+::: spectra.impairments.timing.FractionalDelay
+::: spectra.impairments.timing.SamplingJitter
+
 ## Interference
 
 ::: spectra.impairments.adjacent_channel.AdjacentChannelInterference

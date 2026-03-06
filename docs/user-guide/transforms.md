@@ -129,6 +129,48 @@ tensor = c2d(iq)  # Tensor[2, N]
 
 ---
 
+## Time-Frequency Representations
+
+### WVD (Wigner-Ville Distribution)
+
+The Wigner-Ville Distribution provides a high-resolution time-frequency representation:
+
+```python
+from spectra import WVD
+
+wvd = WVD(nfft=256, output_format="magnitude")
+feature = wvd(iq)  # Tensor[1, N, 256]
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `nfft` | 256 | FFT size for frequency axis |
+| `n_time` | `None` | Number of time samples (subsampled); `None` uses all |
+| `output_format` | `"magnitude"` | `"magnitude"` (C=1), `"log_magnitude"` (C=1), or `"real_imag"` (C=2) |
+
+Output shape: `[C, n_time, nfft]`.
+
+### AmbiguityFunction
+
+The Ambiguity Function computes the delay-Doppler representation, useful for radar and comms analysis:
+
+```python
+from spectra import AmbiguityFunction
+
+af = AmbiguityFunction(max_lag=128, n_doppler=256, output_format="magnitude")
+feature = af(iq)  # Tensor[1, 256, 257]
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `max_lag` | 128 | Maximum delay in samples |
+| `n_doppler` | 256 | Number of Doppler bins |
+| `output_format` | `"magnitude"` | `"magnitude"` (C=1), `"mag_phase"` (C=2), or `"real_imag"` (C=2) |
+
+Output shape: `[C, n_doppler, 2*max_lag+1]`.
+
+---
+
 ## Data Augmentations
 
 | Class | Description |
@@ -136,8 +178,12 @@ tensor = c2d(iq)  # Tensor[2, N]
 | `CutOut` | Zeros out a random time segment (regularization) |
 | `TimeReversal` | Reverses the IQ time series |
 | `PatchShuffle` | Randomly permutes non-overlapping time patches |
+| `MixUp` | Blends signal with a random permutation of itself (Beta-distributed lambda) |
+| `CutMix` | Replaces a random time segment with shuffled samples |
 
 These are applied to the IQ tensor (or spectrogram) as part of the `transform` argument.
+
+For cross-sample MixUp/CutMix with soft labels, see [Dataset-Level Wrappers](datasets.md#dataset-level-wrappers).
 
 ---
 

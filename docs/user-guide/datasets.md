@@ -16,8 +16,10 @@ Single-signal IQ dataset for AMC classification tasks.
 | `transform` | `callable` (optional) | Applied to IQ tensor; if `None`, returns `[2, num_iq_samples]` |
 | `target_transform` | `callable` (optional) | Applied to integer class label |
 | `seed` | `int` (optional) | Base seed for reproducible generation |
+| `class_weights` | `List[float]` (optional) | Per-class sampling weights; `None` for uniform |
+| `mimo_config` | `Dict` (optional) | MIMO config dict with `n_tx`, `n_rx`, `channel_type` keys |
 
-**Output from `__getitem__`:** `(Tensor[2, num_iq_samples], int)` — channel 0 is I, channel 1 is Q.
+**Output from `__getitem__`:** `(Tensor[2, num_iq_samples], int)` — channel 0 is I, channel 1 is Q. With `mimo_config`, output shape is `[n_rx*2, num_iq_samples]`.
 
 ```python
 from spectra import NarrowbandDataset, QPSK, BPSK, AWGN, Compose
@@ -161,6 +163,101 @@ dataset = ManifestDataset(
     num_iq_samples=1024,
 )
 ```
+
+---
+
+## Class Balancing
+
+Imbalanced datasets are common in AMC research. SPECTRA provides two mechanisms:
+
+### Weighted Class Selection
+
+Pass `class_weights` to `NarrowbandDataset` to control the probability of each waveform class being sampled:
+
+```python
+from spectra import NarrowbandDataset, BPSK, QPSK, FM
+
+dataset = NarrowbandDataset(
+    waveform_pool=[BPSK(), QPSK(), FM()],
+    num_samples=10_000,
+    num_iq_samples=1024,
+    sample_rate=1e6,
+    class_weights=[3.0, 1.0, 1.0],  # BPSK sampled 3x more often
+    seed=42,
+)
+```
+
+### Balanced Sampler
+
+Use `balanced_sampler()` to create a `WeightedRandomSampler` for your DataLoader:
+
+```python
+from spectra import balanced_sampler
+from torch.utils.data import DataLoader
+
+sampler = balanced_sampler(dataset, num_classes=3)
+loader = DataLoader(dataset, batch_size=64, sampler=sampler)
+```
+
+---
+
+## MixUp and CutMix Augmentations
+
+### Signal-Level Augmentations
+
+`MixUp` and `CutMix` operate on raw IQ arrays as part of a transform pipeline:
+
+```python
+from spectra import MixUp, CutMix
+
+mixup = MixUp(alpha=0.2)         # Beta(0.2, 0.2) mixing coefficient
+cutmix = CutMix(alpha=1.0)       # Beta(1.0, 1.0) cut ratio
+```
+
+### Dataset-Level Wrappers
+
+`MixUpDataset` and `CutMixDataset` wrap any classification dataset to blend two samples and return soft labels:
+
+```python
+from spectra import MixUpDataset, CutMixDataset
+
+mixup_ds = MixUpDataset(dataset, alpha=0.2)
+x, (y1, y2, lam) = mixup_ds[0]
+# x = lam * sample1 + (1 - lam) * sample2
+# Use soft labels: loss = lam * CE(pred, y1) + (1-lam) * CE(pred, y2)
+
+cutmix_ds = CutMixDataset(dataset, alpha=1.0)
+x, (y1, y2, lam) = cutmix_ds[0]
+# x has a random segment replaced from sample2
+```
+
+---
+
+## MIMO Dataset Integration
+
+`NarrowbandDataset` supports multi-antenna generation via the `mimo_config` parameter:
+
+```python
+from spectra import NarrowbandDataset, QPSK, BPSK
+
+dataset = NarrowbandDataset(
+    waveform_pool=[QPSK(), BPSK()],
+    num_samples=5000,
+    num_iq_samples=1024,
+    sample_rate=1e6,
+    mimo_config={
+        "n_tx": 2,
+        "n_rx": 4,
+        "channel_type": "flat",  # or "tdl"
+    },
+    seed=42,
+)
+
+x, label = dataset[0]
+# x: Tensor[8, 1024]  — 4 RX antennas x 2 (I/Q) channels
+```
+
+Each TX antenna generates an independent waveform stream (with different sub-seeds). The streams pass through a `MIMOChannel` impairment and are returned as interleaved I/Q per receive antenna: shape `[n_rx * 2, num_iq_samples]`.
 
 ---
 
