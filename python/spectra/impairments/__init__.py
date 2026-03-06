@@ -3,6 +3,7 @@ from spectra.impairments.awgn import AWGN
 from spectra.impairments.colored_noise import ColoredNoise
 from spectra.impairments.compose import Compose
 from spectra.impairments.dc_offset import DCOffset
+from spectra.impairments.doppler import DopplerShift
 from spectra.impairments.fading import RayleighFading, RicianFading
 from spectra.impairments.frequency_drift import FrequencyDrift
 from spectra.impairments.frequency_offset import FrequencyOffset
@@ -21,6 +22,7 @@ __all__ = [
     "ColoredNoise",
     "Compose",
     "DCOffset",
+    "DopplerShift",
     "FrequencyDrift",
     "FrequencyOffset",
     "IntermodulationProducts",
