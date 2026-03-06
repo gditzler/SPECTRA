@@ -1,0 +1,74 @@
+name: "spectra-40"
+version: "1.0"
+description: >
+  40-class narrowband AMC benchmark covering all SPECTRA waveform families:
+  PSK, QAM, FSK/MSK/GMSK/GFSK, OOK/ASK, AM/FM, OFDM, radar, and spread spectrum.
+task: "narrowband"
+
+sample_rate: 1_000_000
+num_iq_samples: 1024
+num_samples:
+  train: 100_000
+  val:   20_000
+  test:  20_000
+seed:
+  train: 7000
+  val:   8000
+  test:  9000
+
+snr_range: [-10, 30]
+
+waveform_pool:
+  # PSK (6)
+  - {type: "BPSK"}
+  - {type: "QPSK"}
+  - {type: "PSK8"}
+  - {type: "PSK16"}
+  - {type: "PSK32"}
+  - {type: "PSK64"}
+  # QAM (7)
+  - {type: "QAM16"}
+  - {type: "QAM32"}
+  - {type: "QAM64"}
+  - {type: "QAM128"}
+  - {type: "QAM256"}
+  - {type: "QAM512"}
+  - {type: "QAM1024"}
+  # FSK / MSK / GMSK / GFSK (8)
+  - {type: "FSK"}
+  - {type: "FSK4"}
+  - {type: "FSK8"}
+  - {type: "MSK"}
+  - {type: "MSK4"}
+  - {type: "GMSK"}
+  - {type: "GFSK"}
+  - {type: "GFSK4"}
+  # OOK / ASK (3)
+  - {type: "OOK"}
+  - {type: "ASK4"}
+  - {type: "ASK8"}
+  # AM / FM analog (5)
+  - {type: "AMDSB"}
+  - {type: "AMDSB_SC"}
+  - {type: "AMLSB"}
+  - {type: "AMUSB"}
+  - {type: "FM"}
+  # OFDM (3)
+  - {type: "OFDM"}
+  - {type: "OFDM256"}
+  - {type: "OFDM1200"}
+  # Radar / polyphase / spread (6)
+  - {type: "LFM"}
+  - {type: "CostasCode"}
+  - {type: "FrankCode"}
+  - {type: "P1Code"}
+  - {type: "ZadoffChu"}
+  - {type: "DSSS_BPSK"}
+  # Misc (2)
+  - {type: "BarkerCode", params: {length: 13}}
+  - {type: "Noise"}
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 50_000}}
+  - {type: "PhaseOffset",     params: {max_offset: 3.14159}}
+  - {type: "AWGN"}
