@@ -131,6 +131,7 @@ from spectra.transforms import (
     Cumulants,
     CutOut,
     EnergyDetector,
+    InstantaneousFrequency,
     FAMILY_MAP,
     FamilyIndex,
     FamilyName,

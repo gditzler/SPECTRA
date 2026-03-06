@@ -9,6 +9,7 @@ from spectra.transforms.augmentations import (
     TimeReversal,
 )
 from spectra.transforms.complex_to_2d import ComplexTo2D
+from spectra.transforms.instantaneous_frequency import InstantaneousFrequency
 from spectra.transforms.normalize import Normalize, SpectrogramNormalize
 from spectra.transforms.psd import PSD
 from spectra.transforms.spectrogram import Spectrogram
@@ -39,6 +40,7 @@ __all__ = [
     "Cumulants",
     "CutOut",
     "EnergyDetector",
+    "InstantaneousFrequency",
     "FAMILY_MAP",
     "FamilyIndex",
     "FamilyName",
