@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 mod codes;
+mod cwd;
 mod cyclo_spectral;
 mod cyclo_temporal;
 mod filters;
@@ -45,5 +46,6 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(cyclo_temporal::compute_cumulants, m)?)?;
     m.add_function(wrap_pyfunction!(cyclo_temporal::compute_caf, m)?)?;
     m.add_function(wrap_pyfunction!(s3ca::compute_scd_s3ca, m)?)?;
+    m.add_function(wrap_pyfunction!(cwd::compute_cwd, m)?)?;
     Ok(())
 }
