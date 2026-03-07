@@ -46,6 +46,8 @@ class CWD:
                 f"Unknown output_format: {output_format!r}. "
                 "Supported: 'magnitude', 'mag_phase', 'real_imag'."
             )
+        if nfft <= 0:
+            raise ValueError(f"nfft must be positive, got {nfft}")
         if sigma <= 0:
             raise ValueError(f"sigma must be positive, got {sigma}")
         self.nfft = nfft

@@ -103,14 +103,18 @@ pub fn compute_cwd<'py>(
             }
             let r_idx = t - valid_start;
 
-            let mut acc = Complex32::new(0.0, 0.0);
-            for (ki, &kv) in kernel.iter().enumerate() {
-                let src = r_idx as isize + ki as isize - kernel_half as isize;
-                if src >= 0 && (src as usize) < valid_len {
-                    acc += Complex32::new(kv, 0.0) * r_tau[src as usize];
-                }
+            let mut acc_re: f64 = 0.0;
+            let mut acc_im: f64 = 0.0;
+            let conv_start = (kernel_half as isize - r_idx as isize).max(0) as usize;
+            let conv_end = kernel_len
+                .min((valid_len as isize - r_idx as isize + kernel_half as isize) as usize);
+            for (ki, &kv) in kernel.iter().enumerate().take(conv_end).skip(conv_start) {
+                let src = r_idx + ki - kernel_half;
+                let s = r_tau[src];
+                acc_re += kv as f64 * s.re as f64;
+                acc_im += kv as f64 * s.im as f64;
             }
-            cwd[[i, tau_idx]] = acc;
+            cwd[[i, tau_idx]] = Complex32::new(acc_re as f32, acc_im as f32);
         }
     }
 
@@ -118,11 +122,14 @@ pub fn compute_cwd<'py>(
     let mut planner = FftPlanner::new();
     let fft = planner.plan_fft_forward(nfft);
 
+    let mut row_buf: Vec<Complex32> = vec![Complex32::new(0.0, 0.0); nfft];
     for i in 0..out_n_time {
-        let mut row: Vec<Complex32> = (0..nfft).map(|j| cwd[[i, j]]).collect();
-        fft.process(&mut row);
-        for (j, &val) in row.iter().enumerate() {
-            cwd[[i, j]] = val;
+        for j in 0..nfft {
+            row_buf[j] = cwd[[i, j]];
+        }
+        fft.process(&mut row_buf);
+        for j in 0..nfft {
+            cwd[[i, j]] = row_buf[j];
         }
     }
 
@@ -130,8 +137,9 @@ pub fn compute_cwd<'py>(
     let half = nfft / 2;
     let mut shifted = Array2::<Complex32>::zeros((out_n_time, nfft));
     for i in 0..out_n_time {
-        for j in 0..nfft {
-            shifted[[i, (j + half) % nfft]] = cwd[[i, j]];
+        for j in 0..half {
+            shifted[[i, j]] = cwd[[i, j + half]];
+            shifted[[i, j + half]] = cwd[[i, j]];
         }
     }
 

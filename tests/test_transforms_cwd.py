@@ -95,6 +95,36 @@ class TestCWDContent:
         assert out.shape == (1, 256, 64)
         assert not torch.any(torch.isnan(out))
 
+    def test_db_scale_with_mag_phase(self):
+        """db_scale should work with mag_phase output format."""
+        iq = _make_tone(0.1, 256)
+        out = CWD(nfft=64, output_format="mag_phase", db_scale=True)(iq)
+        assert out.shape == (2, 256, 64)
+        assert not torch.any(torch.isnan(out))
+        assert not torch.any(torch.isinf(out))
+
+    def test_all_zero_input(self):
+        """All-zero input should produce no NaN or Inf."""
+        iq = np.zeros(256, dtype=np.complex64)
+        out = CWD(nfft=64, output_format="magnitude")(iq)
+        assert not torch.any(torch.isnan(out))
+        assert not torch.any(torch.isinf(out))
+
+    def test_short_signal_shorter_than_nfft(self):
+        """Signal shorter than nfft should still work."""
+        iq = _make_tone(0.1, 32)
+        out = CWD(nfft=128, output_format="magnitude")(iq)
+        assert out.shape == (1, 32, 128)
+        assert not torch.any(torch.isnan(out))
+
+    def test_magnitude_phase_vs_real_imag_consistency(self):
+        """sqrt(re^2 + im^2) should equal magnitude output."""
+        iq = _make_tone(0.1, 256)
+        mag_out = CWD(nfft=64, output_format="magnitude")(iq)
+        ri_out = CWD(nfft=64, output_format="real_imag")(iq)
+        computed_mag = torch.sqrt(ri_out[0] ** 2 + ri_out[1] ** 2)
+        assert torch.allclose(mag_out[0], computed_mag, atol=1e-6)
+
 
 class TestCWDValidation:
     """Input validation tests."""
@@ -110,3 +140,11 @@ class TestCWDValidation:
     def test_invalid_sigma_negative(self):
         with pytest.raises(ValueError, match="sigma must be positive"):
             CWD(sigma=-1.0)
+
+    def test_invalid_nfft_zero(self):
+        with pytest.raises(ValueError, match="nfft must be positive"):
+            CWD(nfft=0)
+
+    def test_invalid_nfft_negative(self):
+        with pytest.raises(ValueError, match="nfft must be positive"):
+            CWD(nfft=-1)
