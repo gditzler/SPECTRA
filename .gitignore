@@ -24,6 +24,10 @@ uv.lock
 # Files
 examples/outputs/*.png
 .DS_Store
+
+# Working directories
 .claude/
 .worktrees/
 benchmarks/comparison/results/
+examples/.ipynb_checkpoints/
+site/
