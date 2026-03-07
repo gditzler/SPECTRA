@@ -67,7 +67,7 @@ pub fn compute_cwd<'py>(
 
         // Compute R(n, tau) = x(n + tau) * conj(x(n - tau)) for valid n
         let valid_start = abs_tau;
-        let valid_end = if n > abs_tau { n - abs_tau } else { 0 };
+        let valid_end = n.saturating_sub(abs_tau);
 
         if valid_start >= valid_end {
             continue;
@@ -87,8 +87,8 @@ pub fn compute_cwd<'py>(
         let kernel_exp_coeff = -sigma / (4.0 * tau_sq);
 
         // Determine kernel half-width: truncate where kernel < 1e-6 * peak
-        let kernel_half = (((-1e-6_f32.ln()) / (-kernel_exp_coeff)).sqrt().ceil() as usize)
-            .min(valid_len);
+        let kernel_half =
+            (((-1e-6_f32.ln()) / (-kernel_exp_coeff)).sqrt().ceil() as usize).min(valid_len);
         let kernel_len = 2 * kernel_half + 1;
         let mut kernel: Vec<f32> = Vec::with_capacity(kernel_len);
         for ki in 0..kernel_len {
