@@ -8,6 +8,7 @@ from spectra._rust import (
     channelize,
     compute_caf,
     compute_cumulants,
+    compute_cwd,
     compute_psd_welch,
     compute_scd_fam,
     compute_scd_s3ca,
@@ -370,3 +371,71 @@ class TestComputeScdS3ca:
                 iq, nfft=nfft, n_alpha=na, hop=nfft // 4, kappa=4, seed=0,
             )
             assert scd.shape == (nfft, na)
+
+
+# ---------------------------------------------------------------------------
+# compute_cwd
+# ---------------------------------------------------------------------------
+
+
+class TestComputeCWD:
+    """Tests for the Rust compute_cwd function."""
+
+    @pytest.mark.rust
+    def test_output_shape(self):
+        iq = np.exp(1j * 2 * np.pi * 0.1 * np.arange(256)).astype(np.complex64)
+        result = np.asarray(compute_cwd(iq, 128, 0, 1.0))
+        assert result.shape == (256, 128)
+        assert result.dtype == np.complex64
+
+    @pytest.mark.rust
+    def test_output_shape_with_n_time(self):
+        iq = np.exp(1j * 2 * np.pi * 0.1 * np.arange(512)).astype(np.complex64)
+        result = np.asarray(compute_cwd(iq, 64, 100, 1.0))
+        assert result.shape == (100, 64)
+
+    @pytest.mark.rust
+    def test_no_nan_or_inf(self):
+        iq = np.exp(1j * 2 * np.pi * 0.1 * np.arange(256)).astype(np.complex64)
+        result = np.asarray(compute_cwd(iq, 64, 0, 1.0))
+        assert not np.any(np.isnan(result.real))
+        assert not np.any(np.isinf(result.real))
+
+    @pytest.mark.rust
+    def test_deterministic(self):
+        iq = np.exp(1j * 2 * np.pi * 0.1 * np.arange(256)).astype(np.complex64)
+        r1 = np.asarray(compute_cwd(iq, 64, 0, 1.0))
+        r2 = np.asarray(compute_cwd(iq, 64, 0, 1.0))
+        np.testing.assert_array_equal(r1, r2)
+
+    @pytest.mark.rust
+    def test_short_signal_returns_zeros(self):
+        iq = np.array([1.0 + 0j, 2.0 + 0j], dtype=np.complex64)
+        result = np.asarray(compute_cwd(iq, 64, 0, 1.0))
+        assert result.shape == (2, 64)
+
+    @pytest.mark.rust
+    def test_empty_signal(self):
+        iq = np.array([], dtype=np.complex64)
+        result = np.asarray(compute_cwd(iq, 64, 0, 1.0))
+        assert result.shape[1] == 64
+
+    @pytest.mark.rust
+    def test_tone_has_concentrated_energy(self):
+        """A pure tone should show energy at one frequency."""
+        f0 = 0.1
+        n = 512
+        iq = np.exp(1j * 2 * np.pi * f0 * np.arange(n)).astype(np.complex64)
+        result = np.asarray(compute_cwd(iq, 128, 0, 1.0))
+        mag = np.abs(result)
+        mid = n // 2
+        mid_slice = mag[mid, :]
+        assert np.max(mid_slice) > 5 * np.mean(mid_slice)
+
+    @pytest.mark.rust
+    def test_sigma_affects_output(self):
+        """Different sigma values should produce different outputs."""
+        iq = np.exp(1j * 2 * np.pi * 0.1 * np.arange(256)).astype(np.complex64)
+        r1 = np.asarray(compute_cwd(iq, 64, 0, 0.5))
+        r2 = np.asarray(compute_cwd(iq, 64, 0, 5.0))
+        assert not np.allclose(r1, r2)
