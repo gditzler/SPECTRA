@@ -139,6 +139,7 @@ from spectra.transforms import (
     AmbiguityFunction,
     BoxesNormalize,
     CAF,
+    CWD,
     ChannelSwap,
     ClassIndex,
     ComplexTo2D,
@@ -363,6 +364,7 @@ __all__ = [
     "STFT",
     "TargetTransform",
     "TimeReversal",
+    "CWD",
     "WVD",
     "YOLOLabel",
     # DSP Utils
