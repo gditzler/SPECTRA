@@ -123,9 +123,22 @@ Build and evaluate a cyclostationary AMC classifier.
 cd examples && python 08_csp_classification.py
 ```
 
+### 12 — Choi-Williams Distribution (Intermediate)
+
+Compare the Choi-Williams Distribution against the WVD for cross-term suppression.
+
+- Side-by-side WVD vs CWD on multi-component signals
+- Sigma parameter sweep showing resolution vs. cross-term trade-off
+- Linear chirp instantaneous frequency tracking
+- Output format demonstration (magnitude, mag_phase, real_imag)
+
+```bash
+cd examples && python 12_cwd_cross_term_suppression.py
+```
+
 ## Output
 
-All figures are saved to `examples/outputs/`. Running all eight scripts produces 34+ PNG figures and 1 YAML metadata file.
+All figures are saved to `examples/outputs/`. Running all scripts produces 37+ PNG figures and 1 YAML metadata file.
 
 ## File Structure
 
@@ -140,5 +153,6 @@ examples/
   06_full_pipeline.ipynb / .py          # Pro
   07_csp_features.ipynb / .py           # Intermediate
   08_csp_classification.ipynb / .py     # Advanced
+  12_cwd_cross_term_suppression.ipynb / .py  # Intermediate
   outputs/                              # Generated figures
 ```
