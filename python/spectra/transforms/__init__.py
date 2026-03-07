@@ -17,6 +17,7 @@ from spectra.transforms.normalize import Normalize, SpectrogramNormalize
 from spectra.transforms.psd import PSD
 from spectra.transforms.spectrogram import Spectrogram
 from spectra.transforms.caf import CAF
+from spectra.transforms.cwd import CWD
 from spectra.transforms.cumulants import Cumulants
 from spectra.transforms.energy import EnergyDetector, PSD
 from spectra.transforms.scd import SCD
@@ -43,6 +44,7 @@ __all__ = [
     "ClassIndex",
     "ComplexTo2D",
     "Cumulants",
+    "CWD",
     "CutMix",
     "CutOut",
     "EnergyDetector",
