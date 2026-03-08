@@ -7,6 +7,7 @@ mod cyclo_temporal;
 mod filters;
 mod modulators;
 mod oscillators;
+mod reassigned_gabor;
 mod s3ca;
 mod sfft;
 
@@ -47,5 +48,9 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(cyclo_temporal::compute_caf, m)?)?;
     m.add_function(wrap_pyfunction!(s3ca::compute_scd_s3ca, m)?)?;
     m.add_function(wrap_pyfunction!(cwd::compute_cwd, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        reassigned_gabor::compute_reassigned_gabor,
+        m
+    )?)?;
     Ok(())
 }
