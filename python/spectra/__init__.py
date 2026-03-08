@@ -158,6 +158,7 @@ from spectra.transforms import (
     PatchShuffle,
     RandomDropSamples,
     RandomMagRescale,
+    ReassignedGabor,
     SCD,
     SCF,
     Spectrogram,

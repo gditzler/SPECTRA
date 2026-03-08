@@ -23,6 +23,7 @@ from spectra.transforms.energy import EnergyDetector, PSD
 from spectra.transforms.scd import SCD
 from spectra.transforms.scf import SCF
 from spectra.transforms.stft import STFT
+from spectra.transforms.reassigned_gabor import ReassignedGabor
 from spectra.transforms.wvd import WVD
 from spectra.transforms.target_transforms import (
     BoxesNormalize,
@@ -59,6 +60,7 @@ __all__ = [
     "PatchShuffle",
     "RandomDropSamples",
     "RandomMagRescale",
+    "ReassignedGabor",
     "SCD",
     "SCF",
     "Spectrogram",
