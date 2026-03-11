@@ -355,3 +355,19 @@ class TestRustFrameGenerators:
         f1 = np.array(generate_adsb_frame(seed=99))
         f2 = np.array(generate_adsb_frame(seed=99))
         npt.assert_array_equal(f1, f2)
+
+    @pytest.mark.rust
+    def test_mode_s_frame_df11_for_56bit(self):
+        from spectra._rust import generate_mode_s_frame
+
+        frame = np.array(generate_mode_s_frame(message_length=56, seed=42))
+        assert len(frame) == 7
+        assert frame[0] >> 3 == 11, f"56-bit Mode S frame should have DF=11, got {frame[0] >> 3}"
+
+    @pytest.mark.rust
+    def test_mode_s_frame_df17_for_112bit(self):
+        from spectra._rust import generate_mode_s_frame
+
+        frame = np.array(generate_mode_s_frame(message_length=112, seed=42))
+        assert len(frame) == 14
+        assert frame[0] >> 3 == 17, f"112-bit Mode S frame should have DF=17, got {frame[0] >> 3}"

@@ -149,7 +149,7 @@ class FHSS(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
-        s = seed if seed is not None else np.random.randint(0, 2**32)
+        s = seed if seed is not None else int(np.random.default_rng().integers(0, 2**32))
         rng = np.random.default_rng(int(s))
 
         num_hops = num_symbols
@@ -276,7 +276,7 @@ class CDMA_Forward(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
-        s = seed if seed is not None else np.random.randint(0, 2**32)
+        s = seed if seed is not None else int(np.random.default_rng().integers(0, 2**32))
         rng = np.random.default_rng(int(s))
 
         total_chips = num_symbols * self.spreading_factor
@@ -360,7 +360,7 @@ class CDMA_Reverse(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
-        s = seed if seed is not None else np.random.randint(0, 2**32)
+        s = seed if seed is not None else int(np.random.default_rng().integers(0, 2**32))
         rng = np.random.default_rng(int(s))
 
         total_chips = num_symbols * self.spreading_factor
@@ -448,7 +448,7 @@ class THSS(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
-        s = seed if seed is not None else np.random.randint(0, 2**32)
+        s = seed if seed is not None else int(np.random.default_rng().integers(0, 2**32))
         rng = np.random.default_rng(int(s))
 
         n_frames = num_symbols * self.num_frames
