@@ -30,7 +30,8 @@ yaml = ["pyyaml>=6.0"]
 zarr = ["zarr>=2.16"]
 classifiers = ["scikit-learn>=1.0"]
 io = ["sigmf>=1.0", "h5py>=3.0"]
-all = ["pyyaml>=6.0", "zarr>=2.16", "scikit-learn>=1.0", "sigmf>=1.0", "h5py>=3.0"]
+alignment = ["scipy>=1.10"]
+all = ["pyyaml>=6.0", "zarr>=2.16", "scikit-learn>=1.0", "sigmf>=1.0", "h5py>=3.0", "scipy>=1.10"]
 docs = [
     "mkdocs>=1.6",
     "mkdocs-material>=9.5",
