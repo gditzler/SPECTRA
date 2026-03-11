@@ -97,9 +97,7 @@ pub fn generate_mode_s_frame<'py>(
     seed: u64,
 ) -> PyResult<Bound<'py, PyArray1<u8>>> {
     if message_length != 56 && message_length != 112 {
-        return Err(PyValueError::new_err(
-            "message_length must be 56 or 112",
-        ));
+        return Err(PyValueError::new_err("message_length must be 56 or 112"));
     }
 
     let num_bytes = message_length / 8;
