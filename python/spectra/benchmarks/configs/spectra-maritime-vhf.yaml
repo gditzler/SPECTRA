@@ -1,0 +1,36 @@
+name: "spectra-maritime-vhf"
+version: "1.0"
+description: >
+  Maritime VHF band wideband detection benchmark. Includes AIS, FM voice,
+  FMCW radar, and noise signals composed into multi-signal scenes.
+task: "wideband"
+
+sample_rate: 2_000_000
+num_iq_samples: 4096
+num_samples:
+  train: 20_000
+  val: 4_000
+  test: 4_000
+
+seed:
+  train: 7000
+  val: 8000
+  test: 9000
+
+waveform_pool:
+  - {type: "AIS"}
+  - {type: "FM"}
+  - {type: "FMCW", params: {sweep_type: "sawtooth"}}
+  - {type: "Noise"}
+
+snr_range: [0, 25]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 25_000}}
+  - {type: "PhaseOffset", params: {max_offset: 1.5708}}
+
+scene:
+  capture_bandwidth: 1_000_000
+  capture_duration: 0.002
+  num_signals: [1, 5]
+  allow_overlap: true

@@ -1,0 +1,37 @@
+name: "spectra-congested-ism"
+version: "1.0"
+description: >
+  Congested ISM band wideband detection benchmark. Includes FHSS, OFDM,
+  GFSK, and noise signals composed into multi-signal scenes for object
+  detection tasks in crowded spectrum environments.
+task: "wideband"
+
+sample_rate: 2_000_000
+num_iq_samples: 4096
+num_samples:
+  train: 20_000
+  val: 4_000
+  test: 4_000
+
+seed:
+  train: 7200
+  val: 8200
+  test: 9200
+
+waveform_pool:
+  - {type: "FHSS", params: {num_channels: 8}}
+  - {type: "OFDM"}
+  - {type: "GFSK"}
+  - {type: "Noise"}
+
+snr_range: [0, 25]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 25_000}}
+  - {type: "PhaseOffset", params: {max_offset: 1.5708}}
+
+scene:
+  capture_bandwidth: 1_000_000
+  capture_duration: 0.002
+  num_signals: [1, 5]
+  allow_overlap: true

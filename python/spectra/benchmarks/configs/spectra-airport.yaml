@@ -1,0 +1,39 @@
+name: "spectra-airport"
+version: "1.0"
+description: >
+  Airport environment wideband detection benchmark. Includes ADS-B, Mode S,
+  DME, pulsed radar, NR OFDM, and noise signals composed into multi-signal
+  scenes for object detection tasks.
+task: "wideband"
+
+sample_rate: 2_000_000
+num_iq_samples: 4096
+num_samples:
+  train: 20_000
+  val: 4_000
+  test: 4_000
+
+seed:
+  train: 7100
+  val: 8100
+  test: 9100
+
+waveform_pool:
+  - {type: "ADSB"}
+  - {type: "ModeS"}
+  - {type: "DME"}
+  - {type: "PulsedRadar"}
+  - {type: "NR_OFDM", params: {numerology: 1}}
+  - {type: "Noise"}
+
+snr_range: [0, 25]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 25_000}}
+  - {type: "PhaseOffset", params: {max_offset: 1.5708}}
+
+scene:
+  capture_bandwidth: 1_000_000
+  capture_duration: 0.002
+  num_signals: [1, 5]
+  allow_overlap: true

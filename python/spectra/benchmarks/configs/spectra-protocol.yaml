@@ -1,0 +1,36 @@
+name: "spectra-protocol"
+version: "1.0"
+description: >
+  7-class narrowband benchmark covering legacy aviation and maritime protocol
+  waveforms. Includes ADS-B, Mode S, AIS, ACARS, DME, and ILS Localizer
+  signals plus noise, at SNR range [-10, 30] dB with frequency and phase
+  offset impairments.
+task: "narrowband"
+
+sample_rate: 1_000_000
+num_iq_samples: 1024
+num_samples:
+  train: 50_000
+  val: 10_000
+  test: 10_000
+
+seed:
+  train: 1000
+  val: 2000
+  test: 3000
+
+waveform_pool:
+  - {type: "ADSB"}
+  - {type: "ModeS"}
+  - {type: "AIS"}
+  - {type: "ACARS"}
+  - {type: "DME"}
+  - {type: "ILS_Localizer"}
+  - {type: "Noise"}
+
+snr_range: [-10, 30]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 50_000}}
+  - {type: "PhaseOffset", params: {max_offset: 3.14159}}
+  - {type: "AWGN"}

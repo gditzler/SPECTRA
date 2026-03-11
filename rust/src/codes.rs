@@ -109,6 +109,204 @@ pub fn generate_p4_code<'py>(py: Python<'py>, length: usize) -> Bound<'py, PyArr
     Array1::from_vec(chips).into_pyarray(py)
 }
 
+// ── Spread spectrum code generators ───────────────────────────────
+
+/// Primitive polynomials as tap positions (1-indexed) for LFSR m-sequence generation.
+/// Each entry maps order -> list of tap positions (including the order itself).
+fn primitive_poly_taps(order: usize) -> Option<&'static [usize]> {
+    match order {
+        5 => Some(&[5, 2]),
+        6 => Some(&[6, 1]),
+        7 => Some(&[7, 1]),
+        8 => Some(&[8, 6, 5, 4]),
+        9 => Some(&[9, 4]),
+        10 => Some(&[10, 3]),
+        _ => None,
+    }
+}
+
+/// Second primitive polynomials for Gold code preferred pairs.
+/// Each entry is (order, preferred_pair_idx) -> tap positions for the second polynomial.
+fn gold_second_poly_taps(order: usize, preferred_pair_idx: usize) -> Option<&'static [usize]> {
+    match (order, preferred_pair_idx) {
+        // Order 5 preferred pairs
+        (5, 0) => Some(&[5, 4, 3, 2]), // x^5 + x^4 + x^3 + x^2 + 1
+        (5, 1) => Some(&[5, 4, 2, 1]), // x^5 + x^4 + x^2 + x + 1
+        (5, 2) => Some(&[5, 3, 2, 1]), // x^5 + x^3 + x^2 + x + 1
+        (5, 3) => Some(&[5, 4]),       // x^5 + x^4 + 1 (reciprocal pair)
+        (5, 4) => Some(&[5, 4, 3, 1]), // x^5 + x^4 + x^3 + x + 1
+        (5, 5) => Some(&[5, 3]),       // x^5 + x^3 + 1
+        // Order 6 preferred pairs
+        (6, 0) => Some(&[6, 5, 2, 1]), // x^6 + x^5 + x^2 + x + 1
+        (6, 1) => Some(&[6, 5, 3, 2]), // x^6 + x^5 + x^3 + x^2 + 1
+        (6, 2) => Some(&[6, 5]),       // x^6 + x^5 + 1
+        // Order 7 preferred pairs
+        (7, 0) => Some(&[7, 3]),             // x^7 + x^3 + 1
+        (7, 1) => Some(&[7, 3, 2, 1]),       // x^7 + x^3 + x^2 + x + 1
+        (7, 2) => Some(&[7, 5, 4, 3, 2, 1]), // x^7 + x^5 + x^4 + x^3 + x^2 + x + 1
+        (7, 3) => Some(&[7, 4]),             // not used commonly but valid
+        (7, 4) => Some(&[7, 6, 4, 2]),       // x^7 + x^6 + x^4 + x^2 + 1
+        (7, 5) => Some(&[7, 6, 5, 4, 2, 1]), // x^7 + x^6 + x^5 + x^4 + x^2 + x + 1
+        // Order 8 preferred pairs
+        (8, 0) => Some(&[8, 7, 6, 5, 2, 1]), // x^8 + x^7 + x^6 + x^5 + x^2 + x + 1
+        (8, 1) => Some(&[8, 7, 6, 1]),       // x^8 + x^7 + x^6 + x + 1
+        (8, 2) => Some(&[8, 6, 5, 3]),       // x^8 + x^6 + x^5 + x^3 + 1
+        (8, 3) => Some(&[8, 7, 2, 1]),       // x^8 + x^7 + x^2 + x + 1
+        // Order 9 preferred pairs
+        (9, 0) => Some(&[9, 6, 4, 3]), // x^9 + x^6 + x^4 + x^3 + 1
+        (9, 1) => Some(&[9, 8, 4, 1]), // x^9 + x^8 + x^4 + x + 1
+        (9, 2) => Some(&[9, 8, 6, 5]), // x^9 + x^8 + x^6 + x^5 + 1
+        // Order 10 preferred pairs
+        (10, 0) => Some(&[10, 8, 3, 2]), // x^10 + x^8 + x^3 + x^2 + 1
+        (10, 1) => Some(&[10, 4, 3, 1]), // x^10 + x^4 + x^3 + x + 1
+        (10, 2) => Some(&[10, 9, 4, 1]), // x^10 + x^9 + x^4 + x + 1
+        _ => None,
+    }
+}
+
+/// Generate an m-sequence of length 2^order - 1 using LFSR with given taps.
+/// Returns bipolar {-1.0, +1.0} values.
+fn generate_msequence(order: usize, taps: &[usize]) -> Vec<f32> {
+    let length = (1usize << order) - 1;
+    let mut register = vec![1u8; order];
+    let mut seq = Vec::with_capacity(length);
+
+    for _ in 0..length {
+        seq.push(register[order - 1]);
+        let mut feedback = 0u8;
+        for &tap in taps {
+            feedback ^= register[tap - 1];
+        }
+        register.rotate_right(1);
+        register[0] = feedback;
+    }
+
+    // Convert {0, 1} -> {-1, +1}
+    seq.into_iter()
+        .map(|b| if b == 0 { -1.0f32 } else { 1.0f32 })
+        .collect()
+}
+
+/// Generate a Gold code of length 2^order - 1.
+///
+/// Gold codes are formed by XORing two preferred-pair m-sequences.
+/// The `preferred_pair_idx` selects which preferred pair to use.
+/// Returns bipolar {-1.0, +1.0} values.
+#[pyfunction]
+pub fn generate_gold_code<'py>(
+    py: Python<'py>,
+    order: usize,
+    preferred_pair_idx: usize,
+) -> PyResult<Bound<'py, PyArray1<f32>>> {
+    let taps1 = primitive_poly_taps(order).ok_or_else(|| {
+        PyValueError::new_err(format!("Gold code order must be in 5..=10, got {}", order))
+    })?;
+    let taps2 = gold_second_poly_taps(order, preferred_pair_idx).ok_or_else(|| {
+        PyValueError::new_err(format!(
+            "Invalid preferred_pair_idx {} for order {}",
+            preferred_pair_idx, order
+        ))
+    })?;
+
+    let m1 = generate_msequence(order, taps1);
+    let m2 = generate_msequence(order, taps2);
+
+    // Gold code = m1 * m2 (bipolar XOR is multiplication)
+    let gold: Vec<f32> = m1.iter().zip(m2.iter()).map(|(a, b)| a * b).collect();
+    Ok(Array1::from_vec(gold).into_pyarray(py))
+}
+
+/// Generate a small-set Kasami code of length 2^order - 1.
+///
+/// Requires even order. Decimates an m-sequence by 2^(order/2)+1 to produce
+/// a short code, then XORs with cyclically shifted m-sequence.
+/// Returns bipolar {-1.0, +1.0} values.
+#[pyfunction]
+pub fn generate_kasami_code<'py>(
+    py: Python<'py>,
+    order: usize,
+    shift_idx: usize,
+) -> PyResult<Bound<'py, PyArray1<f32>>> {
+    if order % 2 != 0 {
+        return Err(PyValueError::new_err("Kasami codes require even order"));
+    }
+    if !(5..=10).contains(&order) {
+        return Err(PyValueError::new_err(format!(
+            "Kasami code order must be in 5..=10 (even), got {}",
+            order
+        )));
+    }
+
+    let taps = primitive_poly_taps(order).ok_or_else(|| {
+        PyValueError::new_err(format!("No primitive polynomial for order {}", order))
+    })?;
+
+    let length = (1usize << order) - 1;
+    let m_seq = generate_msequence(order, taps);
+
+    // Decimate by d = 2^(order/2) + 1 to get short code of length 2^(order/2) - 1
+    let d = (1usize << (order / 2)) + 1;
+    let short_len = (1usize << (order / 2)) - 1;
+
+    let short_code: Vec<f32> = (0..short_len).map(|i| m_seq[(i * d) % length]).collect();
+
+    // Tile short code to length of m-sequence
+    let mut short_tiled = Vec::with_capacity(length);
+    for i in 0..length {
+        short_tiled.push(short_code[i % short_len]);
+    }
+
+    // Apply cyclic shift to the tiled short code
+    let shift = shift_idx % length;
+    let mut shifted = vec![0.0f32; length];
+    for i in 0..length {
+        shifted[i] = short_tiled[(i + length - shift) % length];
+    }
+
+    // Kasami code = m_seq * shifted_short (bipolar XOR)
+    let kasami: Vec<f32> = m_seq
+        .iter()
+        .zip(shifted.iter())
+        .map(|(a, b)| a * b)
+        .collect();
+
+    Ok(Array1::from_vec(kasami).into_pyarray(py))
+}
+
+/// Generate a Walsh-Hadamard code (one row of the Hadamard matrix).
+///
+/// Uses Sylvester construction: H_1 = [1], H_{n+1} = [[H_n, H_n], [H_n, -H_n]].
+/// Returns bipolar {-1.0, +1.0} values of length 2^order.
+#[pyfunction]
+pub fn generate_walsh_hadamard<'py>(
+    py: Python<'py>,
+    order: usize,
+    code_idx: usize,
+) -> PyResult<Bound<'py, PyArray1<f32>>> {
+    let size = 1usize << order;
+    if code_idx >= size {
+        return Err(PyValueError::new_err(format!(
+            "code_idx {} must be < 2^order = {}",
+            code_idx, size
+        )));
+    }
+
+    // Build row `code_idx` of Hadamard matrix efficiently using bit-counting.
+    // H[i][j] = (-1)^(popcount(i & j))
+    let row: Vec<f32> = (0..size)
+        .map(|j| {
+            let bits = (code_idx & j).count_ones();
+            if bits % 2 == 0 {
+                1.0f32
+            } else {
+                -1.0f32
+            }
+        })
+        .collect();
+
+    Ok(Array1::from_vec(row).into_pyarray(py))
+}
+
 // ── Costas sequence ────────────────────────────────────────────────
 
 fn primitive_root(p: usize) -> usize {
@@ -289,5 +487,137 @@ mod tests {
     #[test]
     fn costas_invalid_prime() {
         assert!(generate_costas_sequence(2).is_err());
+    }
+
+    // --- Gold code tests ---
+
+    #[test]
+    fn gold_msequence_length() {
+        let code = generate_msequence(5, primitive_poly_taps(5).unwrap());
+        assert_eq!(code.len(), 31);
+    }
+
+    #[test]
+    fn gold_msequence_bipolar() {
+        let code = generate_msequence(5, primitive_poly_taps(5).unwrap());
+        for &v in &code {
+            assert!(v == 1.0 || v == -1.0, "Expected +/-1, got {}", v);
+        }
+    }
+
+    #[test]
+    fn gold_code_bipolar() {
+        let taps1 = primitive_poly_taps(5).unwrap();
+        let taps2 = gold_second_poly_taps(5, 0).unwrap();
+        let m1 = generate_msequence(5, taps1);
+        let m2 = generate_msequence(5, taps2);
+        let gold: Vec<f32> = m1.iter().zip(m2.iter()).map(|(a, b)| a * b).collect();
+        assert_eq!(gold.len(), 31);
+        for &v in &gold {
+            assert!(v == 1.0 || v == -1.0, "Expected +/-1, got {}", v);
+        }
+    }
+
+    #[test]
+    fn gold_code_no_poly_for_invalid_order() {
+        assert!(primitive_poly_taps(3).is_none());
+        assert!(primitive_poly_taps(11).is_none());
+    }
+
+    #[test]
+    fn gold_code_no_pair_for_invalid_idx() {
+        assert!(gold_second_poly_taps(5, 99).is_none());
+    }
+
+    // --- Kasami code tests (internal) ---
+
+    #[test]
+    fn kasami_code_internal_length() {
+        // Kasami requires even order; test with order 6
+        let taps = primitive_poly_taps(6).unwrap();
+        let length = (1usize << 6) - 1; // 63
+        let m_seq = generate_msequence(6, taps);
+        assert_eq!(m_seq.len(), length);
+
+        // Decimate
+        let d = (1usize << 3) + 1; // 9
+        let short_len = (1usize << 3) - 1; // 7
+        let short: Vec<f32> = (0..short_len).map(|i| m_seq[(i * d) % length]).collect();
+        assert_eq!(short.len(), 7);
+        for &v in &short {
+            assert!(v == 1.0 || v == -1.0);
+        }
+    }
+
+    // --- Walsh-Hadamard tests (internal) ---
+
+    #[test]
+    fn walsh_row_length() {
+        let size = 1usize << 4; // 16
+        let idx = 0usize;
+        let row: Vec<f32> = (0..size)
+            .map(|j| {
+                let bits = (idx & j).count_ones();
+                if bits % 2 == 0 {
+                    1.0f32
+                } else {
+                    -1.0f32
+                }
+            })
+            .collect();
+        assert_eq!(row.len(), 16);
+        // Row 0: all +1
+        for &v in &row {
+            assert!((v - 1.0f32).abs() < 1e-5, "Row 0 should be all +1");
+        }
+    }
+
+    #[test]
+    fn walsh_orthogonality_internal() {
+        let size = 1usize << 4;
+        let idx0 = 0usize;
+        let row0: Vec<f32> = (0..size)
+            .map(|j| {
+                if (idx0 & j).count_ones() % 2 == 0 {
+                    1.0f32
+                } else {
+                    -1.0f32
+                }
+            })
+            .collect();
+        let row1: Vec<f32> = (0..size)
+            .map(|j| {
+                if (1usize & j).count_ones() % 2 == 0 {
+                    1.0f32
+                } else {
+                    -1.0f32
+                }
+            })
+            .collect();
+        let dot: f32 = row0.iter().zip(row1.iter()).map(|(a, b)| a * b).sum();
+        assert!(
+            dot.abs() < 1e-5,
+            "Walsh rows should be orthogonal, got {}",
+            dot
+        );
+    }
+
+    #[test]
+    fn walsh_bipolar_internal() {
+        let size = 1usize << 4;
+        for idx in 0..size {
+            let row: Vec<f32> = (0..size)
+                .map(|j| {
+                    if (idx & j).count_ones() % 2 == 0 {
+                        1.0f32
+                    } else {
+                        -1.0f32
+                    }
+                })
+                .collect();
+            for &v in &row {
+                assert!(v == 1.0 || v == -1.0, "Expected +/-1, got {}", v);
+            }
+        }
     }
 }

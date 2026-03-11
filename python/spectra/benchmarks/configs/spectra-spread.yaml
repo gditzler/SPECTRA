@@ -1,0 +1,39 @@
+name: "spectra-spread"
+version: "1.0"
+description: >
+  10-class narrowband spread spectrum benchmark.
+  Covers DSSS, FHSS, CDMA, THSS, ChirpSS, and noise at SNR range [-10, 30] dB
+  with frequency offset, phase offset, and AWGN impairments.
+task: "narrowband"
+
+sample_rate: 1_000_000
+num_iq_samples: 1024
+num_samples:
+  train: 50_000
+  val: 10_000
+  test: 10_000
+
+seed:
+  train: 1000
+  val: 2000
+  test: 3000
+
+waveform_pool:
+  - {type: "DSSS_BPSK", params: {processing_gain: 31, samples_per_chip: 4}}
+  - {type: "DSSS_QPSK", params: {code_type: "msequence", code_order: 5, samples_per_chip: 4}}
+  - {type: "DSSS_QPSK", params: {code_type: "gold", code_order: 5, code_index: 0, samples_per_chip: 4}}
+  - {type: "DSSS_QPSK", params: {code_type: "kasami", code_order: 6, code_index: 0, samples_per_chip: 4}}
+  - {type: "FHSS", params: {num_channels: 8, hop_pattern: "random", dwell_samples: 64, modulation: "bpsk"}}
+  - {type: "FHSS", params: {num_channels: 16, hop_pattern: "costas", dwell_samples: 128, modulation: "qpsk"}}
+  - {type: "CDMA_Forward", params: {num_users: 4, spreading_factor: 64}}
+  - {type: "CDMA_Reverse", params: {num_users: 4, spreading_factor: 64}}
+  - {type: "THSS", params: {num_frames: 32, slots_per_frame: 8, pulse_samples: 16, pulse_shape: "gaussian"}}
+  - {type: "ChirpSS", params: {spreading_factor: 7}}
+  - {type: "Noise"}
+
+snr_range: [-10, 30]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 50_000}}
+  - {type: "PhaseOffset", params: {max_offset: 3.14159}}
+  - {type: "AWGN"}

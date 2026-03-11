@@ -1,0 +1,41 @@
+name: "spectra-radar"
+version: "1.0"
+description: >
+  12-class radar waveform classification benchmark.
+  Covers pulsed, coded, FMCW, stepped-frequency, pulse-Doppler, and nonlinear FM
+  radar waveforms at SNR range [-10, 30] dB with standard impairments.
+task: "narrowband"
+
+sample_rate: 1_000_000
+num_iq_samples: 1024
+num_samples:
+  train: 50_000
+  val: 10_000
+  test: 10_000
+
+seed:
+  train: 1000
+  val: 2000
+  test: 3000
+
+waveform_pool:
+  - {type: "LFM"}
+  - {type: "BarkerCode", params: {length: 13}}
+  - {type: "PulsedRadar"}
+  - {type: "PulsedRadar", params: {pulse_shape: "hamming", pulse_width_samples: 128, pri_samples: 1024}}
+  - {type: "BarkerCodedPulse"}
+  - {type: "PolyphaseCodedPulse", params: {code_type: "frank"}}
+  - {type: "PolyphaseCodedPulse", params: {code_type: "p4"}}
+  - {type: "FMCW", params: {sweep_type: "sawtooth"}}
+  - {type: "FMCW", params: {sweep_type: "triangle"}}
+  - {type: "SteppedFrequency"}
+  - {type: "PulseDoppler"}
+  - {type: "NonlinearFM"}
+  - {type: "Noise"}
+
+snr_range: [-10, 30]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 50_000}}
+  - {type: "PhaseOffset", params: {max_offset: 3.14159}}
+  - {type: "AWGN"}

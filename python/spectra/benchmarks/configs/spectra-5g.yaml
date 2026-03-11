@@ -1,0 +1,49 @@
+name: "spectra-5g"
+version: "1.0"
+description: >
+  5G NR waveform classification benchmark. Includes NR OFDM variants across
+  numerologies, SSB, PDSCH, PUSCH, PRACH, plus generic OFDM and Noise baselines.
+  SNR range [-10, 30] dB with frequency and phase offset impairments.
+task: "narrowband"
+
+sample_rate: 30_720_000
+num_iq_samples: 4096
+num_samples:
+  train: 50_000
+  val: 10_000
+  test: 10_000
+
+seed:
+  train: 5000
+  val: 6000
+  test: 7000
+
+waveform_pool:
+  # NR OFDM with different numerologies
+  - {type: "NR_OFDM", params: {numerology: 0, num_resource_blocks: 25, fft_size: 512}}
+  - {type: "NR_OFDM", params: {numerology: 1, num_resource_blocks: 25, fft_size: 512}}
+  - {type: "NR_OFDM", params: {numerology: 2, num_resource_blocks: 25, fft_size: 512}}
+  - {type: "NR_OFDM", params: {numerology: 1, num_resource_blocks: 51, fft_size: 1024, modulation: "qam16"}}
+  - {type: "NR_OFDM", params: {numerology: 1, num_resource_blocks: 51, fft_size: 1024, modulation: "qam64"}}
+  # NR SSB
+  - {type: "NR_SSB", params: {n_id_1: 0, n_id_2: 0, numerology: 1}}
+  - {type: "NR_SSB", params: {n_id_1: 100, n_id_2: 1, numerology: 1}}
+  # NR PDSCH
+  - {type: "NR_PDSCH", params: {numerology: 1, num_resource_blocks: 25, modulation: "qpsk"}}
+  - {type: "NR_PDSCH", params: {numerology: 1, num_resource_blocks: 25, modulation: "qam64"}}
+  # NR PUSCH
+  - {type: "NR_PUSCH", params: {numerology: 1, num_resource_blocks: 25, modulation: "qpsk"}}
+  - {type: "NR_PUSCH", params: {numerology: 1, num_resource_blocks: 25, modulation: "qpsk", transform_precoding: true}}
+  # NR PRACH
+  - {type: "NR_PRACH", params: {preamble_format: 0, root_index: 1}}
+  # Generic OFDM baseline
+  - {type: "OFDM"}
+  # Noise baseline
+  - {type: "Noise"}
+
+snr_range: [-10, 30]
+
+impairments:
+  - {type: "FrequencyOffset", params: {max_offset: 50_000}}
+  - {type: "PhaseOffset", params: {max_offset: 3.14159}}
+  - {type: "AWGN"}
