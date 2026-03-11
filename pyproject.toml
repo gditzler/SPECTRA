@@ -53,6 +53,9 @@ Repository = "https://github.com/gditzler/SPECTRA"
 Documentation = "https://gditzler.github.io/SPECTRA"
 Changelog = "https://github.com/gditzler/SPECTRA/blob/main/CHANGELOG.md"
 
+[project.scripts]
+spectra-build = "spectra.cli.signal_builder:main"
+
 [tool.maturin]
 manifest-path = "rust/Cargo.toml"
 python-source = "python"

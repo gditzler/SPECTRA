@@ -17,6 +17,7 @@ SPECTRA generates synthetic RF signals on-the-fly for training machine learning 
 - **Wideband scene composition** — overlay multiple signals at different frequencies and times with physically correct complex-domain summation
 - **Detection-ready labels** — ground truth in physical units (seconds, Hz) with automatic conversion to COCO-style bounding boxes on spectrograms
 - **Benchmark configs** — reproducible `spectra-18`, `spectra-18-wideband`, and `spectra-40` benchmarks loadable with one function call
+- **Interactive CLI** — `spectra-build` walks you through dataset configuration with guided prompts and exports benchmark-compatible YAML
 - **Curriculum learning** — `CurriculumSchedule` ramps SNR, signal count, and impairment severity over training epochs
 - **Streaming DataLoader** — `StreamingDataLoader` generates fresh data per epoch with deterministic seeding and curriculum integration
 - **Deterministic generation** — every sample is reproducible from `(seed, index)`, safe across DataLoader workers
@@ -132,6 +133,7 @@ amc.fit_from_dataset(dataset)
 | `spectra.datasets` | `NarrowbandDataset`, `WidebandDataset`, `CyclostationaryDataset`, `MixUpDataset`, `CutMixDataset`, `balanced_sampler`, ... | PyTorch dataset classes with balancing and augmentation wrappers |
 | `spectra.classifiers` | `CyclostationaryAMC` | Traditional AMC with cumulant/cyclic-peak features |
 | `spectra.benchmarks` | `load_benchmark` | Reproducible benchmark dataset loader |
+| `spectra.cli` | `spectra-build` | Interactive dataset config builder |
 | `spectra.curriculum` | `CurriculumSchedule` | Progressive difficulty scheduling |
 | `spectra.streaming` | `StreamingDataLoader` | Epoch-aware DataLoader with curriculum |
 | `spectra.utils` | `frequency_shift`, `srrc_taps`, `low_pass`, `DatasetWriter`, ... | DSP utilities and I/O |
@@ -148,6 +150,17 @@ train_ds, val_ds, test_ds = load_benchmark("spectra-18", split="all")
 ```
 
 Available benchmarks: `spectra-18` (narrowband AMC), `spectra-18-wideband` (signal detection).
+
+### Signal Builder CLI
+
+Build a custom dataset config interactively — no Python code required:
+
+```bash
+spectra-build          # installed console script
+python -m spectra.cli  # or run as module
+```
+
+The CLI walks you through waveform selection, impairment presets, and dataset parameters, then outputs a benchmark-compatible YAML config file. Optionally generate the dataset to Zarr on the spot.
 
 ## Examples
 
