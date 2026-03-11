@@ -1,6 +1,4 @@
 import numpy as np
-import pytest
-
 from spectra.metrics import accuracy, classification_report, confusion_matrix, per_snr_accuracy
 
 
@@ -55,8 +53,8 @@ class TestClassificationReport:
         y_pred = [0, 0, 1, 1, 1, 0]
         report = classification_report(y_true, y_pred)
         # Class 0: TP=2, FP=1, FN=1 -> precision=2/3, recall=2/3
-        assert abs(report["0"]["precision"] - 2/3) < 1e-6
-        assert abs(report["0"]["recall"] - 2/3) < 1e-6
+        assert abs(report["0"]["precision"] - 2 / 3) < 1e-6
+        assert abs(report["0"]["recall"] - 2 / 3) < 1e-6
 
     def test_no_class_names(self):
         report = classification_report([0, 1], [0, 1])
@@ -68,10 +66,10 @@ class TestPerSNRAccuracy:
     def test_grouped_accuracy(self):
         y_true = [0, 0, 1, 1, 0, 0]
         y_pred = [0, 0, 1, 0, 0, 1]
-        snrs =   [0, 0, 0, 10, 10, 10]
+        snrs = [0, 0, 0, 10, 10, 10]
         result = per_snr_accuracy(y_true, y_pred, snrs)
         assert result[0.0] == 1.0  # all correct at SNR=0
-        assert abs(result[10.0] - 1/3) < 1e-6  # 1 of 3 at SNR=10
+        assert abs(result[10.0] - 1 / 3) < 1e-6  # 1 of 3 at SNR=10
 
     def test_single_snr(self):
         result = per_snr_accuracy([0, 1], [0, 0], [5.0, 5.0])

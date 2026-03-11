@@ -1,13 +1,10 @@
 """Tests for CyclostationaryDataset."""
 
-import numpy as np
 import pytest
 import torch
-
 from spectra.datasets.cyclo import CyclostationaryDataset
-from spectra.transforms import Cumulants, PSD, SCD
+from spectra.transforms import PSD, SCD, Cumulants
 from spectra.waveforms import BPSK, QPSK
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -256,6 +253,7 @@ class TestCyclostationaryDatasetDataLoader:
             sample_rate=SAMPLE_RATE,
             representations={"psd": PSD(nfft=256, overlap=128)},
         )
+
         # Custom collate for dict-of-tensors
         def _collate(batch):
             keys = batch[0][0].keys()
@@ -270,6 +268,7 @@ class TestCyclostationaryDatasetDataLoader:
 
     def test_multi_worker_determinism(self):
         """Two DataLoader passes with same seed should yield identical batches."""
+
         def _make_ds():
             return CyclostationaryDataset(
                 waveform_pool=_make_pool(),
@@ -288,12 +287,8 @@ class TestCyclostationaryDatasetDataLoader:
 
         ds1 = _make_ds()
         ds2 = _make_ds()
-        loader1 = torch.utils.data.DataLoader(
-            ds1, batch_size=4, collate_fn=_collate, num_workers=0
-        )
-        loader2 = torch.utils.data.DataLoader(
-            ds2, batch_size=4, collate_fn=_collate, num_workers=0
-        )
+        loader1 = torch.utils.data.DataLoader(ds1, batch_size=4, collate_fn=_collate, num_workers=0)
+        loader2 = torch.utils.data.DataLoader(ds2, batch_size=4, collate_fn=_collate, num_workers=0)
         for (d1, l1), (d2, l2) in zip(loader1, loader2):
             torch.testing.assert_close(l1, l2)
             for key in d1:

@@ -48,9 +48,7 @@ class EnergyDetector:
         ``torch.Tensor`` of shape ``[1, nfft]`` (``float32``), values in {0, 1}.
     """
 
-    def __init__(
-        self, nfft: int = 256, overlap: int = 128, threshold_db: float = 6.0
-    ):
+    def __init__(self, nfft: int = 256, overlap: int = 128, threshold_db: float = 6.0):
         self.nfft = nfft
         self.overlap = overlap
         self.threshold_db = threshold_db

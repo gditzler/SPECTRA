@@ -1,15 +1,14 @@
 import torch
-import pytest
 
 
 class TestStreamingWithCurriculum:
     def test_full_pipeline_narrowband(self):
         """End-to-end: benchmark config -> streaming loader -> curriculum."""
         from spectra.curriculum import CurriculumSchedule
-        from spectra.streaming import StreamingDataLoader
         from spectra.datasets import NarrowbandDataset
-        from spectra.waveforms import QPSK, BPSK
         from spectra.impairments import AWGN, Compose
+        from spectra.streaming import StreamingDataLoader
+        from spectra.waveforms import BPSK, QPSK
 
         schedule = CurriculumSchedule(
             snr_range={"start": (20.0, 30.0), "end": (0.0, 10.0)},
@@ -41,8 +40,8 @@ class TestStreamingWithCurriculum:
 
     def test_streaming_without_curriculum(self):
         """Streaming with no curriculum still varies per epoch."""
-        from spectra.streaming import StreamingDataLoader
         from spectra.datasets import NarrowbandDataset
+        from spectra.streaming import StreamingDataLoader
         from spectra.waveforms import QPSK
 
         def factory(params):
@@ -73,11 +72,11 @@ class TestStreamingWithCurriculum:
 
     def test_training_loop_pattern(self):
         """Verify the intended usage pattern works."""
-        from spectra.streaming import StreamingDataLoader
         from spectra.curriculum import CurriculumSchedule
         from spectra.datasets import NarrowbandDataset
-        from spectra.waveforms import QPSK
         from spectra.impairments import AWGN, Compose
+        from spectra.streaming import StreamingDataLoader
+        from spectra.waveforms import QPSK
 
         schedule = CurriculumSchedule(
             snr_range={"start": (20.0, 30.0), "end": (0.0, 10.0)},

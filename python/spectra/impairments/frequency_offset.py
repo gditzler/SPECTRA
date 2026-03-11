@@ -34,5 +34,6 @@ class FrequencyOffset(Transform):
         shifted_iq = iq * shift
 
         from dataclasses import replace
+
         new_desc = replace(desc, f_low=desc.f_low + fo, f_high=desc.f_high + fo)
         return shifted_iq, new_desc

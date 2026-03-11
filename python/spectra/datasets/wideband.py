@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -43,6 +43,7 @@ class WidebandDataset(Dataset):
         # Apply scene-level impairments
         if self.impairments is not None:
             from spectra.scene.signal_desc import SignalDescription
+
             scene_desc = SignalDescription(
                 t_start=0.0,
                 t_stop=self.scene_config.capture_duration,
@@ -66,10 +67,12 @@ class WidebandDataset(Dataset):
             )
             targets = to_coco(signal_descs, stft_params, self.class_list)
         else:
-            data = torch.tensor(
-                np.stack([iq.real, iq.imag]), dtype=torch.float32
-            )
-            targets = {"boxes": torch.zeros((0, 4)), "labels": torch.zeros((0,), dtype=torch.int64), "signal_descs": signal_descs}
+            data = torch.tensor(np.stack([iq.real, iq.imag]), dtype=torch.float32)
+            targets = {
+                "boxes": torch.zeros((0, 4)),
+                "labels": torch.zeros((0,), dtype=torch.int64),
+                "signal_descs": signal_descs,
+            }
 
         targets["signal_descs"] = signal_descs
 

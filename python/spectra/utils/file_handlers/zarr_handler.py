@@ -30,13 +30,9 @@ class ZarrHandler:
             chunks = (min(64, shape[0]),) + shape[1:] if len(shape) > 0 else shape
         # Try v3 API (create_array), fall back to v2 (create_dataset)
         if hasattr(self._root, "create_array"):
-            return self._root.create_array(
-                name, shape=shape, dtype=dtype, chunks=chunks
-            )
+            return self._root.create_array(name, shape=shape, dtype=dtype, chunks=chunks)
         else:
-            return self._root.create_dataset(
-                name, shape=shape, dtype=dtype, chunks=chunks
-            )
+            return self._root.create_dataset(name, shape=shape, dtype=dtype, chunks=chunks)
 
     def write_metadata(self, metadata: dict):
         if self._root is None:

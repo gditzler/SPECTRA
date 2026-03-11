@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
-from spectra.transforms import Cumulants, SCD
+from spectra.transforms import SCD, Cumulants
 
 if TYPE_CHECKING:
     from spectra.datasets.cyclo import CyclostationaryDataset
@@ -52,8 +52,7 @@ class CyclostationaryAMC:
             )
         if classifier not in ("decision_tree", "random_forest"):
             raise ValueError(
-                f"Unknown classifier: {classifier!r}. "
-                "Supported: 'decision_tree', 'random_forest'."
+                f"Unknown classifier: {classifier!r}. Supported: 'decision_tree', 'random_forest'."
             )
         self.feature_set = feature_set
         self.classifier_type = classifier

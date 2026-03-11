@@ -15,9 +15,7 @@ class ZadoffChu(Waveform):
         samples_per_chip: int = 8,
     ):
         if root < 1 or root >= length:
-            raise ValueError(
-                f"Root index must be in [1, {length - 1}], got {root}"
-            )
+            raise ValueError(f"Root index must be in [1, {length - 1}], got {root}")
         self._length = length
         self._root = root
         self._samples_per_chip = samples_per_chip

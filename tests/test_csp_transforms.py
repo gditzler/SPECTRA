@@ -3,9 +3,7 @@
 import numpy as np
 import pytest
 import torch
-
-from spectra.transforms import CAF, SCD, SCF, Cumulants, EnergyDetector, PSD
-
+from spectra.transforms import CAF, PSD, SCD, SCF, Cumulants, EnergyDetector
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -128,7 +126,7 @@ class TestPSDTransform:
         iq = _make_noise(4096)
         psd_lin = PSD(nfft=256, overlap=128, db_scale=False)
         psd_db = PSD(nfft=256, overlap=128, db_scale=True)
-        lin = psd_lin(iq)
+        psd_lin(iq)
         db = psd_db(iq)
         # dB of values < 1 should be negative
         assert db.min() < 0.0
@@ -300,8 +298,13 @@ class TestSCDS3caTransform:
     def test_s3ca_mag_phase_shape(self):
         iq = _make_noise(4096)
         scd = SCD(
-            nfft=64, n_alpha=64, hop=16, method="s3ca",
-            output_format="mag_phase", kappa=4, seed=42,
+            nfft=64,
+            n_alpha=64,
+            hop=16,
+            method="s3ca",
+            output_format="mag_phase",
+            kappa=4,
+            seed=42,
         )
         result = scd(iq)
         assert result.shape == (2, 64, 64)
@@ -309,8 +312,13 @@ class TestSCDS3caTransform:
     def test_s3ca_real_imag_shape(self):
         iq = _make_noise(4096)
         scd = SCD(
-            nfft=64, n_alpha=64, hop=16, method="s3ca",
-            output_format="real_imag", kappa=4, seed=42,
+            nfft=64,
+            n_alpha=64,
+            hop=16,
+            method="s3ca",
+            output_format="real_imag",
+            kappa=4,
+            seed=42,
         )
         result = scd(iq)
         assert result.shape == (2, 64, 64)
@@ -318,12 +326,22 @@ class TestSCDS3caTransform:
     def test_s3ca_db_scale(self):
         iq = _make_noise(4096)
         scd_lin = SCD(
-            nfft=64, n_alpha=64, hop=16, method="s3ca",
-            db_scale=False, kappa=8, seed=42,
+            nfft=64,
+            n_alpha=64,
+            hop=16,
+            method="s3ca",
+            db_scale=False,
+            kappa=8,
+            seed=42,
         )
         scd_db = SCD(
-            nfft=64, n_alpha=64, hop=16, method="s3ca",
-            db_scale=True, kappa=8, seed=42,
+            nfft=64,
+            n_alpha=64,
+            hop=16,
+            method="s3ca",
+            db_scale=True,
+            kappa=8,
+            seed=42,
         )
         lin = scd_lin(iq)
         db = scd_db(iq)
@@ -458,7 +476,9 @@ class TestEnergyDetectorTransform:
         n = 16384
         t = np.arange(n)
         tone = np.exp(1j * 2 * np.pi * 0.2 * t).astype(np.complex64)
-        noise = ((rng.standard_normal(n) + 1j * rng.standard_normal(n)) / np.sqrt(2) * 0.01).astype(np.complex64)
+        noise = ((rng.standard_normal(n) + 1j * rng.standard_normal(n)) / np.sqrt(2) * 0.01).astype(
+            np.complex64
+        )
         iq = tone + noise
         det = EnergyDetector(nfft=256, overlap=128, threshold_db=6.0)
         result = det(iq)
@@ -492,10 +512,8 @@ def test_s3ca_captures_bpsk_cyclic_features():
     while n_alpha < n_frames:
         n_alpha *= 2
 
-    ref = SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca",
-              kappa=n_alpha, seed=0)
-    s3ca = SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca",
-               kappa=16, seed=0)
+    ref = SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca", kappa=n_alpha, seed=0)
+    s3ca = SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca", kappa=16, seed=0)
 
     ref_result = ref(iq)
     s3ca_result = s3ca(iq)
@@ -531,8 +549,15 @@ def test_s3ca_dsss_bpsk_cycle_frequencies():
     while n_alpha < n_frames:
         n_alpha *= 2
 
-    scd = SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca",
-              output_format="magnitude", kappa=n_alpha, seed=0)
+    scd = SCD(
+        nfft=nfft,
+        n_alpha=n_alpha,
+        hop=hop,
+        method="s3ca",
+        output_format="magnitude",
+        kappa=n_alpha,
+        seed=0,
+    )
     result = scd(iq).squeeze(0).numpy()
 
     # Alpha profile: max over spectral frequency for each alpha

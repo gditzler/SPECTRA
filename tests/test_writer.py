@@ -48,10 +48,10 @@ class TestZarrHandler:
 @pytest.mark.skipif(not HAS_ZARR, reason="zarr not installed")
 class TestDatasetWriter:
     def test_write_narrowband(self):
-        from spectra.waveforms import QPSK, BPSK
         from spectra.datasets import NarrowbandDataset
         from spectra.transforms import STFT
         from spectra.utils.writer import DatasetWriter
+        from spectra.waveforms import BPSK, QPSK
 
         ds = NarrowbandDataset(
             waveform_pool=[QPSK(), BPSK()],

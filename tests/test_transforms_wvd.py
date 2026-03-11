@@ -1,8 +1,8 @@
 """Tests for WVD transform."""
+
 import numpy as np
 import pytest
 import torch
-
 from spectra.transforms.wvd import WVD
 
 

@@ -22,15 +22,13 @@ class Noise(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
-        rng = np.random.default_rng(
-            seed if seed is not None else np.random.randint(0, 2**32)
-        )
+        rng = np.random.default_rng(seed if seed is not None else np.random.randint(0, 2**32))
         n_samples = num_symbols * self.samples_per_symbol
 
         # Complex white Gaussian noise
-        noise = (
-            rng.standard_normal(n_samples) + 1j * rng.standard_normal(n_samples)
-        ).astype(np.complex64) / np.sqrt(2)
+        noise = (rng.standard_normal(n_samples) + 1j * rng.standard_normal(n_samples)).astype(
+            np.complex64
+        ) / np.sqrt(2)
 
         # Band-limit via FFT
         noise_fft = np.fft.fft(noise)

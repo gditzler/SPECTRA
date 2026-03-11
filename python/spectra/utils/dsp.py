@@ -2,8 +2,14 @@ import numpy as np
 
 from spectra._rust import (
     apply_rrc_filter as _rrc_filter,
+)
+from spectra._rust import (
     convolve_complex as _convolve_complex,
+)
+from spectra._rust import (
     gaussian_taps as _gaussian_taps,
+)
+from spectra._rust import (
     lowpass_taps as _lowpass_taps,
 )
 
@@ -43,9 +49,7 @@ def gaussian_taps(bt: float, span: int, sps: int) -> np.ndarray:
     return np.array(_gaussian_taps(bt, span, sps), dtype=np.float32)
 
 
-def frequency_shift(
-    iq: np.ndarray, offset: float, sample_rate: float
-) -> np.ndarray:
+def frequency_shift(iq: np.ndarray, offset: float, sample_rate: float) -> np.ndarray:
     """Apply frequency shift to IQ signal."""
     t = np.arange(len(iq)) / sample_rate
     shift = np.exp(1j * 2.0 * np.pi * offset * t).astype(np.complex64)
@@ -66,9 +70,7 @@ def convolve(signal: np.ndarray, taps: np.ndarray) -> np.ndarray:
     return np.array(_convolve_complex(sig, t))
 
 
-def polyphase_interpolator(
-    signal: np.ndarray, taps: np.ndarray, factor: int
-) -> np.ndarray:
+def polyphase_interpolator(signal: np.ndarray, taps: np.ndarray, factor: int) -> np.ndarray:
     """Polyphase upsampling (interpolation)."""
     # Pad taps to multiple of factor
     n_taps = len(taps)
@@ -85,9 +87,7 @@ def polyphase_interpolator(
     return out.astype(signal.dtype)
 
 
-def polyphase_decimator(
-    signal: np.ndarray, taps: np.ndarray, factor: int
-) -> np.ndarray:
+def polyphase_decimator(signal: np.ndarray, taps: np.ndarray, factor: int) -> np.ndarray:
     """Polyphase downsampling (decimation)."""
     # Filter then decimate
     filtered = convolve(signal, taps)
@@ -97,9 +97,7 @@ def polyphase_decimator(
     return filtered_cropped[::factor]
 
 
-def multistage_resampler(
-    signal: np.ndarray, up: int, down: int
-) -> np.ndarray:
+def multistage_resampler(signal: np.ndarray, up: int, down: int) -> np.ndarray:
     """Rational resampling: upsample by up, filter, downsample by down."""
     # Design anti-aliasing filter
     cutoff = min(1.0 / up, 1.0 / down)
@@ -159,9 +157,7 @@ def noise_generator(
     return noise
 
 
-def compute_spectrogram(
-    iq: np.ndarray, nfft: int = 256, hop: int = 64
-) -> np.ndarray:
+def compute_spectrogram(iq: np.ndarray, nfft: int = 256, hop: int = 64) -> np.ndarray:
     """Compute magnitude spectrogram.
 
     Returns 2D real array of shape [nfft, num_frames].

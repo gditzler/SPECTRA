@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 
-from spectra._rust import generate_bpsk_symbols, generate_fsk_symbols, gaussian_taps
+from spectra._rust import gaussian_taps, generate_bpsk_symbols, generate_fsk_symbols
 from spectra.waveforms.base import Waveform
 
 
@@ -90,9 +90,7 @@ class GMSK(Waveform):
         half = self._filter_span * sps // 2
         t = np.arange(-half, half + 1) / sps
         bt = self._bt
-        h = np.sqrt(2.0 * np.pi / np.log(2)) * bt * np.exp(
-            -2.0 * (np.pi * bt * t) ** 2 / np.log(2)
-        )
+        h = np.sqrt(2.0 * np.pi / np.log(2)) * bt * np.exp(-2.0 * (np.pi * bt * t) ** 2 / np.log(2))
         return h / np.sum(h)
 
     def generate(
@@ -236,7 +234,12 @@ class GFSK(Waveform):
 
 class GFSK4(GFSK):
     def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 8):
-        super().__init__(order=4, bt=bt, filter_span=filter_span, samples_per_symbol=samples_per_symbol)
+        super().__init__(
+            order=4,
+            bt=bt,
+            filter_span=filter_span,
+            samples_per_symbol=samples_per_symbol,
+        )
 
     @property
     def label(self) -> str:
@@ -245,7 +248,12 @@ class GFSK4(GFSK):
 
 class GFSK8(GFSK):
     def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 8):
-        super().__init__(order=8, bt=bt, filter_span=filter_span, samples_per_symbol=samples_per_symbol)
+        super().__init__(
+            order=8,
+            bt=bt,
+            filter_span=filter_span,
+            samples_per_symbol=samples_per_symbol,
+        )
 
     @property
     def label(self) -> str:
@@ -254,7 +262,12 @@ class GFSK8(GFSK):
 
 class GFSK16(GFSK):
     def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 8):
-        super().__init__(order=16, bt=bt, filter_span=filter_span, samples_per_symbol=samples_per_symbol)
+        super().__init__(
+            order=16,
+            bt=bt,
+            filter_span=filter_span,
+            samples_per_symbol=samples_per_symbol,
+        )
 
     @property
     def label(self) -> str:
@@ -269,7 +282,10 @@ class GMSK4(GFSK):
 
     def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 8):
         super().__init__(
-            order=4, mod_index=0.5, bt=bt, filter_span=filter_span,
+            order=4,
+            mod_index=0.5,
+            bt=bt,
+            filter_span=filter_span,
             samples_per_symbol=samples_per_symbol,
         )
 
@@ -283,7 +299,10 @@ class GMSK8(GFSK):
 
     def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 8):
         super().__init__(
-            order=8, mod_index=0.5, bt=bt, filter_span=filter_span,
+            order=8,
+            mod_index=0.5,
+            bt=bt,
+            filter_span=filter_span,
             samples_per_symbol=samples_per_symbol,
         )
 

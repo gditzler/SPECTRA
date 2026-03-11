@@ -1,6 +1,6 @@
 import numpy as np
-import torch
 import pytest
+import torch
 
 
 class TestNormalize:
@@ -51,7 +51,7 @@ class TestSpectrogram:
         from spectra.transforms import Spectrogram
 
         iq = (np.random.randn(1024) + 1j * np.random.randn(1024)).astype(np.complex64)
-        spec_linear = Spectrogram(nfft=256, hop_length=64, db_scale=False)(iq)
+        Spectrogram(nfft=256, hop_length=64, db_scale=False)(iq)
         spec_db = Spectrogram(nfft=256, hop_length=64, db_scale=True)(iq)
         # dB values should generally be negative (for small magnitude signals)
         assert torch.any(spec_db < 0)

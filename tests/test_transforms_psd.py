@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import pytest
 
 
 class TestPSD:
@@ -31,9 +30,7 @@ class TestPSD:
         from spectra.transforms.psd import PSD
 
         rng = np.random.default_rng(42)
-        iq = (rng.standard_normal(4096) + 1j * rng.standard_normal(4096)).astype(
-            np.complex64
-        )
+        iq = (rng.standard_normal(4096) + 1j * rng.standard_normal(4096)).astype(np.complex64)
         result = PSD(nfft=256)(iq)
         assert not torch.any(torch.isnan(result))
         assert not torch.any(torch.isinf(result))

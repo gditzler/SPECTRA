@@ -1,8 +1,7 @@
 """Wigner-Ville Distribution transform."""
+
 import numpy as np
 import torch
-
-from spectra.transforms.csp_utils import format_csp_output
 
 
 class WVD:

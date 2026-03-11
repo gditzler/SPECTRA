@@ -9,13 +9,13 @@ from typing import Optional
 
 import numpy as np
 
-from spectra.waveforms.base import Waveform
 from spectra._rust import (
+    generate_nr_dmrs,
     generate_nr_ofdm_symbol,
     generate_nr_pss,
     generate_nr_sss,
-    generate_nr_dmrs,
 )
+from spectra.waveforms.base import Waveform
 
 # ---------------------------------------------------------------------------
 # Numerology table: mu -> (SCS_kHz, symbols_per_slot, slots_per_subframe)
@@ -27,6 +27,7 @@ _NUMEROLOGY = {
     3: (120, 14, 8),
     4: (240, 14, 16),
 }
+
 
 # Subcarrier modulation constellations (unit-power normalized)
 def _qam_constellation(order: int) -> np.ndarray:
@@ -69,6 +70,7 @@ def _ofdm_modulate_symbol(fft_bins, fft_size, cp_length):
 # NR_OFDM
 # ===================================================================
 
+
 class NR_OFDM(Waveform):
     """5G NR OFDM waveform with configurable numerology and resource blocks.
 
@@ -96,8 +98,7 @@ class NR_OFDM(Waveform):
         mod_key = modulation.lower()
         if mod_key not in _CONSTELLATIONS:
             raise ValueError(
-                f"Unsupported modulation: {modulation}. "
-                f"Choose from {list(_CONSTELLATIONS.keys())}"
+                f"Unsupported modulation: {modulation}. Choose from {list(_CONSTELLATIONS.keys())}"
             )
         self._numerology = numerology
         self._num_rbs = num_resource_blocks
@@ -109,8 +110,8 @@ class NR_OFDM(Waveform):
         self._cp_normal = cp_normal
         self._cp_first = cp_first
         # Average samples per OFDM symbol (slot)
-        self.samples_per_symbol = (
-            (fft_size + cp_first) + (self._symbols_per_slot - 1) * (fft_size + cp_normal)
+        self.samples_per_symbol = (fft_size + cp_first) + (self._symbols_per_slot - 1) * (
+            fft_size + cp_normal
         )
 
     def generate(
@@ -136,8 +137,8 @@ class NR_OFDM(Waveform):
 
                 # Place subcarriers symmetrically around DC
                 half = self._num_subcarriers // 2
-                fft_bins[1: half + 1] = data[:half]
-                fft_bins[self._fft_size - half:] = data[half:]
+                fft_bins[1 : half + 1] = data[:half]
+                fft_bins[self._fft_size - half :] = data[half:]
 
                 sym = _ofdm_modulate_symbol(fft_bins, self._fft_size, cp_len)
                 segments.append(sym)
@@ -161,6 +162,7 @@ class NR_OFDM(Waveform):
 # ===================================================================
 # NR_SSB
 # ===================================================================
+
 
 class NR_SSB(Waveform):
     """5G NR Synchronization Signal Block (SSB).
@@ -239,8 +241,8 @@ class NR_SSB(Waveform):
 
                 # Map 240 subcarriers symmetrically into FFT bins
                 half = 120
-                fft_bins[1: half + 1] = ssb_grid[:half]
-                fft_bins[self._fft_size - half:] = ssb_grid[half:]
+                fft_bins[1 : half + 1] = ssb_grid[:half]
+                fft_bins[self._fft_size - half :] = ssb_grid[half:]
 
                 cp_len = self._cp_first if sym_idx == 0 else self._cp_normal
                 sym = _ofdm_modulate_symbol(fft_bins, self._fft_size, cp_len)
@@ -265,6 +267,7 @@ class NR_SSB(Waveform):
 # ===================================================================
 # NR_PDSCH
 # ===================================================================
+
 
 class NR_PDSCH(Waveform):
     """5G NR Physical Downlink Shared Channel.
@@ -305,9 +308,8 @@ class NR_PDSCH(Waveform):
         self._cp_first = cp_first
         # DMRS symbol indices (simplified: symbols 2 and 11 for type A)
         self._dmrs_symbol_indices = list(range(2, 2 + num_dmrs_symbols))
-        self.samples_per_symbol = (
-            (self._fft_size + cp_first)
-            + (self._symbols_per_slot - 1) * (self._fft_size + cp_normal)
+        self.samples_per_symbol = (self._fft_size + cp_first) + (self._symbols_per_slot - 1) * (
+            self._fft_size + cp_normal
         )
 
     def generate(
@@ -331,22 +333,14 @@ class NR_PDSCH(Waveform):
 
                 if sym_idx in self._dmrs_symbol_indices:
                     # DMRS symbol: use Rust DMRS generator
-                    dmrs = np.asarray(
-                        generate_nr_dmrs(
-                            self._num_rbs, n_id, slot_idx, sym_idx, s
-                        )
-                    )
+                    dmrs = np.asarray(generate_nr_dmrs(self._num_rbs, n_id, slot_idx, sym_idx, s))
                     # Place DMRS on every other subcarrier (type 1 mapping)
-                    subcarrier_data = np.zeros(
-                        self._num_subcarriers, dtype=np.complex64
-                    )
+                    subcarrier_data = np.zeros(self._num_subcarriers, dtype=np.complex64)
                     # DMRS on even subcarriers, data on odd
                     dmrs_indices = np.arange(0, self._num_subcarriers, 2)
                     data_indices = np.arange(1, self._num_subcarriers, 2)
                     dmrs_len = min(len(dmrs), len(dmrs_indices))
-                    subcarrier_data[dmrs_indices[:dmrs_len]] = dmrs[:dmrs_len].astype(
-                        np.complex64
-                    )
+                    subcarrier_data[dmrs_indices[:dmrs_len]] = dmrs[:dmrs_len].astype(np.complex64)
                     data_syms = _map_symbols(rng, constellation, len(data_indices))
                     subcarrier_data[data_indices] = data_syms.astype(np.complex64)
                 else:
@@ -356,8 +350,8 @@ class NR_PDSCH(Waveform):
                     ).astype(np.complex64)
 
                 half = self._num_subcarriers // 2
-                fft_bins[1: half + 1] = subcarrier_data[:half]
-                fft_bins[self._fft_size - half:] = subcarrier_data[half:]
+                fft_bins[1 : half + 1] = subcarrier_data[:half]
+                fft_bins[self._fft_size - half :] = subcarrier_data[half:]
 
                 sym = _ofdm_modulate_symbol(fft_bins, self._fft_size, cp_len)
                 segments.append(sym)
@@ -376,6 +370,7 @@ class NR_PDSCH(Waveform):
 # ===================================================================
 # NR_PUSCH
 # ===================================================================
+
 
 class NR_PUSCH(Waveform):
     """5G NR Physical Uplink Shared Channel.
@@ -416,9 +411,8 @@ class NR_PUSCH(Waveform):
         self._cp_first = cp_first
         # DMRS at symbol 2 for uplink
         self._dmrs_symbol_indices = [2]
-        self.samples_per_symbol = (
-            (self._fft_size + cp_first)
-            + (self._symbols_per_slot - 1) * (self._fft_size + cp_normal)
+        self.samples_per_symbol = (self._fft_size + cp_first) + (self._symbols_per_slot - 1) * (
+            self._fft_size + cp_normal
         )
 
     def generate(
@@ -441,20 +435,12 @@ class NR_PUSCH(Waveform):
                 fft_bins = np.zeros(self._fft_size, dtype=np.complex64)
 
                 if sym_idx in self._dmrs_symbol_indices:
-                    dmrs = np.asarray(
-                        generate_nr_dmrs(
-                            self._num_rbs, n_id, slot_idx, sym_idx, s
-                        )
-                    )
-                    subcarrier_data = np.zeros(
-                        self._num_subcarriers, dtype=np.complex64
-                    )
+                    dmrs = np.asarray(generate_nr_dmrs(self._num_rbs, n_id, slot_idx, sym_idx, s))
+                    subcarrier_data = np.zeros(self._num_subcarriers, dtype=np.complex64)
                     dmrs_indices = np.arange(0, self._num_subcarriers, 2)
                     data_indices = np.arange(1, self._num_subcarriers, 2)
                     dmrs_len = min(len(dmrs), len(dmrs_indices))
-                    subcarrier_data[dmrs_indices[:dmrs_len]] = dmrs[:dmrs_len].astype(
-                        np.complex64
-                    )
+                    subcarrier_data[dmrs_indices[:dmrs_len]] = dmrs[:dmrs_len].astype(np.complex64)
                     data_syms = _map_symbols(rng, constellation, len(data_indices))
                     subcarrier_data[data_indices] = data_syms.astype(np.complex64)
                 else:
@@ -464,11 +450,13 @@ class NR_PUSCH(Waveform):
 
                 if self._transform_precoding:
                     # DFT precoding (SC-FDMA): apply DFT before IFFT, normalize power
-                    subcarrier_data = (np.fft.fft(subcarrier_data) / np.sqrt(self._num_subcarriers)).astype(np.complex64)
+                    subcarrier_data = (
+                        np.fft.fft(subcarrier_data) / np.sqrt(self._num_subcarriers)
+                    ).astype(np.complex64)
 
                 half = self._num_subcarriers // 2
-                fft_bins[1: half + 1] = subcarrier_data[:half]
-                fft_bins[self._fft_size - half:] = subcarrier_data[half:]
+                fft_bins[1 : half + 1] = subcarrier_data[:half]
+                fft_bins[self._fft_size - half :] = subcarrier_data[half:]
 
                 sym = _ofdm_modulate_symbol(fft_bins, self._fft_size, cp_len)
                 segments.append(sym)
@@ -487,6 +475,7 @@ class NR_PUSCH(Waveform):
 # ===================================================================
 # NR_PRACH
 # ===================================================================
+
 
 class NR_PRACH(Waveform):
     """5G NR Physical Random Access Channel.
@@ -526,9 +515,7 @@ class NR_PRACH(Waveform):
 
         # Validate root index
         if root_index < 1 or root_index >= self._seq_len:
-            raise ValueError(
-                f"root_index must be in [1, {self._seq_len - 1}], got {root_index}"
-            )
+            raise ValueError(f"root_index must be in [1, {self._seq_len - 1}], got {root_index}")
 
         # FFT size for PRACH OFDM modulation
         self._fft_size = 2 ** int(np.ceil(np.log2(self._seq_len + 1)))
@@ -562,7 +549,7 @@ class NR_PRACH(Waveform):
         for _ in range(num_symbols):
             # Place ZC sequence into FFT bins
             fft_bins = np.zeros(self._fft_size, dtype=np.complex64)
-            fft_bins[1: self._seq_len + 1] = zc
+            fft_bins[1 : self._seq_len + 1] = zc
 
             sym = _ofdm_modulate_symbol(fft_bins, self._fft_size, self._cp_length)
             segments.append(sym)

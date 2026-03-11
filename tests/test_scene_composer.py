@@ -5,7 +5,8 @@ import pytest
 class TestSceneConfig:
     def test_creation(self):
         from spectra.scene.composer import SceneConfig
-        from spectra.waveforms import QPSK, BPSK
+        from spectra.waveforms import BPSK, QPSK
+
         config = SceneConfig(
             capture_duration=1e-3,
             capture_bandwidth=20e6,
@@ -23,7 +24,8 @@ class TestComposer:
     @pytest.fixture
     def basic_config(self):
         from spectra.scene.composer import SceneConfig
-        from spectra.waveforms import QPSK, BPSK
+        from spectra.waveforms import BPSK, QPSK
+
         return SceneConfig(
             capture_duration=1e-3,
             capture_bandwidth=1e6,
@@ -36,6 +38,7 @@ class TestComposer:
 
     def test_generate_returns_iq_and_descs(self, basic_config):
         from spectra.scene.composer import Composer
+
         composer = Composer(basic_config)
         iq, descs = composer.generate(seed=42)
         assert isinstance(iq, np.ndarray)
@@ -45,6 +48,7 @@ class TestComposer:
 
     def test_iq_length_matches_config(self, basic_config):
         from spectra.scene.composer import Composer
+
         composer = Composer(basic_config)
         iq, _ = composer.generate(seed=42)
         expected_len = int(basic_config.capture_duration * basic_config.sample_rate)
@@ -52,6 +56,7 @@ class TestComposer:
 
     def test_signal_descs_have_required_fields(self, basic_config):
         from spectra.scene.composer import Composer
+
         composer = Composer(basic_config)
         _, descs = composer.generate(seed=42)
         for desc in descs:
@@ -64,6 +69,7 @@ class TestComposer:
 
     def test_signals_within_capture_bounds(self, basic_config):
         from spectra.scene.composer import Composer
+
         composer = Composer(basic_config)
         _, descs = composer.generate(seed=42)
         half_bw = basic_config.capture_bandwidth / 2
@@ -75,6 +81,7 @@ class TestComposer:
 
     def test_deterministic_with_seed(self, basic_config):
         from spectra.scene.composer import Composer
+
         composer = Composer(basic_config)
         iq1, descs1 = composer.generate(seed=42)
         iq2, descs2 = composer.generate(seed=42)
@@ -86,13 +93,15 @@ class TestComposer:
 
     def test_multiple_signals_present(self, basic_config):
         from spectra.scene.composer import Composer
+
         composer = Composer(basic_config)
         _, descs = composer.generate(seed=42)
         assert len(descs) >= 2
 
     def test_fixed_num_signals(self):
-        from spectra.scene.composer import SceneConfig, Composer
+        from spectra.scene.composer import Composer, SceneConfig
         from spectra.waveforms import QPSK
+
         config = SceneConfig(
             capture_duration=1e-3,
             capture_bandwidth=1e6,

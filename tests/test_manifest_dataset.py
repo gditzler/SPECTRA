@@ -3,7 +3,6 @@ import json
 
 import numpy as np
 import pytest
-import torch
 
 
 class TestManifestDatasetCSV:

@@ -21,9 +21,7 @@ class BarkerCode(Waveform):
     def __init__(self, length: int = 13, samples_per_chip: int = 8):
         if length not in BARKER_CODES:
             valid = sorted(BARKER_CODES.keys())
-            raise ValueError(
-                f"Barker code length must be one of {valid}, got {length}"
-            )
+            raise ValueError(f"Barker code length must be one of {valid}, got {length}")
         self._length = length
         self._code = np.array(BARKER_CODES[length], dtype=np.float32)
         self._samples_per_chip = samples_per_chip

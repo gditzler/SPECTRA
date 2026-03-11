@@ -1,7 +1,8 @@
 """Tests for the TorchSig adapter using a mock dataset."""
+
 import numpy as np
-import pytest
 import torch
+
 from benchmarks.torchsig_compat.adapter import TorchSigAdapter
 from benchmarks.torchsig_compat.label_map import CANONICAL_CLASSES
 
@@ -18,8 +19,9 @@ class FakeTorchSigDataset:
 
     def __getitem__(self, idx):
         rng = np.random.default_rng(idx)
-        iq = (rng.standard_normal(self.num_iq) +
-              1j * rng.standard_normal(self.num_iq)).astype(np.complex64)
+        iq = (rng.standard_normal(self.num_iq) + 1j * rng.standard_normal(self.num_iq)).astype(
+            np.complex64
+        )
         label = ["bpsk", "qpsk", "8psk", "16qam"][idx % 4]
         return iq, label
 
@@ -56,8 +58,12 @@ def test_adapter_label_mapping():
 
 def test_adapter_with_transform():
     ds = FakeTorchSigDataset(n=5, num_iq=512)
-    transform = lambda x: x[:, :256]  # Crop
-    adapter = TorchSigAdapter(ds, num_samples=5, class_list=CANONICAL_CLASSES[:4],
-                              transform=transform)
+
+    def transform(x):
+        return x[:, :256]  # Crop
+
+    adapter = TorchSigAdapter(
+        ds, num_samples=5, class_list=CANONICAL_CLASSES[:4], transform=transform
+    )
     data, _ = adapter[0]
     assert data.shape == (2, 256)

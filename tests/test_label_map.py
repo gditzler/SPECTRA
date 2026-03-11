@@ -1,9 +1,8 @@
-import pytest
 from benchmarks.torchsig_compat.label_map import (
     CANONICAL_CLASSES,
+    canonical_to_index,
     spectra_waveform_pool,
     torchsig_class_names,
-    canonical_to_index,
 )
 
 

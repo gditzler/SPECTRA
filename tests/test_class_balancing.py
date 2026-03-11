@@ -1,11 +1,9 @@
 """Tests for class balancing utilities."""
-import numpy as np
-import pytest
-import torch
 
+import torch
 from spectra.datasets.narrowband import NarrowbandDataset
 from spectra.datasets.sampler import balanced_sampler
-from spectra.waveforms import BPSK, QPSK, FM
+from spectra.waveforms import BPSK, FM, QPSK
 
 
 class TestClassWeights:
@@ -23,7 +21,7 @@ class TestClassWeights:
             seed=42,
         )
         labels = [ds[i][1] for i in range(100)]
-        assert all(l == 0 for l in labels)
+        assert all(label == 0 for label in labels)
 
     def test_uniform_when_none(self):
         """class_weights=None should match default uniform behavior."""

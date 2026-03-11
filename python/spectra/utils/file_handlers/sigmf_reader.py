@@ -38,9 +38,7 @@ class SigMFReader(FileReader):
             data_path = os.path.splitext(path)[0] + ".sigmf-data"
 
         if not os.path.exists(data_path):
-            raise FileNotFoundError(
-                f"SigMF data file not found: {data_path}"
-            )
+            raise FileNotFoundError(f"SigMF data file not found: {data_path}")
 
         # Parse metadata JSON
         with open(path) as f:
@@ -73,8 +71,7 @@ class SigMFReader(FileReader):
             else:
                 scale = float(np.iinfo(read_dtype).max)
                 iq = (
-                    raw[:, 0].astype(np.float32) / scale
-                    + 1j * raw[:, 1].astype(np.float32) / scale
+                    raw[:, 0].astype(np.float32) / scale + 1j * raw[:, 1].astype(np.float32) / scale
                 ).astype(np.complex64)
         else:
             iq = raw.astype(np.complex64)

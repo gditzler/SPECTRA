@@ -1,13 +1,19 @@
 import numpy as np
 import pytest
-
 from spectra.impairments.timing import FractionalDelay, SamplingJitter
 from spectra.scene.signal_desc import SignalDescription
 
 
 @pytest.fixture
 def desc():
-    return SignalDescription(t_start=0.0, t_stop=1.0, f_low=-500e3, f_high=500e3, label="test", snr=20.0)
+    return SignalDescription(
+        t_start=0.0,
+        t_stop=1.0,
+        f_low=-500e3,
+        f_high=500e3,
+        label="test",
+        snr=20.0,
+    )
 
 
 class TestFractionalDelay:

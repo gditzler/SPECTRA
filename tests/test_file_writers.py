@@ -89,9 +89,7 @@ class TestNumpyWriteFromDataset:
             seed=42,
         )
         out = str(tmp_path / "export")
-        NumpyWriter.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"]
-        )
+        NumpyWriter.write_from_dataset(ds, output_dir=out, class_list=["BPSK", "QPSK"])
         npy_files = []
         for root, dirs, files in os.walk(out):
             npy_files.extend(f for f in files if f.endswith(".npy"))
@@ -111,9 +109,7 @@ class TestNumpyWriteFromDataset:
             seed=42,
         )
         out = str(tmp_path / "export")
-        NumpyWriter.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"]
-        )
+        NumpyWriter.write_from_dataset(ds, output_dir=out, class_list=["BPSK", "QPSK"])
         loaded = SignalFolderDataset(root=out, num_iq_samples=128)
         assert len(loaded) == 4
         data, label = loaded[0]
@@ -132,9 +128,7 @@ class TestNumpyWriteFromDataset:
             seed=42,
         )
         out = str(tmp_path / "export")
-        NumpyWriter.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK"], max_samples=3
-        )
+        NumpyWriter.write_from_dataset(ds, output_dir=out, class_list=["BPSK"], max_samples=3)
         npy_files = []
         for root, dirs, files in os.walk(out):
             npy_files.extend(f for f in files if f.endswith(".npy"))
@@ -209,9 +203,7 @@ class TestRawIQWriteFromDataset:
             seed=42,
         )
         out = str(tmp_path / "export")
-        RawIQWriter.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"]
-        )
+        RawIQWriter.write_from_dataset(ds, output_dir=out, class_list=["BPSK", "QPSK"])
         cf32_files = []
         for root, dirs, files in os.walk(out):
             cf32_files.extend(f for f in files if f.endswith(".cf32"))
@@ -231,9 +223,7 @@ class TestRawIQWriteFromDataset:
             seed=42,
         )
         out = str(tmp_path / "export")
-        RawIQWriter.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"]
-        )
+        RawIQWriter.write_from_dataset(ds, output_dir=out, class_list=["BPSK", "QPSK"])
         loaded = SignalFolderDataset(root=out, num_iq_samples=128)
         assert len(loaded) == 4
         data, label = loaded[0]
@@ -321,9 +311,7 @@ class TestHDF5WriteFromDataset:
             seed=42,
         )
         out = str(tmp_path / "export")
-        HDF5Writer.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"]
-        )
+        HDF5Writer.write_from_dataset(ds, output_dir=out, class_list=["BPSK", "QPSK"])
         h5_files = []
         for root, dirs, files in os.walk(out):
             h5_files.extend(f for f in files if f.endswith(".h5"))
@@ -343,9 +331,7 @@ class TestHDF5WriteFromDataset:
             seed=42,
         )
         out = str(tmp_path / "export")
-        HDF5Writer.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"]
-        )
+        HDF5Writer.write_from_dataset(ds, output_dir=out, class_list=["BPSK", "QPSK"])
         loaded = SignalFolderDataset(root=out, num_iq_samples=128)
         assert len(loaded) == 4
         data, label = loaded[0]
@@ -399,9 +385,7 @@ class TestSQLiteWriter:
         conn = sqlite3.connect(path)
         tables = {
             r[0]
-            for r in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'"
-            ).fetchall()
+            for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         }
         conn.close()
         assert "samples" in tables
@@ -418,9 +402,7 @@ class TestSQLiteWriter:
         writer.close()
 
         conn = sqlite3.connect(path)
-        row = conn.execute(
-            "SELECT value FROM metadata WHERE key='description'"
-        ).fetchone()
+        row = conn.execute("SELECT value FROM metadata WHERE key='description'").fetchone()
         conn.close()
         assert row[0] == "test dataset"
 
@@ -485,16 +467,9 @@ class TestSQLiteWriteFromDataset:
             seed=42,
         )
         path = str(tmp_path / "dataset.db")
-        SQLiteWriter.write_from_dataset(
-            ds, output_path=path, class_list=["BPSK", "QPSK"]
-        )
+        SQLiteWriter.write_from_dataset(ds, output_path=path, class_list=["BPSK", "QPSK"])
         conn = sqlite3.connect(path)
-        names = {
-            r[0]
-            for r in conn.execute(
-                "SELECT DISTINCT class_name FROM samples"
-            ).fetchall()
-        }
+        names = {r[0] for r in conn.execute("SELECT DISTINCT class_name FROM samples").fetchall()}
         conn.close()
         assert names.issubset({"BPSK", "QPSK"})
 
@@ -513,9 +488,7 @@ class TestSQLiteWriteFromDataset:
             seed=42,
         )
         path = str(tmp_path / "dataset.db")
-        SQLiteWriter.write_from_dataset(
-            ds, output_path=path, class_list=["BPSK"], max_samples=3
-        )
+        SQLiteWriter.write_from_dataset(ds, output_path=path, class_list=["BPSK"], max_samples=3)
         conn = sqlite3.connect(path)
         count = conn.execute("SELECT COUNT(*) FROM samples").fetchone()[0]
         conn.close()

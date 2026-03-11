@@ -21,9 +21,9 @@ class AdjacentChannelInterference(Transform):
             raise ValueError("AdjacentChannelInterference requires sample_rate kwarg")
         n = len(iq)
         # Generate random interference
-        interference = (
-            np.random.randn(n) + 1j * np.random.randn(n)
-        ).astype(np.complex64) / np.sqrt(2.0)
+        interference = (np.random.randn(n) + 1j * np.random.randn(n)).astype(
+            np.complex64
+        ) / np.sqrt(2.0)
         # Frequency shift to offset
         t = np.arange(n) / sample_rate
         shift = np.exp(1j * 2.0 * np.pi * self._offset * t).astype(np.complex64)

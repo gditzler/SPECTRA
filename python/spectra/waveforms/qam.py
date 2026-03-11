@@ -1,9 +1,6 @@
-from typing import Optional
-
 import numpy as np
 
-from spectra._rust import apply_rrc_filter_with_taps, generate_qam_symbols
-from spectra.utils.rrc_cache import cached_rrc_taps
+from spectra._rust import generate_qam_symbols
 from spectra.waveforms.rrc_base import _RRCWaveformBase
 
 

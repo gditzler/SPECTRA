@@ -1,12 +1,12 @@
-import numpy as np
-import torch
 import pytest
+import torch
 
 
 class TestNarrowbandDataset:
     def test_len(self):
         from spectra.datasets import NarrowbandDataset
-        from spectra.waveforms import QPSK, BPSK
+        from spectra.waveforms import BPSK, QPSK
+
         ds = NarrowbandDataset(
             waveform_pool=[QPSK(samples_per_symbol=4), BPSK(samples_per_symbol=4)],
             num_samples=100,
@@ -18,7 +18,8 @@ class TestNarrowbandDataset:
 
     def test_getitem_returns_tensor_and_label(self):
         from spectra.datasets import NarrowbandDataset
-        from spectra.waveforms import QPSK, BPSK
+        from spectra.waveforms import BPSK, QPSK
+
         ds = NarrowbandDataset(
             waveform_pool=[QPSK(samples_per_symbol=4), BPSK(samples_per_symbol=4)],
             num_samples=100,
@@ -35,6 +36,7 @@ class TestNarrowbandDataset:
     def test_deterministic(self):
         from spectra.datasets import NarrowbandDataset
         from spectra.waveforms import QPSK
+
         ds = NarrowbandDataset(
             waveform_pool=[QPSK(samples_per_symbol=4)],
             num_samples=10,
@@ -49,7 +51,8 @@ class TestNarrowbandDataset:
 
     def test_different_indices_differ(self):
         from spectra.datasets import NarrowbandDataset
-        from spectra.waveforms import QPSK, BPSK
+        from spectra.waveforms import BPSK, QPSK
+
         ds = NarrowbandDataset(
             waveform_pool=[QPSK(samples_per_symbol=4), BPSK(samples_per_symbol=4)],
             num_samples=100,
@@ -65,6 +68,7 @@ class TestNarrowbandDataset:
         from spectra.datasets import NarrowbandDataset
         from spectra.waveforms import QPSK
         from torch.utils.data import DataLoader
+
         ds = NarrowbandDataset(
             waveform_pool=[QPSK(samples_per_symbol=4)],
             num_samples=32,
@@ -83,8 +87,9 @@ class TestWidebandDataset:
     def wideband_ds(self):
         from spectra.datasets import WidebandDataset
         from spectra.scene.composer import SceneConfig
-        from spectra.waveforms import QPSK, BPSK
         from spectra.transforms.stft import STFT
+        from spectra.waveforms import BPSK, QPSK
+
         config = SceneConfig(
             capture_duration=1e-3,
             capture_bandwidth=1e6,
@@ -129,6 +134,7 @@ class TestWidebandDataset:
 class TestCollate:
     def test_collate_fn(self):
         from spectra.datasets import collate_fn
+
         # Simulate two samples with different numbers of boxes
         batch = [
             (

@@ -54,17 +54,13 @@ class DopplerShift(Transform):
         profile: str = "constant",
     ):
         if profile not in self._VALID_PROFILES:
-            raise ValueError(
-                f"profile must be one of {self._VALID_PROFILES}, got {profile!r}"
-            )
+            raise ValueError(f"profile must be one of {self._VALID_PROFILES}, got {profile!r}")
 
         has_direct = fd_hz is not None or max_fd_hz is not None
         has_physical = speed_mps is not None
 
         if not has_direct and not has_physical:
-            raise ValueError(
-                "Provide fd_hz, max_fd_hz, or (speed_mps + carrier_hz)"
-            )
+            raise ValueError("Provide fd_hz, max_fd_hz, or (speed_mps + carrier_hz)")
         if has_physical and carrier_hz is None:
             raise ValueError("speed_mps requires carrier_hz")
 
@@ -78,12 +74,7 @@ class DopplerShift(Transform):
     def _resolve_fd(self) -> float:
         """Compute the Doppler shift in Hz for this call."""
         if self._speed_mps is not None:
-            return (
-                self._speed_mps
-                * np.cos(np.radians(self._angle_deg))
-                / _C
-                * self._carrier_hz
-            )
+            return self._speed_mps * np.cos(np.radians(self._angle_deg)) / _C * self._carrier_hz
         if self._max_fd_hz is not None:
             return float(np.random.uniform(-self._max_fd_hz, self._max_fd_hz))
         return float(self._fd_hz)

@@ -43,9 +43,7 @@ def _make_pulse_shape(pulse_width_samples: int, shape: str) -> np.ndarray:
         window = np.hanning(pulse_width_samples).astype(np.float32)
         return (window + 0j).astype(np.complex64)
     else:
-        raise ValueError(
-            f"Unknown pulse_shape '{shape}'. Use 'rect', 'hamming', or 'hann'."
-        )
+        raise ValueError(f"Unknown pulse_shape '{shape}'. Use 'rect', 'hamming', or 'hann'.")
 
 
 class PulsedRadar(Waveform):
@@ -99,9 +97,7 @@ class PulsedRadar(Waveform):
 
         bursts = []
         for _ in range(num_symbols):
-            train = generate_pulse_train(
-                pulse, self._pri_samples, self._num_pulses, stagger
-            )
+            train = generate_pulse_train(pulse, self._pri_samples, self._num_pulses, stagger)
             bursts.append(train)
 
         return np.concatenate(bursts) if bursts else np.array([], dtype=np.complex64)
@@ -153,9 +149,7 @@ class BarkerCodedPulse(Waveform):
     ):
         if barker_length not in BARKER_CODES:
             valid = sorted(BARKER_CODES.keys())
-            raise ValueError(
-                f"Barker code length must be one of {valid}, got {barker_length}"
-            )
+            raise ValueError(f"Barker code length must be one of {valid}, got {barker_length}")
         self._barker_length = barker_length
         self._samples_per_chip = samples_per_chip
         self._pri_samples = pri_samples
@@ -176,9 +170,7 @@ class BarkerCodedPulse(Waveform):
 
         bursts = []
         for _ in range(num_symbols):
-            train = generate_pulse_train(
-                pulse, self._pri_samples, self._num_pulses, stagger
-            )
+            train = generate_pulse_train(pulse, self._pri_samples, self._num_pulses, stagger)
             bursts.append(train)
 
         return np.concatenate(bursts) if bursts else np.array([], dtype=np.complex64)
@@ -223,8 +215,7 @@ class PolyphaseCodedPulse(Waveform):
     ):
         if code_type not in self._CODE_GENERATORS:
             raise ValueError(
-                f"Unknown code_type '{code_type}'. "
-                f"Use one of {list(self._CODE_GENERATORS.keys())}."
+                f"Unknown code_type '{code_type}'. Use one of {list(self._CODE_GENERATORS.keys())}."
             )
         self._code_type = code_type
         self._code_order = code_order
@@ -246,9 +237,7 @@ class PolyphaseCodedPulse(Waveform):
 
         bursts = []
         for _ in range(num_symbols):
-            train = generate_pulse_train(
-                pulse, self._pri_samples, self._num_pulses, stagger
-            )
+            train = generate_pulse_train(pulse, self._pri_samples, self._num_pulses, stagger)
             bursts.append(train)
 
         return np.concatenate(bursts) if bursts else np.array([], dtype=np.complex64)
@@ -294,9 +283,7 @@ class FMCW(Waveform):
         seed: Optional[int] = None,
     ) -> np.ndarray:
         bw = sample_rate * self._sweep_bandwidth_fraction
-        sweep = generate_fmcw_sweep(
-            self._sweep_samples, bw, sample_rate, self._sweep_type
-        )
+        sweep = generate_fmcw_sweep(self._sweep_samples, bw, sample_rate, self._sweep_type)
         idle = np.zeros(self._idle_samples, dtype=np.complex64)
 
         # One symbol = num_sweeps repetitions of (sweep + idle)
@@ -423,9 +410,9 @@ class PulseDoppler(Waveform):
     """
 
     _PRI_MULTIPLIERS = {
-        "low": 32,     # Long PRI (low PRF)
+        "low": 32,  # Long PRI (low PRF)
         "medium": 16,  # Medium PRI
-        "high": 8,     # Short PRI (high PRF)
+        "high": 8,  # Short PRI (high PRF)
     }
 
     def __init__(
@@ -437,17 +424,14 @@ class PulseDoppler(Waveform):
     ):
         if prf_mode not in self._PRI_MULTIPLIERS:
             raise ValueError(
-                f"Unknown prf_mode '{prf_mode}'. "
-                f"Use one of {list(self._PRI_MULTIPLIERS.keys())}."
+                f"Unknown prf_mode '{prf_mode}'. Use one of {list(self._PRI_MULTIPLIERS.keys())}."
             )
         self._prf_mode = prf_mode
         self._num_pulses_per_cpi = num_pulses_per_cpi
         self._pulse_width_samples = pulse_width_samples
         self._num_cpis = num_cpis
         self._pri_samples = pulse_width_samples * self._PRI_MULTIPLIERS[prf_mode]
-        self.samples_per_symbol = (
-            self._pri_samples * num_pulses_per_cpi * num_cpis
-        )
+        self.samples_per_symbol = self._pri_samples * num_pulses_per_cpi * num_cpis
 
     def generate(
         self,
@@ -509,8 +493,7 @@ class NonlinearFM(Waveform):
     ):
         if sweep_type not in ("tandem_hooked", "s_curve"):
             raise ValueError(
-                f"Unknown sweep_type '{sweep_type}'. "
-                "Use 'tandem_hooked' or 's_curve'."
+                f"Unknown sweep_type '{sweep_type}'. Use 'tandem_hooked' or 's_curve'."
             )
         self._sweep_type = sweep_type
         self._bandwidth_fraction = bandwidth_fraction
@@ -524,9 +507,7 @@ class NonlinearFM(Waveform):
         seed: Optional[int] = None,
     ) -> np.ndarray:
         bw = sample_rate * self._bandwidth_fraction
-        one_sweep = generate_nlfm_sweep(
-            self._num_samples, sample_rate, bw, self._sweep_type
-        )
+        one_sweep = generate_nlfm_sweep(self._num_samples, sample_rate, bw, self._sweep_type)
         return np.tile(one_sweep, num_symbols)
 
     def bandwidth(self, sample_rate: float) -> float:

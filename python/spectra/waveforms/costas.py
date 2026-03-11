@@ -34,9 +34,9 @@ class CostasCode(Waveform):
             f_k = (freq_idx - center) * delta_f
             start = k * self._samples_per_hop
             phase = 2.0 * np.pi * f_k * t_local
-            one_code[start : start + self._samples_per_hop] = np.exp(
-                1j * phase
-            ).astype(np.complex64)
+            one_code[start : start + self._samples_per_hop] = np.exp(1j * phase).astype(
+                np.complex64
+            )
 
         return np.tile(one_code, num_symbols)
 

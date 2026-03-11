@@ -33,10 +33,7 @@ class LFM(Waveform):
         f1 = bw / 2.0
         duration = self._samples_per_pulse / sample_rate
 
-        pulses = [
-            generate_chirp(duration, sample_rate, f0, f1)
-            for _ in range(num_symbols)
-        ]
+        pulses = [generate_chirp(duration, sample_rate, f0, f1) for _ in range(num_symbols)]
         return np.concatenate(pulses) if pulses else np.array([], dtype=np.complex64)
 
     def bandwidth(self, sample_rate: float) -> float:

@@ -3,7 +3,6 @@ import json
 import os
 from typing import Callable, Dict, List, Optional, Tuple
 
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 

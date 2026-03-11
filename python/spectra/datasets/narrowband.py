@@ -93,20 +93,24 @@ class NarrowbandDataset(Dataset):
         # MIMO channel (optional)
         if self.mimo_config is not None:
             from spectra.impairments.mimo_channel import MIMOChannel
+
             n_tx = self.mimo_config.get("n_tx", 2)
             # Generate n_tx streams with different sub-seeds
-            streams = np.stack([
-                truncate_pad(
-                    waveform.generate(
-                        num_symbols=num_symbols,
-                        sample_rate=self.sample_rate,
-                        seed=sig_seed + tx,
-                    ),
-                    self.num_iq_samples,
-                )
-                for tx in range(n_tx)
-            ])  # (n_tx, N)
+            streams = np.stack(
+                [
+                    truncate_pad(
+                        waveform.generate(
+                            num_symbols=num_symbols,
+                            sample_rate=self.sample_rate,
+                            seed=sig_seed + tx,
+                        ),
+                        self.num_iq_samples,
+                    )
+                    for tx in range(n_tx)
+                ]
+            )  # (n_tx, N)
             from spectra.scene.signal_desc import SignalDescription as SD
+
             bw = waveform.bandwidth(self.sample_rate)
             mimo_desc = SD(
                 t_start=0.0,
@@ -120,10 +124,13 @@ class NarrowbandDataset(Dataset):
             rx_streams, _ = mimo_ch(streams, mimo_desc, sample_rate=self.sample_rate)
             # rx_streams: (n_rx, N)
             # Convert each RX antenna to [2, N] and stack -> [n_rx*2, N]
-            data = torch.cat([
-                torch.tensor(np.stack([rx.real, rx.imag]).astype(np.float32))
-                for rx in rx_streams
-            ], dim=0)
+            data = torch.cat(
+                [
+                    torch.tensor(np.stack([rx.real, rx.imag]).astype(np.float32))
+                    for rx in rx_streams
+                ],
+                dim=0,
+            )
 
             label = waveform_idx
             if self.target_transform is not None:
@@ -133,6 +140,7 @@ class NarrowbandDataset(Dataset):
         # Apply impairments
         if self.impairments is not None:
             from spectra.scene.signal_desc import SignalDescription
+
             bw = waveform.bandwidth(self.sample_rate)
             desc = SignalDescription(
                 t_start=0.0,

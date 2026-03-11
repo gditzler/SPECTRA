@@ -1,11 +1,13 @@
 def test_import():
     import spectra
+
     assert hasattr(spectra, "__version__")
     assert spectra.__version__ == "0.1.0"
 
 
 def test_radar_waveform_imports():
-    from spectra import LFM, FrankCode, P1Code, P2Code, P3Code, P4Code, CostasCode
+    from spectra import LFM, CostasCode, FrankCode, P1Code, P2Code, P3Code, P4Code
+
     assert LFM().label == "LFM"
     assert FrankCode().label == "Frank"
     assert P1Code().label == "P1"
@@ -16,7 +18,8 @@ def test_radar_waveform_imports():
 
 
 def test_comms_waveform_imports():
-    from spectra import PSK8, QAM16, QAM64, QAM256, FSK, MSK, GMSK, OFDM
+    from spectra import FSK, GMSK, MSK, OFDM, PSK8, QAM16, QAM64, QAM256
+
     assert PSK8().label == "8PSK"
     assert QAM16().label == "16QAM"
     assert QAM64().label == "64QAM"

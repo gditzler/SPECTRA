@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
-
-from spectra.utils.file_handlers.base_reader import FileReader, SignalMetadata
+from spectra.utils.file_handlers.base_reader import SignalMetadata
 from spectra.utils.file_handlers.registry import (
     get_reader,
-    register_reader,
     supported_extensions,
 )
 
@@ -133,9 +131,7 @@ class TestSigMFReader:
                 "core:sample_rate": sample_rate,
                 "core:version": "1.0.0",
             },
-            "captures": [
-                {"core:sample_start": 0, "core:frequency": center_freq}
-            ],
+            "captures": [{"core:sample_start": 0, "core:frequency": center_freq}],
             "annotations": [],
         }
         import json

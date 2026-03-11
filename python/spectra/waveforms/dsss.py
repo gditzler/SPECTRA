@@ -74,9 +74,7 @@ class DSSS_BPSK(Waveform):
         # Determine m-sequence order from processing_gain
         order = int(np.round(np.log2(processing_gain + 1)))
         if (1 << order) - 1 != processing_gain:
-            raise ValueError(
-                f"processing_gain must be 2^n - 1, got {processing_gain}"
-            )
+            raise ValueError(f"processing_gain must be 2^n - 1, got {processing_gain}")
         self._pn_code = _msequence(order)
 
     @property
@@ -111,17 +109,13 @@ class DSSS_BPSK(Waveform):
         np.ndarray
             Complex64 baseband IQ samples.
         """
-        rng = np.random.RandomState(
-            seed if seed is not None else np.random.randint(0, 2**32)
-        )
+        rng = np.random.RandomState(seed if seed is not None else np.random.randint(0, 2**32))
 
         # BPSK data symbols: {-1, +1}
         data = 2 * rng.randint(0, 2, size=num_symbols).astype(np.float32) - 1.0
 
         # Spread: repeat each symbol and multiply by PN code
-        chips = np.repeat(data, self.processing_gain) * np.tile(
-            self._pn_code, num_symbols
-        )
+        chips = np.repeat(data, self.processing_gain) * np.tile(self._pn_code, num_symbols)
 
         # Upsample to samples_per_chip via sample-and-hold (rectangular pulse)
         samples = np.repeat(chips, self.samples_per_chip)

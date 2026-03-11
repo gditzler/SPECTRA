@@ -1,6 +1,6 @@
 """Tests for _RRCWaveformBase shared behavior."""
+
 import numpy as np
-import pytest
 
 
 class TestRRCWaveformBase:
@@ -25,9 +25,7 @@ class TestRRCWaveformBase:
 
             def _generate_symbols(self, num_symbols, seed):
                 rng = np.random.default_rng(seed)
-                return (rng.integers(0, 2, num_symbols) * 2 - 1).astype(
-                    np.complex64
-                )
+                return (rng.integers(0, 2, num_symbols) * 2 - 1).astype(np.complex64)
 
         w = Dummy(rolloff=0.35, filter_span=10, samples_per_symbol=8)
         iq = w.generate(100, 1_000_000, seed=42)
@@ -36,9 +34,9 @@ class TestRRCWaveformBase:
 
     def test_existing_waveforms_unchanged(self):
         """QPSK, BPSK, QAM16, OOK must produce identical output after refactor."""
-        from spectra.waveforms.psk import QPSK, BPSK
-        from spectra.waveforms.qam import QAM16
         from spectra.waveforms.ask import OOK
+        from spectra.waveforms.psk import BPSK, QPSK
+        from spectra.waveforms.qam import QAM16
 
         for Cls in [QPSK, BPSK, QAM16, OOK]:
             w = Cls()

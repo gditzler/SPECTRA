@@ -129,7 +129,5 @@ class SigMFWriter:
             os.makedirs(cls_dir, exist_ok=True)
 
             base_path = os.path.join(cls_dir, f"sample_{i:06d}")
-            writer = SigMFWriter(
-                base_path=base_path, sample_rate=sample_rate
-            )
+            writer = SigMFWriter(base_path=base_path, sample_rate=sample_rate)
             writer.write(iq)

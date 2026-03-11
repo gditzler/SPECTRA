@@ -270,7 +270,7 @@ class TestNRImports:
     """Verify NR waveforms are accessible from the package."""
 
     def test_import_from_waveforms(self):
-        from spectra.waveforms import NR_OFDM, NR_SSB, NR_PDSCH, NR_PUSCH, NR_PRACH
+        from spectra.waveforms import NR_OFDM, NR_PDSCH, NR_PRACH, NR_PUSCH, NR_SSB
 
         assert NR_OFDM is not None
         assert NR_SSB is not None

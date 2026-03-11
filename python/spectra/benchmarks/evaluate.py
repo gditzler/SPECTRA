@@ -1,4 +1,5 @@
 """Evaluation utilities for SPECTRA benchmarks."""
+
 from typing import Any, Callable, Dict
 
 import torch
@@ -24,6 +25,7 @@ def evaluate_snr_sweep(
     dict  {snr_db: {"accuracy": float, "per_class": {class_idx: float}}}
     """
     from spectra.datasets.snr_sweep import SNRSweepDataset
+
     if not isinstance(dataset, SNRSweepDataset):
         raise TypeError(f"Expected SNRSweepDataset, got {type(dataset).__name__}")
 
@@ -70,6 +72,7 @@ def evaluate_channel_conditions(
     dict  {condition: {"accuracy": float, "per_class": {class_idx: float}}}
     """
     import yaml
+
     from spectra.benchmarks.loader import _resolve_config_path, load_channel_benchmark
 
     path = _resolve_config_path(name)

@@ -1,7 +1,6 @@
 import os
 from typing import Callable, Dict, List, Optional, Tuple
 
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -67,14 +66,10 @@ class SignalFolderDataset(Dataset):
 
     def _scan_directory(self) -> None:
         entries = sorted(
-            e
-            for e in os.listdir(self.root)
-            if os.path.isdir(os.path.join(self.root, e))
+            e for e in os.listdir(self.root) if os.path.isdir(os.path.join(self.root, e))
         )
         if not entries:
-            raise FileNotFoundError(
-                f"No class subdirectories found in {self.root}"
-            )
+            raise FileNotFoundError(f"No class subdirectories found in {self.root}")
 
         self.classes = entries
         self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
@@ -85,9 +80,7 @@ class SignalFolderDataset(Dataset):
             for fname in sorted(os.listdir(cls_dir)):
                 _, ext = os.path.splitext(fname)
                 if ext.lower() in self._allowed_extensions:
-                    self.samples.append(
-                        (os.path.join(cls_dir, fname), cls_idx)
-                    )
+                    self.samples.append((os.path.join(cls_dir, fname), cls_idx))
 
         if not self.samples:
             raise FileNotFoundError(

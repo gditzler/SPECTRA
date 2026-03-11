@@ -1,14 +1,16 @@
 import torch
-import pytest
 
 
 def _make_ds(snr_levels=None, samples_per_cell=5, seed=42):
     from spectra.datasets.snr_sweep import SNRSweepDataset
-    from spectra.waveforms import BPSK, QPSK
     from spectra.impairments import AWGN, Compose
+    from spectra.waveforms import BPSK, QPSK
+
     snr_levels = snr_levels or [-10.0, 0.0, 10.0]
+
     def imps_fn(snr_db):
         return Compose([AWGN(snr=snr_db)])
+
     return SNRSweepDataset(
         waveform_pool=[BPSK(), QPSK()],
         snr_levels=snr_levels,

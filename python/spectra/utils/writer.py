@@ -53,9 +53,7 @@ class DatasetWriter:
 
         # Write all data at once
         all_data = np.concatenate(data_list, axis=0)
-        arr = self._handler.create_array(
-            "data", shape=all_data.shape, dtype=all_data.dtype
-        )
+        arr = self._handler.create_array("data", shape=all_data.shape, dtype=all_data.dtype)
         arr[:] = all_data
 
         # Write targets

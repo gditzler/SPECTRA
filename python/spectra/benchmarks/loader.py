@@ -48,8 +48,7 @@ def _build_waveform_pool(pool_config: List[Dict[str, Any]]) -> List[Waveform]:
         wtype = entry["type"]
         if wtype not in registry:
             raise ValueError(
-                f"Unknown waveform type '{wtype}'. "
-                f"Available: {sorted(registry.keys())}"
+                f"Unknown waveform type '{wtype}'. Available: {sorted(registry.keys())}"
             )
         params = entry.get("params", {})
         pool.append(registry[wtype](**params))
@@ -65,8 +64,7 @@ def _build_impairments(imp_config: List[Dict[str, Any]]) -> Optional[Compose]:
         itype = entry["type"]
         if itype not in registry:
             raise ValueError(
-                f"Unknown impairment type '{itype}'. "
-                f"Available: {sorted(registry.keys())}"
+                f"Unknown impairment type '{itype}'. Available: {sorted(registry.keys())}"
             )
         params = entry.get("params", {})
         # Skip bare AWGN — _build_narrowband adds it with snr_range from config
@@ -102,9 +100,7 @@ def _resolve_config_path(name: str) -> Path:
     )
 
 
-def _build_narrowband(
-    config: Dict[str, Any], split: str
-) -> NarrowbandDataset:
+def _build_narrowband(config: Dict[str, Any], split: str) -> NarrowbandDataset:
     pool = _build_waveform_pool(config["waveform_pool"])
     impairments = _build_impairments(config.get("impairments", []))
 
@@ -137,9 +133,7 @@ def _build_narrowband(
     )
 
 
-def _build_wideband(
-    config: Dict[str, Any], split: str
-) -> WidebandDataset:
+def _build_wideband(config: Dict[str, Any], split: str) -> WidebandDataset:
     pool = _build_waveform_pool(config["waveform_pool"])
     impairments = _build_impairments(config.get("impairments", []))
 
@@ -153,9 +147,7 @@ def _build_wideband(
             "capture_duration",
             config["num_iq_samples"] / config["sample_rate"],
         ),
-        capture_bandwidth=scene_cfg.get(
-            "capture_bandwidth", config["sample_rate"] / 2
-        ),
+        capture_bandwidth=scene_cfg.get("capture_bandwidth", config["sample_rate"] / 2),
         sample_rate=config["sample_rate"],
         num_signals=num_signals,
         signal_pool=pool,
@@ -198,9 +190,7 @@ def load_channel_benchmark(name: str, condition: str) -> NarrowbandDataset:
 
     task = config.get("task", "")
     if task != "narrowband_channel":
-        raise ValueError(
-            f"Config '{name}' has task='{task}', expected 'narrowband_channel'."
-        )
+        raise ValueError(f"Config '{name}' has task='{task}', expected 'narrowband_channel'.")
     return _build_channel(config, condition)
 
 
@@ -209,8 +199,7 @@ def _build_snr_sweep(config: dict, split: str) -> SNRSweepDataset:
 
     slc = config["snr_levels"]
     snr_levels = [
-        float(v)
-        for v in range(int(slc["start"]), int(slc["stop"]) + 1, int(slc["step"]))
+        float(v) for v in range(int(slc["start"]), int(slc["stop"]) + 1, int(slc["step"]))
     ]
 
     # Extra impairments (FrequencyOffset, PhaseOffset, etc.) — no AWGN here
@@ -245,9 +234,7 @@ def load_snr_sweep(name: str, split: str = "test") -> SNRSweepDataset:
 
     task = config.get("task", "")
     if task != "narrowband_snr_sweep":
-        raise ValueError(
-            f"Config '{name}' has task='{task}', expected 'narrowband_snr_sweep'."
-        )
+        raise ValueError(f"Config '{name}' has task='{task}', expected 'narrowband_snr_sweep'.")
     return _build_snr_sweep(config, split)
 
 

@@ -1,16 +1,19 @@
 """Tests for MIMO channel impairment."""
+
 import numpy as np
 import pytest
-import torch
-
 from spectra.impairments.mimo_channel import MIMOChannel
 from spectra.scene.signal_desc import SignalDescription
 
 
 def _make_desc():
     return SignalDescription(
-        t_start=0.0, t_stop=1.0, f_low=-500e3, f_high=500e3,
-        label="test", snr=20.0,
+        t_start=0.0,
+        t_stop=1.0,
+        f_low=-500e3,
+        f_high=500e3,
+        label="test",
+        snr=20.0,
     )
 
 
@@ -93,8 +96,9 @@ class TestMIMODatasetIntegration:
     """NarrowbandDataset with mimo_config."""
 
     def test_mimo_output_shape(self):
-        from spectra.waveforms import BPSK, QPSK
         from spectra.datasets.narrowband import NarrowbandDataset
+        from spectra.waveforms import BPSK, QPSK
+
         pool = [BPSK(), QPSK()]
         ds = NarrowbandDataset(
             waveform_pool=pool,
@@ -110,8 +114,9 @@ class TestMIMODatasetIntegration:
 
     def test_backward_compat(self):
         """Without mimo_config, behavior unchanged."""
-        from spectra.waveforms import BPSK, QPSK
         from spectra.datasets.narrowband import NarrowbandDataset
+        from spectra.waveforms import BPSK, QPSK
+
         pool = [BPSK(), QPSK()]
         ds = NarrowbandDataset(
             waveform_pool=pool,

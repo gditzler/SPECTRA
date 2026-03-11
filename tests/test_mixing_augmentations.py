@@ -1,11 +1,10 @@
 """Tests for MixUp and CutMix augmentations."""
-import numpy as np
-import pytest
-import torch
 
-from spectra.transforms.augmentations import CutMix, MixUp
+import numpy as np
+import torch
 from spectra.datasets.mixing import CutMixDataset, MixUpDataset
 from spectra.datasets.narrowband import NarrowbandDataset
+from spectra.transforms.augmentations import CutMix, MixUp
 from spectra.waveforms import BPSK, QPSK
 
 

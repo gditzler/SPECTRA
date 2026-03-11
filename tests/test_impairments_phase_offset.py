@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.testing as npt
 import pytest
-
 from spectra.scene.signal_desc import SignalDescription
 
 
@@ -31,9 +30,7 @@ class TestPhaseOffset:
         from spectra.impairments.phase_offset import PhaseOffset
 
         rng = np.random.default_rng(42)
-        iq = (rng.standard_normal(1024) + 1j * rng.standard_normal(1024)).astype(
-            np.complex64
-        )
+        iq = (rng.standard_normal(1024) + 1j * rng.standard_normal(1024)).astype(np.complex64)
         desc = _make_desc()
         rotated, _ = PhaseOffset(offset=1.23)(iq, desc)
         npt.assert_allclose(np.abs(rotated), np.abs(iq), atol=1e-5)

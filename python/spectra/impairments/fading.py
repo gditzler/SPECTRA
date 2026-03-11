@@ -16,7 +16,6 @@ class RayleighFading(Transform):
     def __call__(
         self, iq: np.ndarray, desc: SignalDescription, **kwargs
     ) -> Tuple[np.ndarray, SignalDescription]:
-        n = len(iq)
         # Generate complex Gaussian tap gains
         h = (np.random.randn(self._num_taps) + 1j * np.random.randn(self._num_taps)).astype(
             np.complex64
@@ -44,9 +43,9 @@ class RicianFading(Transform):
         h = np.zeros(self._num_taps, dtype=np.complex64)
         h[0] = np.sqrt(los_power)
         # NLOS: Rayleigh taps
-        nlos = (
-            np.random.randn(self._num_taps) + 1j * np.random.randn(self._num_taps)
-        ).astype(np.complex64) * np.sqrt(nlos_power / (2.0 * self._num_taps))
+        nlos = (np.random.randn(self._num_taps) + 1j * np.random.randn(self._num_taps)).astype(
+            np.complex64
+        ) * np.sqrt(nlos_power / (2.0 * self._num_taps))
         h += nlos
         out = np.convolve(iq, h, mode="same").astype(np.complex64)
         return out, desc

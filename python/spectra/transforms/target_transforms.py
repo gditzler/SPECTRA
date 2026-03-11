@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
-
 FAMILY_MAP = {
     "BPSK": "psk",
     "QPSK": "psk",
@@ -66,8 +65,7 @@ FAMILY_MAP = {
 
 class TargetTransform(ABC):
     @abstractmethod
-    def __call__(self, target: Any) -> Any:
-        ...
+    def __call__(self, target: Any) -> Any: ...
 
 
 class ClassIndex(TargetTransform):

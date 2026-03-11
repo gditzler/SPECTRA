@@ -3,7 +3,6 @@
 import numpy as np
 import numpy.testing as npt
 import pytest
-
 from spectra._rust import (
     channelize,
     compute_caf,
@@ -14,7 +13,6 @@ from spectra._rust import (
     compute_scd_s3ca,
     compute_scd_ssca,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -357,7 +355,7 @@ class TestComputeScdS3ca:
         iq = _make_noise(4096)
         scd = compute_scd_s3ca(iq, nfft=64, n_alpha=64, hop=16, kappa=2, seed=42)
         zero_fraction = np.sum(np.abs(scd) < 1e-10) / scd.size
-        assert zero_fraction > 0.5, f"Expected mostly zeros with kappa=2"
+        assert zero_fraction > 0.5, "Expected mostly zeros with kappa=2"
 
     def test_tone_has_nonzero_output(self):
         iq = _make_tone(freq=0.1, n_samples=8192)
@@ -368,7 +366,12 @@ class TestComputeScdS3ca:
         iq = _make_noise(4096)
         for nfft, na in [(32, 64), (128, 32), (64, 128)]:
             scd = compute_scd_s3ca(
-                iq, nfft=nfft, n_alpha=na, hop=nfft // 4, kappa=4, seed=0,
+                iq,
+                nfft=nfft,
+                n_alpha=na,
+                hop=nfft // 4,
+                kappa=4,
+                seed=0,
             )
             assert scd.shape == (nfft, na)
 

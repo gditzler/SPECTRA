@@ -6,6 +6,7 @@ Index layout for S levels, C classes, K samples/cell:
   cell_idx  = idx % K
   seed      = (base_seed, snr_idx, class_idx, cell_idx)
 """
+
 from typing import Callable, List, Optional, Tuple
 
 import numpy as np
@@ -63,12 +64,15 @@ class SNRSweepDataset(Dataset):
         iq = truncate_pad(iq, self.num_iq_samples)
 
         from spectra.scene.signal_desc import SignalDescription
+
         bw = waveform.bandwidth(self.sample_rate)
         desc = SignalDescription(
             t_start=0.0,
             t_stop=self.num_iq_samples / self.sample_rate,
-            f_low=-bw / 2, f_high=bw / 2,
-            label=waveform.label, snr=snr_db,
+            f_low=-bw / 2,
+            f_high=bw / 2,
+            label=waveform.label,
+            snr=snr_db,
         )
         # Seed legacy global numpy state so impairments (e.g. AWGN) are reproducible
         np.random.seed(noise_seed)

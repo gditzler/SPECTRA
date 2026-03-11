@@ -1,11 +1,10 @@
 """Shared output formatting for CSP transforms (SCD, SCF, CAF)."""
+
 import numpy as np
 import torch
 
 
-def format_csp_output(
-    data: np.ndarray, output_format: str, db_scale: bool = False
-) -> torch.Tensor:
+def format_csp_output(data: np.ndarray, output_format: str, db_scale: bool = False) -> torch.Tensor:
     """Format complex CSP output into a torch tensor.
 
     Args:

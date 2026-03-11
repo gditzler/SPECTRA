@@ -21,9 +21,9 @@ class DCOffset(Transform):
         self, iq: np.ndarray, desc: SignalDescription, **kwargs
     ) -> Tuple[np.ndarray, SignalDescription]:
         if self.max_offset is not None:
-            dc = np.random.uniform(
+            dc = np.random.uniform(-self.max_offset, self.max_offset) + 1j * np.random.uniform(
                 -self.max_offset, self.max_offset
-            ) + 1j * np.random.uniform(-self.max_offset, self.max_offset)
+            )
         else:
             dc = self.offset
 

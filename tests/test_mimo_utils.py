@@ -1,7 +1,6 @@
 """Tests for MIMO antenna utilities."""
-import numpy as np
-import pytest
 
+import numpy as np
 from spectra.impairments.mimo_utils import (
     exponential_correlation,
     kronecker_correlation,

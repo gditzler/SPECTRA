@@ -1,4 +1,5 @@
 """Shared base class for RRC-filtered waveforms (PSK, QAM, ASK)."""
+
 from abc import abstractmethod
 from typing import Optional
 

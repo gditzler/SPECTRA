@@ -84,12 +84,8 @@ class DSSS_QPSK(Waveform):
         qpsk_symbols = np.array(generate_qpsk_symbols(num_symbols, int(s)), dtype=np.complex64)
 
         # Spread: repeat each QPSK symbol by code length, multiply by tiled code
-        chips_i = np.repeat(qpsk_symbols.real, self._code_len) * np.tile(
-            self._code, num_symbols
-        )
-        chips_q = np.repeat(qpsk_symbols.imag, self._code_len) * np.tile(
-            self._code, num_symbols
-        )
+        chips_i = np.repeat(qpsk_symbols.real, self._code_len) * np.tile(self._code, num_symbols)
+        chips_q = np.repeat(qpsk_symbols.imag, self._code_len) * np.tile(self._code, num_symbols)
         chips = chips_i + 1j * chips_q
 
         # Upsample via sample-and-hold
@@ -128,9 +124,7 @@ class FHSS(Waveform):
                 f"hop_pattern must be 'random', 'linear', or 'costas', got '{hop_pattern}'"
             )
         if modulation not in ("bpsk", "qpsk", "fsk"):
-            raise ValueError(
-                f"modulation must be 'bpsk', 'qpsk', or 'fsk', got '{modulation}'"
-            )
+            raise ValueError(f"modulation must be 'bpsk', 'qpsk', or 'fsk', got '{modulation}'")
         self.num_channels = num_channels
         self.hop_pattern = hop_pattern
         self.dwell_samples = dwell_samples
@@ -169,9 +163,7 @@ class FHSS(Waveform):
             costas_seq = generate_costas_sequence(prime)
             # Map to channel indices (0-based, mod num_channels)
             pattern = [(v - 1) % self.num_channels for v in costas_seq]
-            channels = np.array(
-                [pattern[i % len(pattern)] for i in range(num_hops)]
-            )
+            channels = np.array([pattern[i % len(pattern)] for i in range(num_hops)])
 
         # Channel spacing: divide bandwidth evenly
         channel_spacing = sample_rate / self.num_channels
@@ -250,9 +242,7 @@ class CDMA_Forward(Waveform):
         # Validate spreading_factor is power of 2
         sf_order = int(np.log2(spreading_factor))
         if (1 << sf_order) != spreading_factor:
-            raise ValueError(
-                f"spreading_factor must be a power of 2, got {spreading_factor}"
-            )
+            raise ValueError(f"spreading_factor must be a power of 2, got {spreading_factor}")
         if num_users > spreading_factor:
             raise ValueError(
                 f"num_users ({num_users}) must be <= spreading_factor ({spreading_factor})"
@@ -289,9 +279,7 @@ class CDMA_Forward(Waveform):
         # Pre-fetch Walsh codes
         walsh_codes = []
         for u in range(self.num_users):
-            wc = np.array(
-                generate_walsh_hadamard(self._sf_order, u), dtype=np.float32
-            )
+            wc = np.array(generate_walsh_hadamard(self._sf_order, u), dtype=np.float32)
             walsh_codes.append(wc)
 
         composite = np.zeros(total_chips, dtype=np.float32)
@@ -299,14 +287,10 @@ class CDMA_Forward(Waveform):
         for u in range(self.num_users):
             user_seed = int(rng.integers(0, 2**31))
             # BPSK data for this user
-            data = np.array(
-                generate_bpsk_symbols(num_symbols, user_seed), dtype=np.complex64
-            ).real
+            data = np.array(generate_bpsk_symbols(num_symbols, user_seed), dtype=np.complex64).real
 
             # Spread with Walsh code
-            spread = np.repeat(data, self.spreading_factor) * np.tile(
-                walsh_codes[u], num_symbols
-            )
+            spread = np.repeat(data, self.spreading_factor) * np.tile(walsh_codes[u], num_symbols)
 
             # Scramble with PN
             scrambled = spread * pn_code
@@ -369,18 +353,20 @@ class CDMA_Reverse(Waveform):
         pn_seed = int(rng.integers(0, 2**31))
         pn_rng = np.random.default_rng(pn_seed)
         # Generate enough PN for all offsets
-        pn_long = 2.0 * pn_rng.integers(
-            0, 2, size=total_chips + self.num_users * self.spreading_factor
-        ).astype(np.float32) - 1.0
+        pn_long = (
+            2.0
+            * pn_rng.integers(
+                0, 2, size=total_chips + self.num_users * self.spreading_factor
+            ).astype(np.float32)
+            - 1.0
+        )
 
         composite = np.zeros(total_chips, dtype=np.float32)
 
         for u in range(self.num_users):
             user_seed = int(rng.integers(0, 2**31))
             # BPSK data for this user
-            data = np.array(
-                generate_bpsk_symbols(num_symbols, user_seed), dtype=np.complex64
-            ).real
+            data = np.array(generate_bpsk_symbols(num_symbols, user_seed), dtype=np.complex64).real
 
             # Each user gets a different PN offset
             offset = u * self.spreading_factor
@@ -425,9 +411,7 @@ class THSS(Waveform):
         pulse_shape: str = "gaussian",
     ):
         if pulse_shape not in ("gaussian", "rect"):
-            raise ValueError(
-                f"pulse_shape must be 'gaussian' or 'rect', got '{pulse_shape}'"
-            )
+            raise ValueError(f"pulse_shape must be 'gaussian' or 'rect', got '{pulse_shape}'")
         self.num_frames = num_frames
         self.slots_per_frame = slots_per_frame
         self.pulse_samples = pulse_samples

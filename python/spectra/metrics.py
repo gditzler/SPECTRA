@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Dict, List, Optional, Sequence
+
+import numpy as np
 
 
 def confusion_matrix(
@@ -75,7 +76,11 @@ def classification_report(
         support = int(cm[i, :].sum())
         precision = float(tp / (tp + fp)) if (tp + fp) > 0 else 0.0
         recall = float(tp / (tp + fn)) if (tp + fn) > 0 else 0.0
-        f1 = float(2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+        f1 = (
+            float(2 * precision * recall / (precision + recall))
+            if (precision + recall) > 0
+            else 0.0
+        )
         name = class_names[i] if i < len(class_names) else str(i)
         report[name] = {
             "precision": precision,

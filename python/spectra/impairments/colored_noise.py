@@ -32,9 +32,13 @@ class ColoredNoise(Transform):
         white = np.random.randn(len(freqs)) + 1j * np.random.randn(len(freqs))
         colored_freq = white * spectrum
         colored_time = np.fft.irfft(colored_freq, n=n)
-        noise = (colored_time + 1j * np.fft.irfft(
-            (np.random.randn(len(freqs)) + 1j * np.random.randn(len(freqs))) * spectrum, n=n
-        )).astype(np.complex64)
+        noise = (
+            colored_time
+            + 1j
+            * np.fft.irfft(
+                (np.random.randn(len(freqs)) + 1j * np.random.randn(len(freqs))) * spectrum, n=n
+            )
+        ).astype(np.complex64)
         # Scale to desired SNR
         signal_power = np.mean(np.abs(iq) ** 2)
         snr_linear = 10.0 ** (self._snr / 10.0)

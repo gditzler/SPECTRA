@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -42,9 +42,9 @@ class HDF5Reader(FileReader):
             iq = raw.astype(np.complex64).ravel()
         elif raw.ndim == 2 and raw.shape[1] == 2:
             # (N, 2) real/imag columns
-            iq = (
-                raw[:, 0].astype(np.float32) + 1j * raw[:, 1].astype(np.float32)
-            ).astype(np.complex64)
+            iq = (raw[:, 0].astype(np.float32) + 1j * raw[:, 1].astype(np.float32)).astype(
+                np.complex64
+            )
         else:
             # Assume interleaved real values
             raw = raw.ravel().astype(np.float32)
@@ -67,7 +67,7 @@ class HDF5Reader(FileReader):
         # Last resort: first key in file
         keys = list(f.keys())
         if not keys:
-            raise ValueError(f"HDF5 file contains no datasets")
+            raise ValueError("HDF5 file contains no datasets")
         return keys[0]
 
     @staticmethod

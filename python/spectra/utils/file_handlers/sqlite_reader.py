@@ -31,9 +31,7 @@ class SQLiteReader(FileReader):
         conn.close()
 
         if row is None:
-            raise IndexError(
-                f"Row index {self._row_index} out of range for {path}"
-            )
+            raise IndexError(f"Row index {self._row_index} out of range for {path}")
 
         iq = np.frombuffer(row[0], dtype=np.complex64)
         meta = SignalMetadata(

@@ -33,8 +33,7 @@ class RawIQReader(FileReader):
             if np.issubdtype(self._dtype, np.integer):
                 scale = float(np.iinfo(self._dtype).max)
             iq = (
-                raw[:, 0].astype(np.float32) / scale
-                + 1j * raw[:, 1].astype(np.float32) / scale
+                raw[:, 0].astype(np.float32) / scale + 1j * raw[:, 1].astype(np.float32) / scale
             ).astype(np.complex64)
 
         meta = SignalMetadata(

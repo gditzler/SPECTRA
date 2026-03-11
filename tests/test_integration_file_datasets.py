@@ -1,5 +1,4 @@
 import csv
-import os
 
 import numpy as np
 import pytest
@@ -94,7 +93,9 @@ class TestEndToEndPipeline:
         )
         out = str(tmp_path / "numpy_export")
         NumpyWriter.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"],
+            ds,
+            output_dir=out,
+            class_list=["BPSK", "QPSK"],
         )
         loaded = SignalFolderDataset(root=out, num_iq_samples=128)
         loader = DataLoader(loaded, batch_size=4)
@@ -118,7 +119,9 @@ class TestEndToEndPipeline:
         )
         out = str(tmp_path / "raw_export")
         RawIQWriter.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"],
+            ds,
+            output_dir=out,
+            class_list=["BPSK", "QPSK"],
         )
         loaded = SignalFolderDataset(root=out, num_iq_samples=128)
         loader = DataLoader(loaded, batch_size=4)
@@ -128,7 +131,7 @@ class TestEndToEndPipeline:
 
     def test_generate_export_reload_hdf5(self, tmp_path):
         """Full pipeline: NarrowbandDataset -> HDF5Writer -> SignalFolderDataset -> DataLoader."""
-        h5py = pytest.importorskip("h5py")
+        pytest.importorskip("h5py")
         from spectra.datasets import NarrowbandDataset
         from spectra.datasets.folder import SignalFolderDataset
         from spectra.utils.file_handlers.hdf5_writer import HDF5Writer
@@ -143,7 +146,9 @@ class TestEndToEndPipeline:
         )
         out = str(tmp_path / "hdf5_export")
         HDF5Writer.write_from_dataset(
-            ds, output_dir=out, class_list=["BPSK", "QPSK"],
+            ds,
+            output_dir=out,
+            class_list=["BPSK", "QPSK"],
         )
         loaded = SignalFolderDataset(root=out, num_iq_samples=128)
         loader = DataLoader(loaded, batch_size=4)
@@ -156,8 +161,8 @@ class TestEndToEndPipeline:
         import sqlite3
 
         from spectra.datasets import NarrowbandDataset
-        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
         from spectra.utils.file_handlers.sqlite_reader import SQLiteReader
+        from spectra.utils.file_handlers.sqlite_writer import SQLiteWriter
         from spectra.waveforms import BPSK, QPSK
 
         ds = NarrowbandDataset(

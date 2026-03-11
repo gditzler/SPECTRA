@@ -1,5 +1,4 @@
 import torch
-import pytest
 
 
 class TestSpectra18WidebandBenchmark:

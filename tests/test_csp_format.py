@@ -1,7 +1,8 @@
 """Tests for shared CSP output formatting."""
+
 import numpy as np
-import torch
 import pytest
+import torch
 
 
 @pytest.mark.csp

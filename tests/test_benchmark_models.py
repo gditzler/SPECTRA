@@ -1,5 +1,7 @@
 import pytest
 import torch
+
+pytest.importorskip("torchvision", reason="torchvision required for benchmark models")
 from benchmarks.comparison.models import ResNetAMC
 
 

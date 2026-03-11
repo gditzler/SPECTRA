@@ -1,4 +1,5 @@
 """MIMO channel impairment."""
+
 from typing import Optional, Tuple
 
 import numpy as np
@@ -53,9 +54,7 @@ class MIMOChannel(Transform):
                 iq = np.tile(iq, (self.n_tx, 1))
 
         if iq.shape[0] != self.n_tx:
-            raise ValueError(
-                f"Input has {iq.shape[0]} TX streams but n_tx={self.n_tx}"
-            )
+            raise ValueError(f"Input has {iq.shape[0]} TX streams but n_tx={self.n_tx}")
 
         n_samples = iq.shape[1]
 
@@ -77,7 +76,9 @@ class MIMOChannel(Transform):
     def _apply_flat(self, iq: np.ndarray, n_samples: int) -> np.ndarray:
         """Apply flat (single-tap) Rayleigh fading."""
         # Generate i.i.d. complex Gaussian channel matrix
-        H = (np.random.randn(self.n_rx, self.n_tx) + 1j * np.random.randn(self.n_rx, self.n_tx)) / np.sqrt(2.0)
+        H = (
+            np.random.randn(self.n_rx, self.n_tx) + 1j * np.random.randn(self.n_rx, self.n_tx)
+        ) / np.sqrt(2.0)
 
         # Apply spatial correlation if provided
         if self.spatial_correlation_rx is not None:

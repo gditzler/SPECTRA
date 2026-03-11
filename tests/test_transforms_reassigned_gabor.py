@@ -1,8 +1,8 @@
 """Tests for the Reassigned Gabor Transform."""
+
 import numpy as np
 import pytest
 import torch
-
 from spectra.transforms.reassigned_gabor import ReassignedGabor
 
 

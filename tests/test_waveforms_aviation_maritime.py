@@ -2,7 +2,6 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # ADS-B
 # ---------------------------------------------------------------------------
@@ -48,9 +47,7 @@ class TestADSBWaveform:
         # Each chip is spc samples
         for chip_pos in [0, 2, 7, 9]:
             sample_idx = chip_pos * spc
-            assert np.abs(iq[sample_idx]) > 0, (
-                f"Expected non-zero at preamble chip {chip_pos}"
-            )
+            assert np.abs(iq[sample_idx]) > 0, f"Expected non-zero at preamble chip {chip_pos}"
         # Chip 1 should be zero (no pulse)
         sample_idx = 1 * spc
         assert np.abs(iq[sample_idx]) == 0, "Expected zero between preamble pulses"
@@ -308,12 +305,8 @@ class TestILSLocalizerWaveform:
         # DC component should be dominant (carrier)
         # Tones at 90 and 150 should be above noise floor
         noise_floor = np.median(magnitude)
-        assert magnitude[idx_90] > noise_floor * 5, (
-            "90 Hz tone should be above noise floor"
-        )
-        assert magnitude[idx_150] > noise_floor * 5, (
-            "150 Hz tone should be above noise floor"
-        )
+        assert magnitude[idx_90] > noise_floor * 5, "90 Hz tone should be above noise floor"
+        assert magnitude[idx_150] > noise_floor * 5, "150 Hz tone should be above noise floor"
 
 
 # ---------------------------------------------------------------------------

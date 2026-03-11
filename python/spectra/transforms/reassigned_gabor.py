@@ -1,4 +1,5 @@
 """Reassigned Gabor Transform."""
+
 import numpy as np
 import torch
 
@@ -52,7 +53,5 @@ class ReassignedGabor:
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
-        result = np.asarray(
-            _compute_rgt(iq, self.nfft, self.hop_length, self.sigma)
-        )
+        result = np.asarray(_compute_rgt(iq, self.nfft, self.hop_length, self.sigma))
         return torch.from_numpy(result).unsqueeze(0).float()

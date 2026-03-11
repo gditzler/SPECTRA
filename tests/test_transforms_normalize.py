@@ -1,6 +1,5 @@
-import numpy as np
-import torch
 import pytest
+import torch
 
 
 class TestSpectrogramNormalize:

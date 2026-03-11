@@ -1,7 +1,6 @@
 import hashlib
 from typing import Any, Callable, Dict, Optional
 
-import torch
 from torch.utils.data import DataLoader, Dataset
 
 from spectra.curriculum import CurriculumSchedule

@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-
 from spectra.scene.signal_desc import SignalDescription
 
 

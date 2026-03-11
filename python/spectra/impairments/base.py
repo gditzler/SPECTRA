@@ -31,5 +31,4 @@ class Transform(ABC):
     @abstractmethod
     def __call__(
         self, iq: np.ndarray, desc: SignalDescription, **kwargs
-    ) -> Tuple[np.ndarray, SignalDescription]:
-        ...
+    ) -> Tuple[np.ndarray, SignalDescription]: ...

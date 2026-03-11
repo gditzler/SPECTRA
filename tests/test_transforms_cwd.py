@@ -1,8 +1,8 @@
 """Tests for the Choi-Williams Distribution transform."""
+
 import numpy as np
 import pytest
 import torch
-
 from spectra.transforms.cwd import CWD
 
 

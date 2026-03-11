@@ -1,4 +1,5 @@
 """Tests for _PolyphaseCodeBase shared behavior."""
+
 import numpy as np
 import pytest
 
@@ -6,7 +7,11 @@ import pytest
 class TestPolyphaseBase:
     def test_all_polyphase_same_interface(self):
         from spectra.waveforms.polyphase import (
-            FrankCode, P1Code, P2Code, P3Code, P4Code,
+            FrankCode,
+            P1Code,
+            P2Code,
+            P3Code,
+            P4Code,
         )
 
         for Cls in [FrankCode, P1Code, P2Code, P3Code, P4Code]:

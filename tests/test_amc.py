@@ -2,12 +2,10 @@
 
 import numpy as np
 import pytest
-
 from spectra.classifiers.amc import CyclostationaryAMC
 from spectra.datasets.cyclo import CyclostationaryDataset
-from spectra.transforms import Cumulants, PSD
-from spectra.waveforms import BPSK, QPSK, QAM16
-
+from spectra.transforms import Cumulants
+from spectra.waveforms import BPSK, QAM16, QPSK
 
 # ---------------------------------------------------------------------------
 # Helpers

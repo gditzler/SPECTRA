@@ -26,8 +26,7 @@ def get_reader(
 
     if ext not in _READER_REGISTRY:
         raise ValueError(
-            f"No reader registered for extension '{ext}'. "
-            f"Supported: {supported_extensions()}"
+            f"No reader registered for extension '{ext}'. Supported: {supported_extensions()}"
         )
     return _READER_REGISTRY[ext]()
 

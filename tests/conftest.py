@@ -17,6 +17,7 @@ def sample_rate():
 @pytest.fixture
 def assert_valid_iq():
     """Assert that an IQ array is well-formed."""
+
     def _check(iq, expected_length=None):
         assert isinstance(iq, np.ndarray), f"Expected ndarray, got {type(iq)}"
         assert iq.dtype == np.complex64, f"Expected complex64, got {iq.dtype}"
@@ -24,7 +25,6 @@ def assert_valid_iq():
         assert not np.any(np.isnan(iq)), "Array contains NaN values"
         assert not np.any(np.isinf(iq)), "Array contains Inf values"
         if expected_length is not None:
-            assert len(iq) == expected_length, (
-                f"Expected length {expected_length}, got {len(iq)}"
-            )
+            assert len(iq) == expected_length, f"Expected length {expected_length}, got {len(iq)}"
+
     return _check

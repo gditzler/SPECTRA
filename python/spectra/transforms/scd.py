@@ -42,9 +42,7 @@ class SCD:
         seed: int = 0,
     ):
         if method not in ("ssca", "fam", "s3ca"):
-            raise ValueError(
-                f"Unknown method: {method!r}. Supported: 'ssca', 'fam', 's3ca'."
-            )
+            raise ValueError(f"Unknown method: {method!r}. Supported: 'ssca', 'fam', 's3ca'.")
         if output_format not in ("magnitude", "mag_phase", "real_imag"):
             raise ValueError(
                 f"Unknown output_format: {output_format!r}. "
@@ -64,16 +62,16 @@ class SCD:
         if self.method == "s3ca":
             scd_complex = np.asarray(
                 compute_scd_s3ca(
-                    iq, self.nfft, self.n_alpha, self.hop,
-                    self.kappa, self.seed,
+                    iq,
+                    self.nfft,
+                    self.n_alpha,
+                    self.hop,
+                    self.kappa,
+                    self.seed,
                 )
             )
         elif self.method == "fam":
-            scd_complex = np.asarray(
-                compute_scd_fam(iq, self.nfft, self.n_alpha, self.hop)
-            )
+            scd_complex = np.asarray(compute_scd_fam(iq, self.nfft, self.n_alpha, self.hop))
         else:
-            scd_complex = np.asarray(
-                compute_scd_ssca(iq, self.nfft, self.n_alpha, self.hop)
-            )
+            scd_complex = np.asarray(compute_scd_ssca(iq, self.nfft, self.n_alpha, self.hop))
         return format_csp_output(scd_complex, self.output_format, self.db_scale)

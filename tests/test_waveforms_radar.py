@@ -30,9 +30,7 @@ class TestPulsedRadar:
 
         pw = 64
         waveform = PulsedRadar(pulse_width_samples=pw)
-        assert waveform.bandwidth(sample_rate) == pytest.approx(
-            sample_rate / pw
-        )
+        assert waveform.bandwidth(sample_rate) == pytest.approx(sample_rate / pw)
 
     def test_deterministic(self, sample_rate):
         from spectra.waveforms.radar import PulsedRadar
@@ -48,9 +46,7 @@ class TestPulsedRadar:
         pw = 32
         pri = 256
         num_pulses = 8
-        waveform = PulsedRadar(
-            pulse_width_samples=pw, pri_samples=pri, num_pulses=num_pulses
-        )
+        waveform = PulsedRadar(pulse_width_samples=pw, pri_samples=pri, num_pulses=num_pulses)
         iq = waveform.generate(num_symbols=1, sample_rate=sample_rate)
         nonzero_frac = np.count_nonzero(iq) / len(iq)
         expected_duty = pw / pri
@@ -222,9 +218,7 @@ class TestFMCW:
 
         bw_frac = 0.4
         waveform = FMCW(sweep_bandwidth_fraction=bw_frac)
-        assert waveform.bandwidth(sample_rate) == pytest.approx(
-            bw_frac * sample_rate
-        )
+        assert waveform.bandwidth(sample_rate) == pytest.approx(bw_frac * sample_rate)
 
     def test_deterministic(self, sample_rate):
         from spectra.waveforms.radar import FMCW
@@ -303,9 +297,7 @@ class TestSteppedFrequency:
 
         num_steps = 8
         freq_step_frac = 0.05
-        waveform = SteppedFrequency(
-            num_steps=num_steps, freq_step_fraction=freq_step_frac
-        )
+        waveform = SteppedFrequency(num_steps=num_steps, freq_step_fraction=freq_step_frac)
         expected_bw = num_steps * freq_step_frac * sample_rate
         assert waveform.bandwidth(sample_rate) == pytest.approx(expected_bw)
 
@@ -394,9 +386,7 @@ class TestNonlinearFM:
 
         bw_frac = 0.4
         waveform = NonlinearFM(bandwidth_fraction=bw_frac)
-        assert waveform.bandwidth(sample_rate) == pytest.approx(
-            bw_frac * sample_rate
-        )
+        assert waveform.bandwidth(sample_rate) == pytest.approx(bw_frac * sample_rate)
 
     def test_deterministic(self, sample_rate):
         from spectra.waveforms.radar import NonlinearFM

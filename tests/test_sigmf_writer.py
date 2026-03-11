@@ -2,7 +2,6 @@ import json
 import os
 
 import numpy as np
-import pytest
 
 
 class TestSigMFWriter:
@@ -21,9 +20,7 @@ class TestSigMFWriter:
 
         iq = np.zeros(64, dtype=np.complex64)
         base = str(tmp_path / "signal")
-        writer = SigMFWriter(
-            base_path=base, sample_rate=2e6, center_frequency=915e6
-        )
+        writer = SigMFWriter(base_path=base, sample_rate=2e6, center_frequency=915e6)
         writer.write(iq)
         with open(base + ".sigmf-meta") as f:
             meta = json.load(f)
@@ -53,9 +50,7 @@ class TestSigMFWriter:
                 "core:description": "BPSK",
             }
         ]
-        SigMFWriter(base_path=base, sample_rate=1e6).write(
-            iq, annotations=annotations
-        )
+        SigMFWriter(base_path=base, sample_rate=1e6).write(iq, annotations=annotations)
         with open(base + ".sigmf-meta") as f:
             meta = json.load(f)
         assert len(meta["annotations"]) == 1

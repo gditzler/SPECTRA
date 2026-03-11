@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 
@@ -49,9 +49,7 @@ class Composer:
     def __init__(self, config: SceneConfig):
         self.config = config
 
-    def generate(
-        self, seed: int, impairments=None
-    ) -> Tuple[np.ndarray, List[SignalDescription]]:
+    def generate(self, seed: int, impairments=None) -> Tuple[np.ndarray, List[SignalDescription]]:
         rng = np.random.default_rng(seed)
         cfg = self.config
 

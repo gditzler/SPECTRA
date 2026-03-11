@@ -1,4 +1,5 @@
 """Cached RRC tap computation for waveform generators."""
+
 from functools import lru_cache
 
 import numpy as np

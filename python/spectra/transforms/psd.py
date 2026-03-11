@@ -26,7 +26,7 @@ class PSD:
 
         # Segment and window
         window = np.hanning(nfft).astype(np.float32)
-        window_power = np.sum(window ** 2)
+        window_power = np.sum(window**2)
 
         num_segments = max(1, (n - nfft) // step + 1)
         psd_accum = np.zeros(nfft, dtype=np.float64)

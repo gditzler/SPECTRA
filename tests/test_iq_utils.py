@@ -1,7 +1,7 @@
 """Tests for shared dataset IQ utilities."""
+
 import numpy as np
 import torch
-import pytest
 
 
 class TestTruncatePad:

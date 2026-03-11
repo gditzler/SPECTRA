@@ -1,4 +1,5 @@
 """Choi-Williams Distribution transform."""
+
 import numpy as np
 import torch
 
@@ -59,7 +60,5 @@ class CWD:
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
         n_time_arg = self.n_time if self.n_time is not None else 0
-        cwd_complex = np.asarray(
-            _compute_cwd(iq, self.nfft, n_time_arg, self.sigma)
-        )
+        cwd_complex = np.asarray(_compute_cwd(iq, self.nfft, n_time_arg, self.sigma))
         return format_csp_output(cwd_complex, self.output_format, self.db_scale)

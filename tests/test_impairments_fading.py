@@ -1,7 +1,5 @@
 import numpy as np
 import numpy.testing as npt
-import pytest
-
 from spectra.scene.signal_desc import SignalDescription
 
 
@@ -74,9 +72,7 @@ class TestRicianFading:
 
         iq = np.ones(2048, dtype=np.complex64)
         desc = _make_desc()
-        result, _ = RicianFading(k_factor=40.0, num_taps=8)(
-            iq, desc, sample_rate=sample_rate
-        )
+        result, _ = RicianFading(k_factor=40.0, num_taps=8)(iq, desc, sample_rate=sample_rate)
         # Very high K = mostly LOS, signal should be close to original
         # Exclude edges where convolution artifacts can appear
         npt.assert_allclose(np.abs(result[8:-8]), 1.0, atol=0.3)
@@ -86,9 +82,7 @@ class TestRicianFading:
 
         iq = np.ones(1024, dtype=np.complex64)
         desc = _make_desc()
-        result, _ = RicianFading(k_factor=10.0, num_taps=8)(
-            iq, desc, sample_rate=sample_rate
-        )
+        result, _ = RicianFading(k_factor=10.0, num_taps=8)(iq, desc, sample_rate=sample_rate)
         assert result.shape == iq.shape
         assert result.dtype == np.complex64
 
@@ -97,9 +91,7 @@ class TestRicianFading:
 
         iq = np.ones(2048, dtype=np.complex64)
         desc = _make_desc()
-        result, _ = RicianFading(k_factor=3.0, num_taps=8)(
-            iq, desc, sample_rate=sample_rate
-        )
+        result, _ = RicianFading(k_factor=3.0, num_taps=8)(iq, desc, sample_rate=sample_rate)
         assert not np.any(np.isnan(result))
         assert not np.any(np.isinf(result))
 
@@ -108,9 +100,7 @@ class TestRicianFading:
 
         iq = np.ones(2048, dtype=np.complex64)
         desc = _make_desc()
-        result, _ = RicianFading(k_factor=0.01, num_taps=8)(
-            iq, desc, sample_rate=sample_rate
-        )
+        result, _ = RicianFading(k_factor=0.01, num_taps=8)(iq, desc, sample_rate=sample_rate)
         # Low K should cause significant fading
         assert not np.allclose(np.abs(result), 1.0, atol=0.1)
 

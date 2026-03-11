@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 
-from spectra._rust import lowpass_taps, convolve_complex
+from spectra._rust import convolve_complex, lowpass_taps
 from spectra.waveforms.base import Waveform
 
 

@@ -1,12 +1,11 @@
-import numpy as np
-import torch
 import pytest
+import torch
 
 
 class TestStreamingDataLoader:
     def test_epoch_returns_dataloader(self):
-        from spectra.streaming import StreamingDataLoader
         from spectra.datasets import NarrowbandDataset
+        from spectra.streaming import StreamingDataLoader
         from spectra.waveforms import QPSK
 
         def factory(params):
@@ -28,8 +27,8 @@ class TestStreamingDataLoader:
         assert isinstance(dl, torch.utils.data.DataLoader)
 
     def test_epoch_produces_batches(self):
-        from spectra.streaming import StreamingDataLoader
         from spectra.datasets import NarrowbandDataset
+        from spectra.streaming import StreamingDataLoader
         from spectra.waveforms import QPSK
 
         def factory(params):
@@ -53,8 +52,8 @@ class TestStreamingDataLoader:
         assert data.shape == (8, 2, 256)
 
     def test_different_epochs_produce_different_data(self):
-        from spectra.streaming import StreamingDataLoader
         from spectra.datasets import NarrowbandDataset
+        from spectra.streaming import StreamingDataLoader
         from spectra.waveforms import QPSK
 
         def factory(params):
@@ -77,8 +76,8 @@ class TestStreamingDataLoader:
         assert not torch.equal(data_e0, data_e1)
 
     def test_same_epoch_is_deterministic(self):
-        from spectra.streaming import StreamingDataLoader
         from spectra.datasets import NarrowbandDataset
+        from spectra.streaming import StreamingDataLoader
         from spectra.waveforms import QPSK
 
         def factory(params):
@@ -101,8 +100,8 @@ class TestStreamingDataLoader:
         torch.testing.assert_close(data_a, data_b)
 
     def test_same_base_seed_reproduces_across_instances(self):
-        from spectra.streaming import StreamingDataLoader
         from spectra.datasets import NarrowbandDataset
+        from spectra.streaming import StreamingDataLoader
         from spectra.waveforms import QPSK
 
         def factory(params):
@@ -125,8 +124,8 @@ class TestStreamingDataLoader:
         torch.testing.assert_close(d1, d2)
 
     def test_different_base_seeds_differ(self):
-        from spectra.streaming import StreamingDataLoader
         from spectra.datasets import NarrowbandDataset
+        from spectra.streaming import StreamingDataLoader
         from spectra.waveforms import QPSK
 
         def factory(params):
@@ -151,8 +150,8 @@ class TestStreamingDataLoader:
 
 class TestStreamingDataLoaderWithCurriculum:
     def test_curriculum_params_passed_to_factory(self):
-        from spectra.streaming import StreamingDataLoader
         from spectra.curriculum import CurriculumSchedule
+        from spectra.streaming import StreamingDataLoader
 
         captured_params = []
 
@@ -232,8 +231,8 @@ class TestStreamingDataLoaderWithCurriculum:
                 seed=params["seed"],
             )
 
-        from spectra.streaming import StreamingDataLoader
         from spectra.curriculum import CurriculumSchedule
+        from spectra.streaming import StreamingDataLoader
 
         schedule = CurriculumSchedule(
             snr_range={"start": (20.0, 30.0), "end": (0.0, 10.0)},

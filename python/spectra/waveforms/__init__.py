@@ -1,17 +1,10 @@
-from spectra.waveforms.aviation_maritime import ACARS, ADSB, AIS, DME, ILS_Localizer, ModeS
 from spectra.waveforms.am import AMDSB, AMDSB_SC, AMLSB, AMUSB
 from spectra.waveforms.ask import ASK4, ASK8, ASK16, ASK32, ASK64, OOK
+from spectra.waveforms.aviation_maritime import ACARS, ADSB, AIS, DME, ILS_Localizer, ModeS
 from spectra.waveforms.barker import BarkerCode
 from spectra.waveforms.chirpss import ChirpSS
-from spectra.waveforms.dsss import DSSS_BPSK
-from spectra.waveforms.spread_spectrum import (
-    CDMA_Forward,
-    CDMA_Reverse,
-    DSSS_QPSK,
-    FHSS,
-    THSS,
-)
 from spectra.waveforms.costas import CostasCode
+from spectra.waveforms.dsss import DSSS_BPSK
 from spectra.waveforms.fm import FM
 from spectra.waveforms.fsk import (
     FSK,
@@ -47,17 +40,24 @@ from spectra.waveforms.ofdm import (
     SCFDMA,
 )
 from spectra.waveforms.polyphase import FrankCode, P1Code, P2Code, P3Code, P4Code
+from spectra.waveforms.psk import BPSK, PSK8, PSK16, PSK32, PSK64, QPSK
+from spectra.waveforms.qam import QAM16, QAM32, QAM64, QAM128, QAM256, QAM512, QAM1024
 from spectra.waveforms.radar import (
-    BarkerCodedPulse,
     FMCW,
+    BarkerCodedPulse,
     NonlinearFM,
     PolyphaseCodedPulse,
     PulseDoppler,
     PulsedRadar,
     SteppedFrequency,
 )
-from spectra.waveforms.psk import BPSK, PSK8, PSK16, PSK32, PSK64, QPSK
-from spectra.waveforms.qam import QAM16, QAM32, QAM64, QAM128, QAM256, QAM512, QAM1024
+from spectra.waveforms.spread_spectrum import (
+    DSSS_QPSK,
+    FHSS,
+    THSS,
+    CDMA_Forward,
+    CDMA_Reverse,
+)
 from spectra.waveforms.tone import Tone
 from spectra.waveforms.zadoff_chu import ZadoffChu
 

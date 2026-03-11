@@ -1,8 +1,8 @@
 """Tests for Ambiguity Function transform."""
+
 import numpy as np
 import pytest
 import torch
-
 from spectra.transforms.ambiguity import AmbiguityFunction
 
 

@@ -1,7 +1,6 @@
 """Tests for Hann window caching in STFT and Spectrogram."""
+
 import numpy as np
-import torch
-import pytest
 
 
 class TestHannWindowCaching:
