@@ -150,13 +150,13 @@ class FHSS(Waveform):
         seed: Optional[int] = None,
     ) -> np.ndarray:
         s = seed if seed is not None else np.random.randint(0, 2**32)
-        rng = np.random.RandomState(int(s))
+        rng = np.random.default_rng(int(s))
 
         num_hops = num_symbols
 
         # Generate hop pattern
         if self.hop_pattern == "random":
-            channels = rng.randint(0, self.num_channels, size=num_hops)
+            channels = rng.integers(0, self.num_channels, size=num_hops)
         elif self.hop_pattern == "linear":
             channels = np.arange(num_hops) % self.num_channels
         else:  # costas
@@ -183,7 +183,7 @@ class FHSS(Waveform):
             freq_offset = (ch - center_offset) * channel_spacing
 
             # Generate modulated baseband signal for this dwell
-            hop_seed = int(rng.randint(0, 2**31))
+            hop_seed = int(rng.integers(0, 2**31))
             if self.modulation == "bpsk":
                 sym = np.array(
                     generate_bpsk_symbols(self.dwell_samples, hop_seed),
@@ -196,7 +196,7 @@ class FHSS(Waveform):
                 )
             else:  # fsk
                 # Simple 2-FSK
-                bits = 2 * rng.randint(0, 2, size=self.dwell_samples).astype(np.float32) - 1.0
+                bits = 2 * rng.integers(0, 2, size=self.dwell_samples).astype(np.float32) - 1.0
                 t = np.arange(self.dwell_samples) / sample_rate
                 fsk_dev = channel_spacing * 0.25
                 phase = 2.0 * np.pi * np.cumsum(bits * fsk_dev) / sample_rate
@@ -277,14 +277,14 @@ class CDMA_Forward(Waveform):
         seed: Optional[int] = None,
     ) -> np.ndarray:
         s = seed if seed is not None else np.random.randint(0, 2**32)
-        rng = np.random.RandomState(int(s))
+        rng = np.random.default_rng(int(s))
 
         total_chips = num_symbols * self.spreading_factor
 
         # Generate PN scrambling sequence
-        pn_seed = int(rng.randint(0, 2**31))
-        pn_rng = np.random.RandomState(pn_seed)
-        pn_code = 2.0 * pn_rng.randint(0, 2, size=total_chips).astype(np.float32) - 1.0
+        pn_seed = int(rng.integers(0, 2**31))
+        pn_rng = np.random.default_rng(pn_seed)
+        pn_code = 2.0 * pn_rng.integers(0, 2, size=total_chips).astype(np.float32) - 1.0
 
         # Pre-fetch Walsh codes
         walsh_codes = []
@@ -297,7 +297,7 @@ class CDMA_Forward(Waveform):
         composite = np.zeros(total_chips, dtype=np.float32)
 
         for u in range(self.num_users):
-            user_seed = int(rng.randint(0, 2**31))
+            user_seed = int(rng.integers(0, 2**31))
             # BPSK data for this user
             data = np.array(
                 generate_bpsk_symbols(num_symbols, user_seed), dtype=np.complex64
@@ -361,22 +361,22 @@ class CDMA_Reverse(Waveform):
         seed: Optional[int] = None,
     ) -> np.ndarray:
         s = seed if seed is not None else np.random.randint(0, 2**32)
-        rng = np.random.RandomState(int(s))
+        rng = np.random.default_rng(int(s))
 
         total_chips = num_symbols * self.spreading_factor
 
         # Generate a long PN sequence (we'll use offsets for each user)
-        pn_seed = int(rng.randint(0, 2**31))
-        pn_rng = np.random.RandomState(pn_seed)
+        pn_seed = int(rng.integers(0, 2**31))
+        pn_rng = np.random.default_rng(pn_seed)
         # Generate enough PN for all offsets
-        pn_long = 2.0 * pn_rng.randint(
+        pn_long = 2.0 * pn_rng.integers(
             0, 2, size=total_chips + self.num_users * self.spreading_factor
         ).astype(np.float32) - 1.0
 
         composite = np.zeros(total_chips, dtype=np.float32)
 
         for u in range(self.num_users):
-            user_seed = int(rng.randint(0, 2**31))
+            user_seed = int(rng.integers(0, 2**31))
             # BPSK data for this user
             data = np.array(
                 generate_bpsk_symbols(num_symbols, user_seed), dtype=np.complex64
@@ -449,9 +449,9 @@ class THSS(Waveform):
         seed: Optional[int] = None,
     ) -> np.ndarray:
         s = seed if seed is not None else np.random.randint(0, 2**32)
-        rng = np.random.RandomState(int(s))
+        rng = np.random.default_rng(int(s))
 
-        n_frames = self.num_frames
+        n_frames = num_symbols * self.num_frames
 
         # Generate pulse shape
         if self.pulse_shape == "gaussian":
@@ -465,10 +465,10 @@ class THSS(Waveform):
         signal = np.zeros(total_samples, dtype=np.complex64)
 
         # Random BPSK modulation per frame
-        data = 2 * rng.randint(0, 2, size=n_frames).astype(np.float32) - 1.0
+        data = 2 * rng.integers(0, 2, size=n_frames).astype(np.float32) - 1.0
 
         # Random slot selection per frame
-        slots = rng.randint(0, self.slots_per_frame, size=n_frames)
+        slots = rng.integers(0, self.slots_per_frame, size=n_frames)
 
         for f in range(n_frames):
             slot = slots[f]

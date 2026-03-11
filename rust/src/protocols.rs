@@ -1,5 +1,6 @@
 use numpy::ndarray::Array1;
 use numpy::{IntoPyArray, PyArray1};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 
 use crate::modulators::Xorshift64;
@@ -78,6 +79,57 @@ pub fn generate_adsb_frame<'py>(py: Python<'py>, seed: u64) -> Bound<'py, PyArra
     frame[13] = (crc & 0xFF) as u8;
 
     Array1::from(frame.to_vec()).into_pyarray(py)
+}
+
+// ---------------------------------------------------------------------------
+// Mode S frame generator
+// ---------------------------------------------------------------------------
+
+/// Generate a random Mode S frame with the correct Downlink Format for the
+/// given message length.
+///
+/// - `message_length=56`: uses DF=11 (All-Call Reply), 7-byte frame
+/// - `message_length=112`: uses DF=17 (Extended Squitter / ADS-B), 14-byte frame
+#[pyfunction]
+pub fn generate_mode_s_frame<'py>(
+    py: Python<'py>,
+    message_length: usize,
+    seed: u64,
+) -> PyResult<Bound<'py, PyArray1<u8>>> {
+    if message_length != 56 && message_length != 112 {
+        return Err(PyValueError::new_err(
+            "message_length must be 56 or 112",
+        ));
+    }
+
+    let num_bytes = message_length / 8;
+    let mut rng = Xorshift64::new(seed);
+    let mut frame = vec![0u8; num_bytes];
+
+    // Fill with random data
+    for byte in frame.iter_mut() {
+        *byte = (rng.next() & 0xFF) as u8;
+    }
+
+    if message_length == 56 {
+        // DF=11 (All-Call Reply): first 5 bits = 01011 = 0x58
+        frame[0] = 0x58 | (frame[0] & 0x07);
+        // CRC-24 over bits 0-31 (bytes 0-3, first 32 bits)
+        let crc = crc24_adsb(&frame[0..4], 32);
+        frame[4] = ((crc >> 16) & 0xFF) as u8;
+        frame[5] = ((crc >> 8) & 0xFF) as u8;
+        frame[6] = (crc & 0xFF) as u8;
+    } else {
+        // DF=17 (Extended Squitter): first 5 bits = 10001 = 0x88
+        frame[0] = 0x88 | (frame[0] & 0x07);
+        // CRC-24 over bits 0-87 (bytes 0-10)
+        let crc = crc24_adsb(&frame[0..11], 88);
+        frame[11] = ((crc >> 16) & 0xFF) as u8;
+        frame[12] = ((crc >> 8) & 0xFF) as u8;
+        frame[13] = (crc & 0xFF) as u8;
+    }
+
+    Ok(Array1::from(frame).into_pyarray(py))
 }
 
 // ---------------------------------------------------------------------------

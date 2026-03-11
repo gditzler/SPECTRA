@@ -144,9 +144,8 @@ fn gold_second_poly_taps(order: usize, preferred_pair_idx: usize) -> Option<&'st
         (7, 0) => Some(&[7, 3]),             // x^7 + x^3 + 1
         (7, 1) => Some(&[7, 3, 2, 1]),       // x^7 + x^3 + x^2 + x + 1
         (7, 2) => Some(&[7, 5, 4, 3, 2, 1]), // x^7 + x^5 + x^4 + x^3 + x^2 + x + 1
-        (7, 3) => Some(&[7, 4]),             // not used commonly but valid
-        (7, 4) => Some(&[7, 6, 4, 2]),       // x^7 + x^6 + x^4 + x^2 + 1
-        (7, 5) => Some(&[7, 6, 5, 4, 2, 1]), // x^7 + x^6 + x^5 + x^4 + x^2 + x + 1
+        (7, 3) => Some(&[7, 6, 4, 2]),       // x^7 + x^6 + x^4 + x^2 + 1
+        (7, 4) => Some(&[7, 6, 5, 4, 2, 1]), // x^7 + x^6 + x^5 + x^4 + x^2 + x + 1
         // Order 8 preferred pairs
         (8, 0) => Some(&[8, 7, 6, 5, 2, 1]), // x^8 + x^7 + x^6 + x^5 + x^2 + x + 1
         (8, 1) => Some(&[8, 7, 6, 1]),       // x^8 + x^7 + x^6 + x + 1
@@ -232,7 +231,7 @@ pub fn generate_kasami_code<'py>(
     }
     if !(5..=10).contains(&order) {
         return Err(PyValueError::new_err(format!(
-            "Kasami code order must be in 5..=10 (even), got {}",
+            "Kasami code order must be 6, 8, or 10, got {}",
             order
         )));
     }

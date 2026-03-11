@@ -66,6 +66,7 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(radar::generate_nlfm_sweep, m)?)?;
     // Protocol frame generators
     m.add_function(wrap_pyfunction!(protocols::generate_adsb_frame, m)?)?;
+    m.add_function(wrap_pyfunction!(protocols::generate_mode_s_frame, m)?)?;
     m.add_function(wrap_pyfunction!(protocols::generate_ais_frame, m)?)?;
     m.add_function(wrap_pyfunction!(protocols::generate_acars_frame, m)?)?;
     // 5G NR primitives

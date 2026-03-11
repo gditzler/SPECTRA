@@ -8,7 +8,7 @@ from typing import Optional
 
 import numpy as np
 
-from spectra._rust import generate_acars_frame, generate_adsb_frame, generate_ais_frame
+from spectra._rust import generate_acars_frame, generate_adsb_frame, generate_ais_frame, generate_mode_s_frame
 from spectra.waveforms.base import Waveform
 
 
@@ -113,7 +113,7 @@ class ModeS(Waveform):
         frames = []
         for i in range(num_symbols):
             frame_seed = (s + i) & 0xFFFFFFFF
-            frame_bytes = np.array(generate_adsb_frame(seed=frame_seed), dtype=np.uint8)
+            frame_bytes = np.array(generate_mode_s_frame(message_length=msg_len, seed=frame_seed), dtype=np.uint8)
             bits = _bytes_to_bits(frame_bytes)[:msg_len]
 
             # Preamble: 8 us = 16 chips, pulses at 0, 2, 7, 9

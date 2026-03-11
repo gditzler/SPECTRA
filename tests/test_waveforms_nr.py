@@ -213,8 +213,8 @@ class TestNRPUSCH:
         def papr(x):
             return float(np.max(np.abs(x) ** 2) / np.mean(np.abs(x) ** 2))
 
-        # Allow some margin - SC-FDMA should generally be lower
-        assert papr(iq_sc) < papr(iq_ofdm) * 1.5
+        # With proper DFT normalization, SC-FDMA should have lower PAPR
+        assert papr(iq_sc) < papr(iq_ofdm) * 1.1
 
 
 class TestNRPRACH:

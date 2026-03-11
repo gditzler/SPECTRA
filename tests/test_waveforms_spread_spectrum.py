@@ -239,9 +239,10 @@ class TestTHSS:
         n_frames = 32
         slots = 8
         ps = 16
+        num_symbols = 10
         wf = THSS(num_frames=n_frames, slots_per_frame=slots, pulse_samples=ps)
-        iq = wf.generate(10, sample_rate, seed=42)
-        assert len(iq) == n_frames * slots * ps
+        iq = wf.generate(num_symbols, sample_rate, seed=42)
+        assert len(iq) == num_symbols * n_frames * slots * ps
 
     def test_sparsity(self, sample_rate):
         from spectra.waveforms import THSS

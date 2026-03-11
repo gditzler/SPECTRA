@@ -463,8 +463,8 @@ class NR_PUSCH(Waveform):
                     ).astype(np.complex64)
 
                 if self._transform_precoding:
-                    # DFT precoding (SC-FDMA): apply DFT before IFFT
-                    subcarrier_data = np.fft.fft(subcarrier_data).astype(np.complex64)
+                    # DFT precoding (SC-FDMA): apply DFT before IFFT, normalize power
+                    subcarrier_data = (np.fft.fft(subcarrier_data) / np.sqrt(self._num_subcarriers)).astype(np.complex64)
 
                 half = self._num_subcarriers // 2
                 fft_bins[1: half + 1] = subcarrier_data[:half]
