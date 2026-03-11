@@ -6,11 +6,11 @@ SPECTRA generates synthetic RF signals on-the-fly for training machine learning 
 
 ## Features
 
-- **60+ waveform generators** — PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, polyphase codes, Zadoff-Chu, Barker, and more
+- **85+ waveform generators** — PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, polyphase codes, Zadoff-Chu, Barker, radar (pulsed, FMCW, pulse-Doppler, NLFM, stepped-frequency), spread spectrum (DSSS, FHSS, CDMA, THSS), 5G NR (OFDM, SSB, PDSCH, PUSCH, PRACH), and aviation/maritime (ADS-B, Mode S, AIS, ACARS, DME, ILS)
 - **22 channel impairments** — AWGN, frequency offset, phase noise, IQ imbalance, fading, TDL, MIMO, PA nonlinearity, timing, and others composable like torchvision transforms
 - **MIMO multi-antenna support** — flat Rayleigh and TDL channels, spatial correlation (Kronecker model), ULA steering vectors, seamless `NarrowbandDataset` integration
 - **Cyclostationary signal processing** — Rust-accelerated SCD, SCF, CAF, cumulants, PSD, and energy detection transforms for signal analysis and feature extraction
-- **Time-frequency analysis** — Wigner-Ville Distribution and Ambiguity Function transforms for radar and comms research
+- **Time-frequency analysis** — Wigner-Ville Distribution, Ambiguity Function, and Reassigned Gabor transforms for radar and comms research
 - **Data augmentations** — CutOut, MixUp, CutMix, PatchShuffle, TimeReversal with dataset-level wrappers for soft-label training
 - **Class balancing** — built-in `class_weights` parameter and `balanced_sampler()` utility for imbalanced datasets
 - **AMC classifiers** — `CyclostationaryAMC` with cumulant, cyclic-peak, or combined feature sets and scikit-learn tree-based backends
@@ -125,10 +125,10 @@ amc.fit_from_dataset(dataset)
 
 | Module | Key Classes / Functions | Purpose |
 |---|---|---|
-| `spectra.waveforms` | `BPSK`, `QPSK`, `QAM16`..`QAM1024`, `PSK8`..`PSK64`, `FSK`, `GMSK`, `OFDM`, `LFM`, `OOK`, `ASK4`..`ASK64`, `Tone`, `Noise`, `FM`, `AMDSB`, ... | 60+ baseband waveform generators |
+| `spectra.waveforms` | `BPSK`, `QPSK`, `QAM16`..`QAM1024`, `PSK8`..`PSK64`, `FSK`, `GMSK`, `OFDM`, `LFM`, `OOK`, `ASK4`..`ASK64`, `Tone`, `Noise`, `FM`, `AMDSB`, `PulsedRadar`, `FMCW`, `FHSS`, `CDMA_Forward`, `NR_OFDM`, `NR_SSB`, `ADSB`, `ModeS`, `AIS`, ... | 85+ baseband waveform generators |
 | `spectra.impairments` | `AWGN`, `FrequencyOffset`, `PhaseNoise`, `IQImbalance`, `RayleighFading`, `TDLChannel`, `MIMOChannel`, `RappPA`, `SalehPA`, `Compose`, ... | 22 composable channel impairments |
 | `spectra.scene` | `Composer`, `SceneConfig`, `SignalDescription`, `STFTParams`, `to_coco` | Multi-signal scene composition and labeling |
-| `spectra.transforms` | `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `WVD`, `AmbiguityFunction`, `MixUp`, `CutMix`, `CutOut`, ... | Spectral transforms, CSP features, time-frequency, augmentations |
+| `spectra.transforms` | `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `WVD`, `AmbiguityFunction`, `ReassignedGabor`, `MixUp`, `CutMix`, `CutOut`, ... | Spectral transforms, CSP features, time-frequency, augmentations |
 | `spectra.datasets` | `NarrowbandDataset`, `WidebandDataset`, `CyclostationaryDataset`, `MixUpDataset`, `CutMixDataset`, `balanced_sampler`, ... | PyTorch dataset classes with balancing and augmentation wrappers |
 | `spectra.classifiers` | `CyclostationaryAMC` | Traditional AMC with cumulant/cyclic-peak features |
 | `spectra.benchmarks` | `load_benchmark` | Reproducible benchmark dataset loader |
