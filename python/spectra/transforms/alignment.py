@@ -144,6 +144,11 @@ class Resample(Transform):
     Raises:
         ImportError: If scipy is not installed.
         ValueError: If ``sample_rate`` kwarg is missing.
+
+    .. note:: The design spec calls for updating ``desc`` sample rate
+       metadata. ``SignalDescription`` does not currently carry a
+       ``sample_rate`` field; when one is added, this transform should
+       be updated to set it on the returned desc.
     """
 
     def __init__(self, target_sample_rate: float):
@@ -202,7 +207,11 @@ class SpectralWhitening(Transform):
         kernel = np.ones(self._window) / self._window
         smoothed = np.convolve(magnitude, kernel, mode="same")
 
-        floor = np.max(smoothed) * 1e-10
+        smoothed_max = np.max(smoothed)
+        if smoothed_max == 0:
+            return iq, desc
+
+        floor = smoothed_max * 1e-10
         smoothed = np.maximum(smoothed, floor)
 
         whitened_spectrum = spectrum / smoothed
@@ -229,6 +238,10 @@ class NoiseFloorMatch(Transform):
     """
 
     def __init__(self, target_noise_floor_db: float = -40.0, estimation_method: str = "median"):
+        if estimation_method not in ("median", "minimum"):
+            raise ValueError(
+                f"estimation_method must be 'median' or 'minimum', got '{estimation_method}'"
+            )
         self._target_db = target_noise_floor_db
         self._method = estimation_method
 
@@ -249,10 +262,11 @@ class NoiseFloorMatch(Transform):
 
 
 class BandpassAlign(Transform):
-    """Shift and filter signal to align to a target center frequency and bandwidth.
+    """Frequency-shift and bandpass-filter a signal to a target center and bandwidth.
 
-    Applies a rectangular bandpass filter in the frequency domain to limit
-    bandwidth. Updates ``desc.f_low`` and ``desc.f_high``.
+    Estimates the signal's center of mass in frequency, shifts to align it
+    with ``center_freq``, then applies a rectangular bandpass filter in the
+    frequency domain. Updates ``desc.f_low`` and ``desc.f_high``.
 
     The ``sample_rate`` keyword argument is required.
 
@@ -260,6 +274,9 @@ class BandpassAlign(Transform):
         center_freq: Target center frequency in Hz (relative to baseband).
             Default 0.0.
         bandwidth: Target bandwidth as a fraction of sample rate (0, 1].
+
+    Raises:
+        ValueError: If ``sample_rate`` kwarg is missing.
     """
 
     def __init__(self, center_freq: float = 0.0, bandwidth: float = 0.5):
@@ -271,12 +288,32 @@ class BandpassAlign(Transform):
     ) -> Tuple[np.ndarray, SignalDescription]:
         from dataclasses import replace
 
-        sample_rate = kwargs.get("sample_rate", 1.0)
+        sample_rate = kwargs.get("sample_rate")
+        if sample_rate is None:
+            raise ValueError(
+                "BandpassAlign requires sample_rate kwarg. "
+                "Pass via Compose(...)(iq, desc, sample_rate=fs) or directly."
+            )
         n = len(iq)
 
-        freqs = np.fft.fftfreq(n, d=1.0 / sample_rate)
+        # Estimate current center of mass in frequency domain
         spectrum = np.fft.fft(iq)
+        freqs = np.fft.fftfreq(n, d=1.0 / sample_rate)
+        power = np.abs(spectrum) ** 2
+        total_power = np.sum(power)
+        if total_power > 0:
+            current_center = np.sum(freqs * power) / total_power
+        else:
+            current_center = 0.0
 
+        # Frequency-shift to align center of mass to target
+        shift = self._center - current_center
+        if shift != 0:
+            t_arr = np.arange(n) / sample_rate
+            iq = iq * np.exp(1j * 2 * np.pi * shift * t_arr).astype(np.complex64)
+            spectrum = np.fft.fft(iq)
+
+        # Bandpass filter
         half_bw = self._bw_frac * sample_rate / 2.0
         mask = np.abs(freqs - self._center) <= half_bw
         spectrum *= mask

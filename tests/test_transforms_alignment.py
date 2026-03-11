@@ -15,8 +15,6 @@ from spectra.transforms.alignment import (
     SpectralWhitening,
 )
 
-pytest.importorskip("scipy")
-
 
 @pytest.fixture
 def sample_iq():
@@ -40,11 +38,6 @@ def sample_desc():
         label="test",
         snr=20.0,
     )
-
-
-@pytest.fixture
-def sample_rate():
-    return 1e6
 
 
 # --- DCRemove ---
@@ -197,6 +190,9 @@ class TestAGCNormalize:
 # --- Resample ---
 
 
+scipy = pytest.importorskip("scipy")
+
+
 class TestResample:
     def test_upsample_length(self, sample_iq, sample_desc):
         t = Resample(target_sample_rate=2e6)
@@ -266,6 +262,12 @@ class TestSpectralWhitening:
         ratio = power_after / power_before
         assert 0.1 < ratio < 10.0
 
+    def test_zero_input_safe(self, sample_desc):
+        iq = np.zeros(1024, dtype=np.complex64)
+        t = SpectralWhitening()
+        iq_out, _ = t(iq, sample_desc)
+        npt.assert_array_equal(iq_out, iq)
+
 
 # --- NoiseFloorMatch ---
 
@@ -297,6 +299,10 @@ class TestNoiseFloorMatch:
         iq2, _ = t2(sample_iq, sample_desc)
         assert not np.array_equal(iq1, iq2)
 
+    def test_invalid_method_raises(self):
+        with pytest.raises(ValueError):
+            NoiseFloorMatch(estimation_method="average")
+
 
 # --- BandpassAlign ---
 
@@ -313,9 +319,11 @@ class TestBandpassAlign:
         assert len(iq_out) == len(sample_iq)
 
     def test_out_of_band_suppressed(self, sample_desc):
+        # Wideband signal with energy spread across many frequencies
+        rng = np.random.default_rng(42)
         n = 4096
-        t_arr = np.arange(n) / 1e6
-        iq = np.exp(1j * 2 * np.pi * 250_000 * t_arr).astype(np.complex64)
+        iq = (rng.standard_normal(n) + 1j * rng.standard_normal(n)).astype(np.complex64)
+        # Narrow bandpass should suppress most of the wideband energy
         t = BandpassAlign(center_freq=0.0, bandwidth=0.1)
         iq_out, _ = t(iq, sample_desc, sample_rate=1e6)
         power_before = np.mean(np.abs(iq) ** 2)
@@ -327,6 +335,11 @@ class TestBandpassAlign:
         _, desc_out = t(sample_iq, sample_desc, sample_rate=1e6)
         assert desc_out.f_low == -250_000.0
         assert desc_out.f_high == 250_000.0
+
+    def test_missing_sample_rate_raises(self, sample_iq, sample_desc):
+        t = BandpassAlign(center_freq=0.0, bandwidth=0.5)
+        with pytest.raises(ValueError, match="sample_rate"):
+            t(sample_iq, sample_desc)
 
 
 # --- Stubs ---
