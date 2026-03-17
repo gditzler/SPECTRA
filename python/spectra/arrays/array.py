@@ -36,20 +36,21 @@ class AntennaArray:
         elements: Union[AntennaElement, List[AntennaElement]],
         reference_frequency: float,
     ):
-        self.positions = np.asarray(positions, dtype=float)  # (N, 2)
-        if self.positions.ndim != 2 or self.positions.shape[1] != 2:
+        _positions = np.asarray(positions, dtype=float)
+        if _positions.ndim != 2 or _positions.shape[1] != 2:
             raise ValueError("positions must have shape (N, 2)")
+        _positions.flags.writeable = False
+        self.positions = _positions
         self.reference_frequency = reference_frequency
-        n = self.positions.shape[0]
+        n = _positions.shape[0]
         if isinstance(elements, list):
             if len(elements) != n:
                 raise ValueError(
                     f"elements list length {len(elements)} != num_elements {n}"
                 )
-            self.elements = elements
+            self.elements: tuple = tuple(elements)
         else:
-            # Broadcast single element to all
-            self.elements = [elements] * n
+            self.elements = tuple([elements] * n)
 
     @property
     def num_elements(self) -> int:

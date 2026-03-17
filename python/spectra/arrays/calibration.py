@@ -26,6 +26,17 @@ class CalibrationErrors:
     gain_offsets_db: np.ndarray   # (N,)
     phase_offsets_rad: np.ndarray  # (N,)
 
+    def __post_init__(self) -> None:
+        if self.gain_offsets_db.ndim != 1 or self.phase_offsets_rad.ndim != 1:
+            raise ValueError(
+                "gain_offsets_db and phase_offsets_rad must be 1-D arrays"
+            )
+        if len(self.gain_offsets_db) != len(self.phase_offsets_rad):
+            raise ValueError(
+                f"gain_offsets_db length {len(self.gain_offsets_db)} != "
+                f"phase_offsets_rad length {len(self.phase_offsets_rad)}"
+            )
+
     @classmethod
     def random(
         cls,
