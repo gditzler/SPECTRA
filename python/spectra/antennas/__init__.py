@@ -3,6 +3,7 @@ from spectra.antennas.cosine_power import CosinePowerElement
 from spectra.antennas.dipole import HalfWaveDipoleElement, ShortDipoleElement
 from spectra.antennas.isotropic import IsotropicElement
 from spectra.antennas.msi import MSIAntennaElement, parse_msi
+from spectra.antennas.yagi import YagiElement
 
 __all__ = [
     "AntennaElement",
@@ -11,5 +12,6 @@ __all__ = [
     "IsotropicElement",
     "MSIAntennaElement",
     "ShortDipoleElement",
+    "YagiElement",
     "parse_msi",
 ]

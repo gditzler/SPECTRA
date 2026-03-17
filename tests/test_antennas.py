@@ -217,3 +217,41 @@ def test_antennas_package_exports():
     assert hasattr(antennas, "CosinePowerElement")
     assert hasattr(antennas, "MSIAntennaElement")
     assert hasattr(antennas, "parse_msi")
+
+
+def test_yagi_broadside_gain_zero():
+    """Yagi pointing along +x should have zero gain at az=90° (broadside)."""
+    from spectra.antennas.yagi import YagiElement
+    elem = YagiElement(n_elements=3, frequency=1e9)
+    az = np.deg2rad(90.0)
+    el = 0.0
+    g = elem.pattern(np.array([az]), np.array([el]))
+    assert abs(g[0]) < 1e-6, f"Expected ~0 at broadside, got {abs(g[0]):.4f}"
+
+
+def test_yagi_endfire_gain_one():
+    """Yagi pointing along +x should have gain 1 at az=0° (endfire)."""
+    from spectra.antennas.yagi import YagiElement
+    elem = YagiElement(n_elements=3, frequency=1e9)
+    g = elem.pattern(np.array([0.0]), np.array([0.0]))
+    assert abs(g[0] - 1.0) < 1e-6, f"Expected 1.0 at endfire, got {abs(g[0]):.4f}"
+
+
+def test_yagi_pattern_shape():
+    """YagiElement.pattern returns correct broadcast shape."""
+    from spectra.antennas.yagi import YagiElement
+    elem = YagiElement(frequency=1e9)
+    az = np.linspace(0, np.pi, 37)
+    el = np.zeros(37)
+    g = elem.pattern(az, el)
+    assert g.shape == (37,)
+    assert g.dtype == complex
+
+
+def test_yagi_back_hemisphere_zero():
+    """Yagi should have zero gain for az in (π/2, 3π/2)."""
+    from spectra.antennas.yagi import YagiElement
+    elem = YagiElement(n_elements=5, frequency=1e9)
+    az_back = np.deg2rad(180.0)
+    g = elem.pattern(np.array([az_back]), np.array([0.0]))
+    assert abs(g[0]) < 1e-6
