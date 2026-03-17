@@ -208,3 +208,15 @@ def test_msi_missing_section_raises(tmp_path):
 
     with pytest.raises(ValueError, match="VERTICAL"):
         parse_msi(bad_file)
+
+
+def test_antennas_package_exports():
+    import spectra.antennas as antennas
+
+    assert hasattr(antennas, "AntennaElement")
+    assert hasattr(antennas, "IsotropicElement")
+    assert hasattr(antennas, "ShortDipoleElement")
+    assert hasattr(antennas, "HalfWaveDipoleElement")
+    assert hasattr(antennas, "CosinePowerElement")
+    assert hasattr(antennas, "MSIAntennaElement")
+    assert hasattr(antennas, "parse_msi")
