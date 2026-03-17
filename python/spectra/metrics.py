@@ -116,3 +116,35 @@ def per_snr_accuracy(
         if mask.sum() > 0:
             result[float(snr)] = float(np.mean(y_true[mask] == y_pred[mask]))
     return result
+
+
+def per_snr_rmse(
+    true_angles: Sequence[float],
+    estimated_angles: Sequence[float],
+    snr_values: Sequence[float],
+) -> Dict[float, float]:
+    """Compute angular RMSE in **degrees** grouped by SNR bin.
+
+    Args:
+        true_angles: Ground-truth azimuth angles in radians.
+        estimated_angles: Estimated azimuth angles in radians.
+        snr_values: SNR value (dB) for each sample.
+
+    Returns:
+        Dict mapping each unique SNR value to the RMSE in degrees at that SNR.
+    """
+    true_angles = np.asarray(true_angles, dtype=float)
+    estimated_angles = np.asarray(estimated_angles, dtype=float)
+    snr_values = np.asarray(snr_values, dtype=float)
+
+    if len(true_angles) == 0:
+        return {}
+
+    result: Dict[float, float] = {}
+    for snr in np.unique(snr_values):
+        mask = snr_values == snr
+        if mask.sum() > 0:
+            errors = true_angles[mask] - estimated_angles[mask]
+            rmse_rad = float(np.sqrt(np.mean(errors ** 2)))
+            result[float(snr)] = float(np.rad2deg(rmse_rad))
+    return result

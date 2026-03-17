@@ -74,3 +74,29 @@ class TestPerSNRAccuracy:
     def test_single_snr(self):
         result = per_snr_accuracy([0, 1], [0, 0], [5.0, 5.0])
         assert result[5.0] == 0.5
+
+
+def test_per_snr_rmse_basic():
+    from spectra.metrics import per_snr_rmse
+    import numpy as np
+    true_az = np.array([1.0, 1.0, 2.0, 2.0])
+    est_az  = np.array([1.1, 0.9, 2.2, 1.8])
+    snrs    = np.array([10.0, 10.0, 20.0, 20.0])
+    result = per_snr_rmse(true_az, est_az, snrs)
+    assert set(result.keys()) == {10.0, 20.0}
+    # SNR=10: errors are 0.1 and 0.1 rad → RMSE = 0.1 rad = ~5.73°
+    assert abs(result[10.0] - np.rad2deg(0.1)) < 0.01
+    # SNR=20: errors are 0.2 and 0.2 rad → RMSE = 0.2 rad = ~11.46°
+    assert abs(result[20.0] - np.rad2deg(0.2)) < 0.01
+
+
+def test_per_snr_rmse_single_snr():
+    from spectra.metrics import per_snr_rmse
+    result = per_snr_rmse([1.0, 1.5], [1.0, 1.5], [5.0, 5.0])
+    assert result[5.0] == 0.0
+
+
+def test_per_snr_rmse_empty_raises():
+    from spectra.metrics import per_snr_rmse
+    result = per_snr_rmse([], [], [])
+    assert result == {}
