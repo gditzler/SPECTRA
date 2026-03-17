@@ -25,7 +25,7 @@ class CosinePowerElement(AntennaElement):
         self.exponent = exponent
         self.peak_gain_dbi = peak_gain_dbi
         self._frequency = frequency
-        self._peak_linear = 10.0 ** (peak_gain_dbi / 10.0)
+        self._peak_linear = 10.0 ** (peak_gain_dbi / 20.0)
 
     @property
     def frequency(self) -> float:

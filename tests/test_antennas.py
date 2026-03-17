@@ -96,7 +96,7 @@ def test_cosine_power_boresight_max():
 
     elem = CosinePowerElement(exponent=1.5, peak_gain_dbi=3.0, frequency=2.4e9)
     gain = elem.pattern(np.array([0.0]), np.array([np.pi / 2]))
-    peak_linear = 10 ** (3.0 / 10.0)
+    peak_linear = 10 ** (3.0 / 20.0)
     np.testing.assert_allclose(np.abs(gain[0]), peak_linear, rtol=1e-5)
 
 
@@ -115,9 +115,6 @@ def test_cosine_power_returns_complex():
     elem = CosinePowerElement(exponent=2.0, frequency=1e9)
     gain = elem.pattern(np.array([0.0, 1.0]), np.array([0.0, 0.5]))
     assert np.issubdtype(gain.dtype, np.complexfloating)
-
-
-import os
 
 
 def _write_minimal_msi(path: str, freq_mhz: float = 2400.0, gain_dbi: float = 3.0) -> None:
@@ -192,7 +189,7 @@ def test_msi_flat_pattern_uniform_gain(tmp_path):
     az = np.linspace(0, 2 * np.pi, 10)
     el = np.zeros(10)
     gain = elem.pattern(az, el)
-    peak_linear = 10 ** (3.0 / 10.0)
+    peak_linear = 10 ** (3.0 / 20.0)
     np.testing.assert_allclose(np.abs(gain), peak_linear, rtol=1e-4)
 
 

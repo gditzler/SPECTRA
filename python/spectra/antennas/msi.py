@@ -1,6 +1,5 @@
 """MSI/Planet antenna file parser and element."""
 
-from typing import Optional
 import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from spectra.antennas.base import AntennaElement
@@ -59,7 +58,7 @@ class MSIAntennaElement(AntennaElement):
         points = np.stack([az_deg.ravel(), el_deg_idx.ravel()], axis=-1)
         relative_db = self._interp(points).reshape(az_b.shape)
         total_db = self._peak_gain_dbi + relative_db
-        gain_linear = 10.0 ** (total_db / 10.0)
+        gain_linear = 10.0 ** (total_db / 20.0)
         return gain_linear.astype(complex)
 
 

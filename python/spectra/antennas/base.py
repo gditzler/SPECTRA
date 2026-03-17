@@ -22,7 +22,9 @@ class AntennaElement(ABC):
 
         Returns:
             Complex-valued array with shape matching the broadcast shape of
-            inputs. Magnitude is linear gain; phase is the pattern phase shift.
+            inputs. Magnitude is linear field-amplitude gain (voltage ratio, not
+            power ratio); phase is the pattern phase shift. To convert from dBi,
+            use ``10 ** (dbi / 20.0)``.
         """
         ...
 

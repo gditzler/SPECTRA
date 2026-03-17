@@ -79,6 +79,5 @@ class HalfWaveDipoleElement(AntennaElement):
         gain = numerator / sin_theta
         # Normalize to 1 at broadside (theta = pi/2)
         broadside = np.cos((np.pi / 2) * np.cos(np.pi / 2)) / np.sin(np.pi / 2)
-        if broadside != 0:
-            gain = gain / broadside
+        gain = gain / broadside
         return gain.astype(complex)
