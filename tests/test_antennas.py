@@ -88,3 +88,30 @@ def test_dipole_returns_complex():
     elem = ShortDipoleElement(axis="z", frequency=300e6)
     gain = elem.pattern(np.array([0.0]), np.array([0.0]))
     assert np.issubdtype(gain.dtype, np.complexfloating)
+
+
+def test_cosine_power_boresight_max():
+    """Gain at boresight (elevation=pi/2) should equal the linear peak gain."""
+    from spectra.antennas.cosine_power import CosinePowerElement
+
+    elem = CosinePowerElement(exponent=1.5, peak_gain_dbi=3.0, frequency=2.4e9)
+    gain = elem.pattern(np.array([0.0]), np.array([np.pi / 2]))
+    peak_linear = 10 ** (3.0 / 10.0)
+    np.testing.assert_allclose(np.abs(gain[0]), peak_linear, rtol=1e-5)
+
+
+def test_cosine_power_back_hemisphere_zero():
+    """Gain is zero for theta_off > pi/2 (back hemisphere)."""
+    from spectra.antennas.cosine_power import CosinePowerElement
+
+    elem = CosinePowerElement(exponent=1.5, peak_gain_dbi=0.0, frequency=2.4e9)
+    gain = elem.pattern(np.array([0.0]), np.array([-np.pi / 2]))
+    np.testing.assert_allclose(np.abs(gain[0]), 0.0, atol=1e-6)
+
+
+def test_cosine_power_returns_complex():
+    from spectra.antennas.cosine_power import CosinePowerElement
+
+    elem = CosinePowerElement(exponent=2.0, frequency=1e9)
+    gain = elem.pattern(np.array([0.0, 1.0]), np.array([0.0, 0.5]))
+    assert np.issubdtype(gain.dtype, np.complexfloating)
