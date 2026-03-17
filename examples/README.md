@@ -123,6 +123,21 @@ Build and evaluate a cyclostationary AMC classifier.
 cd examples && python 08_csp_classification.py
 ```
 
+### 13 — Direction-Finding Dataset with MUSIC and ESPRIT (Intermediate)
+
+Build a `DirectionFindingDataset` with multiple co-channel sources at known azimuths, then
+estimate those azimuths using the MUSIC pseudospectrum and ESPRIT subspace algorithms.
+Compares estimated angles to ground truth and reports RMSE over 100 samples.
+
+- Configure a ULA with `spectra.arrays.ula()`
+- Build a `DirectionFindingDataset` with multiple concurrent sources
+- Apply **MUSIC** (noise-subspace pseudospectrum) and **ESPRIT** (rotational invariance)
+- Compute RMSE and compare algorithm performance
+
+```bash
+cd examples && python 13_direction_finding.py
+```
+
 ### 12 — Choi-Williams Distribution (Intermediate)
 
 Compare the Choi-Williams Distribution against the WVD for cross-term suppression.
@@ -154,5 +169,6 @@ examples/
   07_csp_features.ipynb / .py           # Intermediate
   08_csp_classification.ipynb / .py     # Advanced
   12_cwd_cross_term_suppression.ipynb / .py  # Intermediate
+  13_direction_finding.ipynb / .py      # Intermediate
   outputs/                              # Generated figures
 ```
