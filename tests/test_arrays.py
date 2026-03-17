@@ -129,3 +129,13 @@ def test_calibration_errors_zero_is_identity():
     sv = np.array([1.0 + 0j, 0.5 + 0.5j, 0.0 + 1.0j])
     sv_cal = cal.apply(sv)
     np.testing.assert_allclose(sv_cal, sv, atol=1e-10)
+
+
+def test_arrays_package_exports():
+    import spectra.arrays as arrays
+
+    assert hasattr(arrays, "AntennaArray")
+    assert hasattr(arrays, "CalibrationErrors")
+    assert hasattr(arrays, "ula")
+    assert hasattr(arrays, "uca")
+    assert hasattr(arrays, "rectangular")
