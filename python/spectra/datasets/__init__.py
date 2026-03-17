@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple
 import torch
 
 from spectra.datasets.cyclo import CyclostationaryDataset
+from spectra.datasets.direction_finding import DirectionFindingDataset, DirectionFindingTarget
 from spectra.datasets.folder import SignalFolderDataset
 from spectra.datasets.manifest import ManifestDataset
 from spectra.datasets.metadata import DatasetMetadata, NarrowbandMetadata, WidebandMetadata
@@ -28,6 +29,8 @@ __all__ = [
     "CutMixDataset",
     "CyclostationaryDataset",
     "DatasetMetadata",
+    "DirectionFindingDataset",
+    "DirectionFindingTarget",
     "ManifestDataset",
     "MixUpDataset",
     "NarrowbandDataset",
