@@ -4,11 +4,11 @@ import numpy as np
 
 
 class ToSnapshotMatrix:
-    """Convert a real [n_elements, 2, num_snapshots] tensor to a complex
-    [n_elements, num_snapshots] snapshot matrix.
+    """Convert a real ``[n_elements, 2, num_snapshots]`` tensor to a complex
+    ``[n_elements, num_snapshots]`` snapshot matrix.
 
     The input format (I and Q channels separated in dimension 1) matches the
-    output of DirectionFindingDataset.
+    output of :class:`~spectra.datasets.DirectionFindingDataset`.
     The output format is suitable as input to classical DoA algorithms
     (MUSIC, ESPRIT, Capon).
 
@@ -22,10 +22,10 @@ class ToSnapshotMatrix:
     def __call__(self, x: np.ndarray) -> np.ndarray:
         """
         Args:
-            x: Real array of shape [n_elements, 2, num_snapshots].
+            x: Real array of shape ``[n_elements, 2, num_snapshots]``.
                 Channel 0 is I, channel 1 is Q.
 
         Returns:
-            Complex array of shape [n_elements, num_snapshots].
+            Complex array of shape ``[n_elements, num_snapshots]``.
         """
         return x[:, 0, :] + 1j * x[:, 1, :]
