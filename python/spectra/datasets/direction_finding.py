@@ -1,8 +1,8 @@
-# python/spectra/datasets/direction_finding.py
 """Direction-finding dataset for ML-based DoA estimation."""
 
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 from typing import Callable, List, Optional, Tuple, Union
 
@@ -46,6 +46,15 @@ class DirectionFindingDataset(Dataset):
     Generates multi-antenna IQ snapshots deterministically from
     ``(base_seed, idx)`` pairs using ``np.random.default_rng``. Safe for
     use with ``num_workers > 0``.
+
+    .. note::
+        PyTorch's ``default_collate`` cannot batch :class:`DirectionFindingTarget`
+        directly. Use a custom ``collate_fn`` that returns targets as a list::
+
+            def collate_fn(batch):
+                return torch.stack([x for x, _ in batch]), [t for _, t in batch]
+
+            loader = DataLoader(dataset, batch_size=8, collate_fn=collate_fn)
 
     The output tensor has shape ``[n_elements, 2, num_snapshots]`` where
     channel 0 is I and channel 1 is Q. Each element's IQ is formed by
@@ -93,6 +102,8 @@ class DirectionFindingDataset(Dataset):
         num_samples: int = 10000,
         seed: int = 0,
     ):
+        if num_snapshots <= 0:
+            raise ValueError(f"num_snapshots must be positive, got {num_snapshots}")
         self.array = array
         self.signal_pool = signal_pool
         self.num_signals = num_signals
@@ -210,6 +221,13 @@ class DirectionFindingDataset(Dataset):
                 return azimuths, elevations
 
         # Fallback: return last draw even if separation not met
+        warnings.warn(
+            f"Could not satisfy min_angular_separation={self.min_angular_separation:.4f} rad "
+            f"for {n_sources} sources after {max_attempts} attempts. "
+            "Returning angles that may violate the separation constraint.",
+            UserWarning,
+            stacklevel=2,
+        )
         return azimuths, elevations
 
     def _angles_are_separated(

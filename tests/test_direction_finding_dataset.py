@@ -156,9 +156,22 @@ def test_with_transform():
 
 
 def test_min_angular_separation():
-    ds = _make_dataset(num_signals=2, min_angular_separation=np.deg2rad(10))
-    _, target = ds[0]
-    assert target.num_sources == 2  # just verify it runs without error
+    min_sep = np.deg2rad(10)
+    ds = _make_dataset(num_signals=2, min_angular_separation=min_sep)
+    # Run multiple samples — at least some should satisfy the constraint
+    # (with full-circle azimuth range and 1000 attempts, failure is extremely rare)
+    for i in range(10):
+        _, target = ds[i]
+        assert target.num_sources == 2
+        from spectra.datasets.direction_finding import _angular_separation
+        sep = _angular_separation(
+            target.azimuths[0], target.elevations[0],
+            target.azimuths[1], target.elevations[1],
+        )
+        assert sep >= min_sep - 1e-9, (
+            f"Angular separation {np.rad2deg(sep):.2f}° < "
+            f"min {np.rad2deg(min_sep):.2f}°"
+        )
 
 
 def test_no_nan_in_output():
