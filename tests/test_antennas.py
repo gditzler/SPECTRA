@@ -47,3 +47,44 @@ def test_isotropic_frequency_property():
 
     elem = IsotropicElement(frequency=900e6)
     assert elem.frequency == 900e6
+
+
+def test_short_dipole_z_axis_broadside():
+    """Gain is maximum (=1) at elevation=0 (equatorial plane), zero at poles."""
+    from spectra.antennas.dipole import ShortDipoleElement
+
+    elem = ShortDipoleElement(axis="z", frequency=300e6)
+    az = np.array([0.0])
+    el = np.array([0.0])
+    gain = elem.pattern(az, el)
+    np.testing.assert_allclose(np.abs(gain), [1.0], atol=1e-6)
+
+
+def test_short_dipole_z_axis_pole_null():
+    """Gain is zero at elevation=pi/2 (pole, along dipole axis)."""
+    from spectra.antennas.dipole import ShortDipoleElement
+
+    elem = ShortDipoleElement(axis="z", frequency=300e6)
+    az = np.array([0.0])
+    el = np.array([np.pi / 2])
+    gain = elem.pattern(az, el)
+    np.testing.assert_allclose(np.abs(gain), [0.0], atol=1e-6)
+
+
+def test_half_wave_dipole_z_broadside():
+    """Half-wave dipole: gain at broadside should be ~1 (normalized)."""
+    from spectra.antennas.dipole import HalfWaveDipoleElement
+
+    elem = HalfWaveDipoleElement(axis="z", frequency=300e6)
+    az = np.array([0.0])
+    el = np.array([0.0])
+    gain = elem.pattern(az, el)
+    assert np.abs(gain[0]) > 0.9
+
+
+def test_dipole_returns_complex():
+    from spectra.antennas.dipole import ShortDipoleElement
+
+    elem = ShortDipoleElement(axis="z", frequency=300e6)
+    gain = elem.pattern(np.array([0.0]), np.array([0.0]))
+    assert np.issubdtype(gain.dtype, np.complexfloating)
