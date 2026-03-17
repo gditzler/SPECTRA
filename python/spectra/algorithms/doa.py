@@ -95,6 +95,98 @@ def esprit(
     return np.sort(azimuths)
 
 
+def capon(
+    X: np.ndarray,
+    array: AntennaArray,
+    scan_angles: np.ndarray,
+    elevation: float = 0.0,
+    diagonal_loading: float = 1e-6,
+) -> np.ndarray:
+    """Capon (MVDR) minimum-variance pseudospectrum over a 1-D azimuth scan.
+
+    The Capon beamformer minimises output power subject to a distortionless
+    response constraint at each scan angle.  It generally achieves finer
+    spatial resolution than MUSIC at moderate SNR and does not require knowing
+    the number of sources.
+
+    Args:
+        X: Complex snapshot matrix, shape ``(N_elements, T)``.
+        array: :class:`~spectra.arrays.array.AntennaArray` for steering vectors.
+        scan_angles: 1-D array of candidate azimuth angles in radians.
+        elevation: Fixed elevation angle in radians (default 0).
+        diagonal_loading: Regularisation added to diagonal of R before
+            inversion (prevents ill-conditioning). Default 1e-6.
+
+    Returns:
+        Pseudospectrum values, shape ``(len(scan_angles),)``.
+    """
+    N, T = X.shape
+    R = (X @ X.conj().T) / T
+    R_reg = R + diagonal_loading * np.eye(N)
+    R_inv = np.linalg.inv(R_reg)
+
+    spectrum = np.empty(len(scan_angles))
+    for i, az in enumerate(scan_angles):
+        a = array.steering_vector(azimuth=az, elevation=elevation)  # (N,)
+        denom = float(np.real(a.conj() @ R_inv @ a))
+        spectrum[i] = 1.0 / (denom + 1e-30)
+
+    return spectrum
+
+
+def root_music(
+    X: np.ndarray,
+    num_sources: int,
+    spacing: float = 0.5,
+) -> np.ndarray:
+    """Root-MUSIC DoA estimates for a Uniform Linear Array.
+
+    Avoids spatial scanning by forming the MUSIC polynomial and finding its
+    roots.  The signal roots are the ``num_sources`` roots of the noise-subspace
+    polynomial that lie closest to the unit circle.
+
+    Works only with ULAs (shift-invariant arrays along the x-axis).
+
+    Args:
+        X: Complex snapshot matrix, shape ``(N_elements, T)``.
+        num_sources: Number of signal sources.
+        spacing: ULA inter-element spacing in wavelengths. Default 0.5.
+
+    Returns:
+        Estimated azimuth angles in radians, shape ``(num_sources,)``,
+        sorted ascending, values in ``[0, π]``.
+    """
+    N, T = X.shape
+    R = (X @ X.conj().T) / T
+    _, U = np.linalg.eigh(R)          # ascending eigenvalues
+    En = U[:, : N - num_sources]       # noise subspace (N, N-K)
+    C = En @ En.conj().T               # noise projection (N, N)
+
+    # Form polynomial coefficients: c[k] = trace of k-th diagonal of C
+    # Polynomial degree 2*(N-1), coefficients indexed -(N-1) … (N-1)
+    coeffs = np.zeros(2 * N - 1, dtype=complex)
+    for k in range(-(N - 1), N):
+        coeffs[k + N - 1] = np.sum(np.diag(C, k))
+
+    # np.roots expects highest degree first; flip to put z^{2(N-1)} first
+    roots = np.roots(coeffs[::-1])
+
+    # For each signal, the Hermitian-symmetric polynomial has a conjugate-reciprocal
+    # root pair (z, 1/z*) straddling the unit circle.  Restrict to roots inside the
+    # unit circle to pick one root per pair, then take the K closest to |z|=1.
+    inside = np.abs(roots) < 1.0
+    candidates = roots[inside]
+    if len(candidates) < num_sources:
+        candidates = roots  # fallback: use all roots
+    order = np.argsort(np.abs(np.abs(candidates) - 1.0))
+    signal_roots = candidates[order][:num_sources]
+
+    # cos(az) = angle(z) / (2π·d)
+    cos_az = np.angle(signal_roots) / (2.0 * np.pi * spacing)
+    cos_az = np.clip(cos_az.real, -1.0, 1.0)
+    return np.sort(np.arccos(cos_az))
+
+
 def find_peaks_doa(
     spectrum: np.ndarray,
     scan_angles: np.ndarray,

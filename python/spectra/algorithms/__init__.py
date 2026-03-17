@@ -4,9 +4,10 @@ from spectra.algorithms.beamforming import (
     lcmv,
     mvdr,
 )
-from spectra.algorithms.doa import esprit, find_peaks_doa, music
+from spectra.algorithms.doa import capon, esprit, find_peaks_doa, music, root_music
 
 __all__ = [
+    "capon",
     "compute_beam_pattern",
     "delay_and_sum",
     "esprit",
@@ -14,4 +15,5 @@ __all__ = [
     "lcmv",
     "music",
     "mvdr",
+    "root_music",
 ]
