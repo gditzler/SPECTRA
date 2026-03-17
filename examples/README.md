@@ -123,6 +123,21 @@ Build and evaluate a cyclostationary AMC classifier.
 cd examples && python 08_csp_classification.py
 ```
 
+### 16 — Wideband Direction-Finding Dataset (Intermediate–Advanced)
+
+Build a `WidebandDirectionFindingDataset` with multiple co-channel sources each occupying
+a distinct sub-band within a wideband capture. Apply sub-band MUSIC at each source's
+center frequency to estimate per-source azimuth angles.
+
+- Build a `WidebandDirectionFindingDataset` with frequency-dependent steering vectors
+- Visualise multi-antenna wideband spectrograms with per-source frequency markers
+- Apply **sub-band MUSIC** via frequency-shift + low-pass filtering per source
+- Analyse the source center frequency distribution across the dataset
+
+```bash
+cd examples && python 16_wideband_direction_finding.py
+```
+
 ### 15 — Radar Range Profile Processing (Intermediate)
 
 Build a `RadarDataset` with LFM, Barker-coded, and P4 polyphase-coded radar
@@ -202,5 +217,6 @@ examples/
   13_direction_finding.ipynb / .py      # Intermediate
   14_beamforming.ipynb / .py            # Intermediate
   15_radar_processing.ipynb / .py       # Intermediate
+  16_wideband_direction_finding.ipynb / .py  # Intermediate–Advanced
   outputs/                              # Generated figures
 ```
