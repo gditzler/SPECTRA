@@ -108,9 +108,16 @@ def test_snr_in_range():
 
 def test_with_dataloader():
     ds = _make_dataset(num_samples=16, num_snapshots=64)
-    loader = DataLoader(ds, batch_size=4)
+
+    def _collate(batch):
+        data = torch.stack([x for x, _ in batch])
+        targets = [t for _, t in batch]
+        return data, targets
+
+    loader = DataLoader(ds, batch_size=4, collate_fn=_collate)
     batch_data, batch_targets = next(iter(loader))
     assert batch_data.shape == (4, 4, 2, 64)
+    assert len(batch_targets) == 4
 
 
 def test_with_calibration_errors():

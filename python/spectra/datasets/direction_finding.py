@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections import namedtuple
+from dataclasses import dataclass, field
 from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
@@ -18,73 +18,9 @@ from spectra.scene.signal_desc import SignalDescription
 from spectra.waveforms.base import Waveform
 
 
-class _DoAProxy(dict):
-    """A dict that stores DoA fields, hiding ``None``-valued keys from
-    PyTorch's default collate (which cannot handle ``None``) while still
-    returning ``None`` for those keys via ``__getitem__`` / ``__contains__``.
-    """
-
-    def __init__(self, data: dict) -> None:
-        self._none_keys: frozenset = frozenset(
-            k for k, v in data.items() if v is None
-        )
-        super().__init__({k: v for k, v in data.items() if v is not None})
-
-    def __getitem__(self, key: str):
-        if key in self._none_keys:
-            return None
-        return super().__getitem__(key)
-
-    def __contains__(self, key: object) -> bool:
-        return key in self._none_keys or super().__contains__(key)
-
-    def get(self, key, default=None):
-        if key in self._none_keys:
-            return None
-        return super().get(key, default)
-
-
-class _SignalDescProxy(dict):
-    """Dict-backed stand-in for :class:`~spectra.scene.signal_desc.SignalDescription`
-    that provides attribute-style access (``desc.modulation_params``) and
-    wraps the ``doa`` sub-dict in :class:`_DoAProxy` so that ``None``-valued
-    spread fields are collatable by PyTorch's default collate function.
-    """
-
-    def __init__(self, desc: SignalDescription) -> None:
-        mp = {}
-        for mk, mv in desc.modulation_params.items():
-            mp[mk] = _DoAProxy(mv) if isinstance(mv, dict) else mv
-        super().__init__(
-            {
-                "label": desc.label,
-                "snr": desc.snr,
-                "t_start": desc.t_start,
-                "t_stop": desc.t_stop,
-                "f_low": desc.f_low,
-                "f_high": desc.f_high,
-                "modulation_params": mp,
-            }
-        )
-
-    def __getattr__(self, key: str):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError(key)
-
-
-_DFTargetBase = namedtuple(
-    "DirectionFindingTarget",
-    ["azimuths", "elevations", "snrs", "num_sources", "labels", "signal_descs"],
-)
-
-
-class DirectionFindingTarget(_DFTargetBase):
+@dataclass
+class DirectionFindingTarget:
     """Ground-truth labels for a direction-finding snapshot.
-
-    A :func:`collections.namedtuple` subclass that is compatible with
-    PyTorch's default :func:`~torch.utils.data.dataloader.default_collate`.
 
     Attributes:
         azimuths: Source azimuth angles in radians, shape ``(num_sources,)``.
@@ -92,13 +28,16 @@ class DirectionFindingTarget(_DFTargetBase):
         snrs: Per-source SNR in dB, shape ``(num_sources,)``.
         num_sources: Number of active sources.
         labels: Modulation label string per source.
-        signal_descs: Per-source dict-like signal descriptors.  Each entry
-            exposes ``label``, ``snr``, ``modulation_params``, etc. via
-            attribute *and* key access, and stores DoA in
-            ``modulation_params["doa"]``.
+        signal_descs: Full :class:`~spectra.scene.signal_desc.SignalDescription`
+            per source, with DoA stored in ``modulation_params["doa"]``.
     """
 
-    __slots__ = ()
+    azimuths: np.ndarray
+    elevations: np.ndarray
+    snrs: np.ndarray
+    num_sources: int
+    labels: List[str]
+    signal_descs: List[SignalDescription] = field(default_factory=list)
 
 
 class DirectionFindingDataset(Dataset):
@@ -226,8 +165,7 @@ class DirectionFindingDataset(Dataset):
                 iq, desc = self.impairments(iq, desc, sample_rate=self.sample_rate)
 
             source_iq.append(iq)
-            # Wrap in a collate-safe proxy that preserves attribute access
-            signal_descs.append(_SignalDescProxy(desc))
+            signal_descs.append(desc)
             labels.append(waveform.label)
 
         # --- Spatial mixing ---
