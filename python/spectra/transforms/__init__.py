@@ -33,6 +33,7 @@ from spectra.transforms.normalize import Normalize, SpectrogramNormalize
 from spectra.transforms.reassigned_gabor import ReassignedGabor
 from spectra.transforms.scd import SCD
 from spectra.transforms.scf import SCF
+from spectra.transforms.snapshot import ToSnapshotMatrix
 from spectra.transforms.spectrogram import Spectrogram
 from spectra.transforms.stft import STFT
 from spectra.transforms.target_transforms import (
@@ -79,6 +80,7 @@ __all__ = [
     "STFT",
     "TargetTransform",
     "TimeReversal",
+    "ToSnapshotMatrix",
     "WVD",
     "BandpassAlign",
     "ClipNormalize",
