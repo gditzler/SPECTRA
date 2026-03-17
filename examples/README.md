@@ -123,6 +123,21 @@ Build and evaluate a cyclostationary AMC classifier.
 cd examples && python 08_csp_classification.py
 ```
 
+### 15 — Radar Range Profile Processing (Intermediate)
+
+Build a `RadarDataset` with LFM, Barker-coded, and P4 polyphase-coded radar
+waveforms. Apply a matched filter to detect point targets, then compare
+CA-CFAR and OS-CFAR adaptive threshold detectors against range-bin ground truth.
+
+- Build a `RadarDataset` with point-scatterer targets at random range bins
+- Apply `matched_filter` to maximise SNR for a known pulse shape
+- Apply **CA-CFAR** and **OS-CFAR** adaptive threshold detectors
+- Visualise and compare detection results against ground truth
+
+```bash
+cd examples && python 15_radar_processing.py
+```
+
 ### 14 — Beamforming with a ULA (Intermediate)
 
 Apply Delay-and-Sum, MVDR (Capon), and LCMV beamformers to a two-source scenario with a
@@ -186,5 +201,6 @@ examples/
   12_cwd_cross_term_suppression.ipynb / .py  # Intermediate
   13_direction_finding.ipynb / .py      # Intermediate
   14_beamforming.ipynb / .py            # Intermediate
+  15_radar_processing.ipynb / .py       # Intermediate
   outputs/                              # Generated figures
 ```
