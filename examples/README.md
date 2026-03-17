@@ -123,6 +123,21 @@ Build and evaluate a cyclostationary AMC classifier.
 cd examples && python 08_csp_classification.py
 ```
 
+### 14 — Beamforming with a ULA (Intermediate)
+
+Apply Delay-and-Sum, MVDR (Capon), and LCMV beamformers to a two-source scenario with a
+desired signal and a strong interferer. Visualises and compares normalised beam patterns
+showing where each algorithm places its main lobe and nulls.
+
+- Apply **Delay-and-Sum** (DAS) conventional beamforming
+- Apply **MVDR** (Capon) minimum-variance distortionless-response beamforming
+- Apply **LCMV** beamforming with simultaneous gain and null constraints
+- Compare normalised beam patterns with `compute_beam_pattern()`
+
+```bash
+cd examples && python 14_beamforming.py
+```
+
 ### 13 — Direction-Finding Dataset with MUSIC and ESPRIT (Intermediate)
 
 Build a `DirectionFindingDataset` with multiple co-channel sources at known azimuths, then
@@ -170,5 +185,6 @@ examples/
   08_csp_classification.ipynb / .py     # Advanced
   12_cwd_cross_term_suppression.ipynb / .py  # Intermediate
   13_direction_finding.ipynb / .py      # Intermediate
+  14_beamforming.ipynb / .py            # Intermediate
   outputs/                              # Generated figures
 ```
