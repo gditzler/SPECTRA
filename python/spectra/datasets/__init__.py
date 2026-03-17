@@ -6,6 +6,7 @@ from spectra.datasets.cyclo import CyclostationaryDataset
 from spectra.datasets.df_snr_sweep import DirectionFindingSNRSweepDataset
 from spectra.datasets.direction_finding import DirectionFindingDataset, DirectionFindingTarget
 from spectra.datasets.radar import RadarDataset, RadarTarget
+from spectra.datasets.wideband_df import WidebandDirectionFindingDataset, WidebandDFTarget
 from spectra.datasets.folder import SignalFolderDataset
 from spectra.datasets.manifest import ManifestDataset
 from spectra.datasets.metadata import DatasetMetadata, NarrowbandMetadata, WidebandMetadata
@@ -43,5 +44,7 @@ __all__ = [
     "SignalFolderDataset",
     "SNRSweepDataset",
     "WidebandDataset",
+    "WidebandDFTarget",
+    "WidebandDirectionFindingDataset",
     "WidebandMetadata",
 ]
