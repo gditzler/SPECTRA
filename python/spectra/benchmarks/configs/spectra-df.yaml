@@ -1,0 +1,38 @@
+# python/spectra/benchmarks/configs/spectra-df.yaml
+name: "spectra-df"
+version: "1.0"
+description: >
+  Direction-finding benchmark: 8-element ULA with BPSK, QPSK, QAM16, QAM64 sources.
+  Evaluates DoA RMSE over SNR range [-5, 25] dB with 2 concurrent sources and
+  minimum 15-degree angular separation. Azimuth range 10–170 degrees (avoids endfire).
+task: "direction_finding"
+
+sample_rate: 1_000_000
+num_snapshots: 256
+num_samples:
+  train: 20_000
+  val: 4_000
+  test: 4_000
+
+seed:
+  train: 100
+  val: 200
+  test: 300
+
+array:
+  type: "ula"
+  num_elements: 8
+  spacing: 0.5
+  frequency: 2_400_000_000
+
+signal_pool:
+  - {type: "BPSK", params: {samples_per_symbol: 4}}
+  - {type: "QPSK", params: {samples_per_symbol: 4}}
+  - {type: "QAM16", params: {samples_per_symbol: 4}}
+  - {type: "QAM64", params: {samples_per_symbol: 4}}
+
+num_signals: 2
+snr_range: [-5, 25]
+azimuth_range_deg: [10, 170]
+elevation_range_deg: [0, 0]
+min_angular_separation_deg: 15
