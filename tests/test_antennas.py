@@ -29,3 +29,21 @@ def test_concrete_antenna_element_interface():
     gain = elem.pattern(az, el)
     assert gain.shape == (2,)
     assert gain.dtype == complex or np.issubdtype(gain.dtype, np.complexfloating)
+
+
+def test_isotropic_element_unity_gain():
+    from spectra.antennas.isotropic import IsotropicElement
+
+    elem = IsotropicElement(frequency=2.4e9)
+    az = np.linspace(0, 2 * np.pi, 36)
+    el = np.linspace(-np.pi / 2, np.pi / 2, 36)
+    gain = elem.pattern(az, el)
+    assert gain.shape == (36,)
+    np.testing.assert_array_equal(gain, 1.0 + 0j)
+
+
+def test_isotropic_frequency_property():
+    from spectra.antennas.isotropic import IsotropicElement
+
+    elem = IsotropicElement(frequency=900e6)
+    assert elem.frequency == 900e6
