@@ -123,6 +123,24 @@ Build and evaluate a cyclostationary AMC classifier.
 cd examples && python 08_csp_classification.py
 ```
 
+### 17 — Radar Processing Pipeline (Advanced)
+
+End-to-end radar simulation pipeline: define target trajectories, generate
+Swerling RCS fluctuations, apply terrain-typed clutter, process with MTI
+and Doppler filter banks, and track targets with a Kalman filter via
+`RadarPipelineDataset`.
+
+- Define **CV** and **CT** target trajectories with `ConstantVelocity` / `ConstantTurnRate`
+- Generate **Swerling RCS** amplitude patterns (cases 0–IV)
+- Apply **radar clutter** presets (ground, sea, weather) via `RadarClutter`
+- Visualise **MTI** clutter suppression and **range-Doppler maps**
+- Build a `RadarPipelineDataset` with waveform → channel → receiver → tracker
+- Compare **Kalman filter** track estimates against ground truth
+
+```bash
+cd examples && python 17_radar_pipeline.py
+```
+
 ### 16 — Wideband Direction-Finding Dataset (Intermediate–Advanced)
 
 Build a `WidebandDirectionFindingDataset` with multiple co-channel sources each occupying
@@ -218,5 +236,6 @@ examples/
   14_beamforming.ipynb / .py            # Intermediate
   15_radar_processing.ipynb / .py       # Intermediate
   16_wideband_direction_finding.ipynb / .py  # Intermediate–Advanced
+  17_radar_pipeline.ipynb / .py         # Advanced
   outputs/                              # Generated figures
 ```
