@@ -148,3 +148,36 @@ def per_snr_rmse(
             rmse_rad = float(np.sqrt(np.mean(errors ** 2)))
             result[float(snr)] = float(np.rad2deg(rmse_rad))
     return result
+
+
+def bit_error_rate(tx_bits: np.ndarray, rx_bits: np.ndarray) -> float:
+    """Fraction of bits that differ between transmitted and received sequences."""
+    tx_bits = np.asarray(tx_bits)
+    rx_bits = np.asarray(rx_bits)
+    return float(np.mean(tx_bits != rx_bits))
+
+
+def symbol_error_rate(tx_indices: np.ndarray, rx_indices: np.ndarray) -> float:
+    """Fraction of symbol indices that differ."""
+    tx_indices = np.asarray(tx_indices)
+    rx_indices = np.asarray(rx_indices)
+    return float(np.mean(tx_indices != rx_indices))
+
+
+def packet_error_rate(
+    tx_bits: np.ndarray, rx_bits: np.ndarray, packet_length: int
+) -> float:
+    """Fraction of fixed-length packets containing at least one bit error.
+
+    Truncates to the largest multiple of ``packet_length``.
+    """
+    tx_bits = np.asarray(tx_bits)
+    rx_bits = np.asarray(rx_bits)
+    n_packets = len(tx_bits) // packet_length
+    if n_packets == 0:
+        return 0.0
+    usable = n_packets * packet_length
+    tx_blocks = tx_bits[:usable].reshape(n_packets, packet_length)
+    rx_blocks = rx_bits[:usable].reshape(n_packets, packet_length)
+    packet_errors = np.any(tx_blocks != rx_blocks, axis=1)
+    return float(np.mean(packet_errors))
