@@ -36,6 +36,7 @@ python/spectra/
     visualize_tab.py     # Visualize tab UI + callbacks
     export_tab.py        # Export tab UI + callbacks
     plotting.py          # 7 plot functions (IQ, FFT, waterfall, constellation, SCD, ambiguity, eye)
+    params.py            # Waveform parameter registry (auto-generated from inspect.signature)
     theme.py             # Custom Gradio theme (dark/light)
   cli/
     main.py              # Unified CLI: studio, generate, viz subcommands
@@ -77,8 +78,8 @@ Left column (40%) — configuration. Right column (60%) — live preview.
 - Waveform type dropdown: populated from `WAVEFORM_CATEGORIES` in `config_builder.py`
 - Dynamic parameter panel: renders sliders/dropdowns/number inputs based on waveform constructor signature
 
-**Waveform parameter registry** (`_WAVEFORM_PARAMS`):
-Maps each waveform class to its constructor parameters with types, defaults, and display labels. Examples:
+**Waveform parameter registry** (`studio/params.py` — new file):
+A `_WAVEFORM_PARAMS` dict maps each waveform class name to a list of parameter descriptors `(name, type, default, label)`. This is auto-generated from `inspect.signature()` on each class in `get_waveform_registry()` (from `config_builder.py`), with manual overrides for display labels and UI widget types (slider vs dropdown). The registry is built lazily on first access. For the ~86 waveforms, most share the same base params (RRC waveforms all have `samples_per_symbol`, `rolloff`, `filter_span`), so the registry is compact. The UI renders params using a fixed pool of ~10 generic Gradio components (`gr.Slider`, `gr.Dropdown`, `gr.Number`) that are shown/hidden via `gr.update(visible=...)` based on the selected waveform — no per-waveform component pre-building needed. Examples:
 - **RRC waveforms (BPSK, QPSK, QAM, etc.):** `samples_per_symbol` (int, 8), `rolloff` (float, 0.35), `filter_span` (int, 10)
 - **PulsedRadar:** `pulse_width_samples` (int, 64), `pri_samples` (int, 512), `num_pulses` (int, 16), `pulse_shape` (choice: rect/hamming/hann)
 - **BarkerCodedPulse:** `barker_length` (choice: 2-13), `samples_per_chip` (int, 4), `pri_samples` (int, 512), `num_pulses` (int, 16)
@@ -190,10 +191,10 @@ Launches Gradio app. Guards `import gradio` with helpful error message.
 ### `spectra generate`
 
 ```bash
-spectra generate --config config.yaml --output ./data [--format sigmf|npy|cf32] [--split train|val|test|all]
+spectra generate --config config.yaml --output ./data [--format sigmf] [--split train|val|test|all]
 ```
 
-Headless batch generation. Parses YAML via `load_benchmark()`, iterates dataset, writes files with `tqdm` progress. Supports single split or all splits.
+Headless batch generation. Parses YAML via `load_benchmark()`, iterates dataset, writes SigMF files via `SigMFWriter.write_from_dataset()` with `tqdm` progress. v1 supports SigMF output only (the existing `write_from_dataset` static method handles the full pipeline). Future versions can add `npy` and `cf32` formats by extending the writer classes.
 
 ### `spectra viz`
 
@@ -233,6 +234,18 @@ Extends `gr.themes.Soft()`:
 
 ---
 
+## Cross-Tab State Management
+
+The Gradio app uses `gr.State` to share data between tabs:
+
+- **`iq_state`** (`gr.State`): the generated/loaded complex64 IQ array. Set by the Generate tab's "Generate" button or the Visualize tab's file upload. Consumed by all three tabs.
+- **`meta_state`** (`gr.State`): a dict with `sample_rate`, `waveform_label`, `num_samples`, `snr`, and waveform constructor params. Carries configuration context to Visualize and Export tabs.
+- **`config_state`** (`gr.State`): the serialized YAML config dict. Built by Generate tab, used by Export tab's "Save Config Only" button.
+
+**Memory note:** IQ arrays up to ~1M samples (8 MB) are manageable in `gr.State`. For larger arrays, the state stores a file path reference instead and plots read from disk. The Generate tab caps preview at 1M samples; the Export tab handles arbitrarily large datasets via streaming iteration (never holds the full dataset in memory).
+
+---
+
 ## Build Order
 
 ```
@@ -250,9 +263,10 @@ Sub-projects 2, 3, and 5 are independent and can be built in parallel. Sub-proje
 
 ## Isolation Guarantees
 
-- **No changes to core SPECTRA package** — `studio/` is a leaf package that imports from `spectra.*` but nothing imports from `studio/`
+- **Studio is a leaf package** — `studio/` imports from `spectra.*` but nothing in core imports from `studio/`
+- **CLI additions are minimal** — `cli/main.py` is a new file in the core CLI package. It adds `spectra generate` and `spectra viz` subcommands that use only existing SPECTRA APIs (registries, `load_benchmark`, file handlers). The existing `cli/__main__.py` is updated to point to the new dispatcher so `python -m spectra.cli` routes through it. No existing CLI behavior changes.
 - **Optional dependency** — `gradio` is only in `spectra[ui]`, not base deps
-- **Lazy imports** — CLI commands import Gradio only when `spectra studio` is called
+- **Lazy imports** — CLI commands import Gradio only when `spectra studio` is called; `generate` and `viz` never import Gradio
 - **No test regressions** — studio tests are in a separate test file, skipped when gradio is not installed
 
 ---
