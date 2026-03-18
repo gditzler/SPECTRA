@@ -50,6 +50,16 @@ class KalmanFilter:
     def covariance(self) -> np.ndarray:
         return self._P.copy()
 
+    @property
+    def measurement_matrix(self) -> np.ndarray:
+        """Measurement matrix H, shape ``(m, n)``."""
+        return self._H.copy()
+
+    @property
+    def measurement_noise(self) -> np.ndarray:
+        """Measurement noise covariance R, shape ``(m, m)``."""
+        return self._R.copy()
+
     def predict(self) -> np.ndarray:
         self._x = self._F @ self._x
         self._P = self._F @ self._P @ self._F.T + self._Q
@@ -100,5 +110,58 @@ def ConstantVelocityKF(
     ])
 
     R = np.array([[measurement_noise_std**2]])
+
+    return KalmanFilter(F, H, Q, R, x0=x0, P0=P0)
+
+
+def RangeDopplerKF(
+    dt: float,
+    wavelength: float,
+    pri: float,
+    pulses_per_cpi: int,
+    process_noise_std: float,
+    range_noise_std: float,
+    doppler_noise_std: float,
+    x0: Optional[np.ndarray] = None,
+    P0: Optional[np.ndarray] = None,
+) -> KalmanFilter:
+    """Create a range+Doppler Kalman filter for 2D radar tracking.
+
+    State: ``[range, range_rate]`` (same as CV).
+    Measurement: ``[range_bin, centered_doppler_idx]``.
+
+    The Doppler measurement constrains ``range_rate`` via the physics:
+    ``centered_doppler_idx = range_rate * doppler_scale`` where
+    ``doppler_scale = 2 * pri * pulses_per_cpi / wavelength``.
+
+    Args:
+        dt: Time step between measurements in seconds.
+        wavelength: Carrier wavelength in metres (``3e8 / carrier_freq``).
+        pri: Pulse repetition interval in seconds.
+        pulses_per_cpi: Pulses per coherent processing interval.
+        process_noise_std: Acceleration process noise standard deviation.
+        range_noise_std: Range measurement noise standard deviation (bins).
+        doppler_noise_std: Doppler measurement noise standard deviation (bins).
+        x0: Initial state ``(2,)``. Defaults to zeros.
+        P0: Initial covariance ``(2, 2)``. Defaults to identity.
+
+    Returns:
+        Configured :class:`KalmanFilter` instance.
+    """
+    F = np.array([[1.0, dt], [0.0, 1.0]])
+
+    doppler_scale = 2.0 * pri * pulses_per_cpi / wavelength
+    H = np.array([[1.0, 0.0], [0.0, doppler_scale]])
+
+    q = process_noise_std**2
+    Q = q * np.array([
+        [dt**4 / 4, dt**3 / 2],
+        [dt**3 / 2, dt**2],
+    ])
+
+    R = np.array([
+        [range_noise_std**2, 0.0],
+        [0.0, doppler_noise_std**2],
+    ])
 
     return KalmanFilter(F, H, Q, R, x0=x0, P0=P0)

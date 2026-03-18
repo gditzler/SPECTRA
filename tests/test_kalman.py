@@ -105,3 +105,73 @@ def test_cv_kf_tracks_linear_target():
     states = kf.run(measurements)
     assert abs(states[-1, 0] - 1100.0) < 30.0
     assert abs(states[-1, 1] - 20.0) < 5.0
+
+
+def test_range_doppler_kf_factory():
+    from spectra.tracking.kalman import RangeDopplerKF, KalmanFilter
+    kf = RangeDopplerKF(
+        dt=0.016, wavelength=0.03, pri=1e-3, pulses_per_cpi=16,
+        process_noise_std=1.0, range_noise_std=5.0, doppler_noise_std=2.0,
+    )
+    assert isinstance(kf, KalmanFilter)
+    assert kf.state.shape == (2,)
+    assert kf.measurement_matrix.shape == (2, 2)
+
+
+def test_range_doppler_kf_2d_measurement():
+    from spectra.tracking.kalman import RangeDopplerKF
+    kf = RangeDopplerKF(
+        dt=0.016, wavelength=0.03, pri=1e-3, pulses_per_cpi=16,
+        process_noise_std=1.0, range_noise_std=5.0, doppler_noise_std=2.0,
+        x0=np.array([100.0, 5.0]),
+    )
+    pred = kf.predict()
+    assert pred.shape == (2,)
+    updated = kf.update(np.array([101.0, 3.0]))
+    assert updated.shape == (2,)
+    assert updated[0] > 100.0
+
+
+def test_range_doppler_kf_velocity_converges():
+    from spectra.tracking.kalman import RangeDopplerKF
+    wavelength = 0.03
+    pri = 1e-3
+    pulses_per_cpi = 16
+    dt = pri * pulses_per_cpi
+    doppler_scale = 2 * pri * pulses_per_cpi / wavelength
+    true_velocity = 5.0
+    true_doppler = true_velocity * doppler_scale
+
+    kf = RangeDopplerKF(
+        dt=dt, wavelength=wavelength, pri=pri, pulses_per_cpi=pulses_per_cpi,
+        process_noise_std=0.5, range_noise_std=3.0, doppler_noise_std=1.0,
+        x0=np.array([100.0, 0.0]),
+    )
+
+    rng = np.random.default_rng(42)
+    for t in range(1, 30):
+        true_range = 100.0 + true_velocity * t * dt
+        z = np.array([
+            true_range + rng.normal(0, 3),
+            true_doppler + rng.normal(0, 1),
+        ])
+        kf.step(z)
+
+    assert abs(kf.state[1] - true_velocity) < 2.0
+
+
+def test_range_doppler_kf_doppler_scale():
+    from spectra.tracking.kalman import RangeDopplerKF
+    wavelength = 0.03
+    pri = 1e-3
+    pulses_per_cpi = 32
+    kf = RangeDopplerKF(
+        dt=pri * pulses_per_cpi, wavelength=wavelength, pri=pri,
+        pulses_per_cpi=pulses_per_cpi,
+        process_noise_std=1.0, range_noise_std=5.0, doppler_noise_std=2.0,
+        x0=np.array([0.0, 10.0]),
+    )
+    pred = kf.predict()
+    expected_doppler = 10.0 * (2 * pri * pulses_per_cpi / wavelength)
+    pred_measurement = kf.measurement_matrix @ pred
+    assert pred_measurement[1] == pytest.approx(expected_doppler, rel=1e-6)
