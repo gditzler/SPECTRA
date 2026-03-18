@@ -135,14 +135,16 @@ class RadarPipelineDataset(Dataset):
             clutter = None
             clutter_name = "none"
 
-        sps = getattr(waveform, "samples_per_symbol", 8)
-        num_sym = self.num_range_bins // sps + 1
+        # Generate a short pulse template for matched filtering.
+        # Cap at num_range_bins // 4 so the pulse is much shorter than the
+        # range window, giving meaningful range resolution.
+        max_pulse_len = max(self.num_range_bins // 16, 8)
         template = waveform.generate(
-            num_symbols=num_sym, sample_rate=self.sample_rate, seed=int(rng.integers(0, 2**32))
+            num_symbols=1, sample_rate=self.sample_rate, seed=int(rng.integers(0, 2**32))
         )
-        template = template[: self.num_range_bins]
-        if len(template) < self.num_range_bins:
-            padded = np.zeros(self.num_range_bins, dtype=np.complex64)
+        template = template[:max_pulse_len]
+        if len(template) < max_pulse_len:
+            padded = np.zeros(max_pulse_len, dtype=np.complex64)
             padded[: len(template)] = template
             template = padded
         template_len = len(template)
@@ -174,11 +176,16 @@ class RadarPipelineDataset(Dataset):
                 for n in range(self.pulses_per_cpi):
                     amp = rcs_amps[frame, n] * np.sqrt(snr_linear)
                     doppler_phase = np.exp(1j * 2 * np.pi * f_d * n * self.pri)
-                    end_bin = min(range_bin + template_len, self.num_range_bins)
-                    seg_len = end_bin - range_bin
-                    if seg_len > 0:
-                        pulse_matrix[n, range_bin:end_bin] += (
-                            amp * doppler_phase * template[:seg_len]
+                    # Center the template on range_bin so the MF peak
+                    # (with mode="same") aligns with the true range.
+                    half = template_len // 2
+                    start = max(range_bin - half, 0)
+                    end = min(range_bin - half + template_len, self.num_range_bins)
+                    t_start = start - (range_bin - half)
+                    t_end = t_start + (end - start)
+                    if end > start:
+                        pulse_matrix[n, start:end] += (
+                            amp * doppler_phase * template[t_start:t_end]
                         )
                     all_rcs_amps[frame, k] = float(rcs_amps[frame, 0])
 
