@@ -31,7 +31,8 @@ zarr = ["zarr>=2.16"]
 classifiers = ["scikit-learn>=1.0"]
 io = ["sigmf>=1.0", "h5py>=3.0"]
 alignment = ["scipy>=1.10"]
-all = ["pyyaml>=6.0", "zarr>=2.16", "scikit-learn>=1.0", "sigmf>=1.0", "h5py>=3.0", "scipy>=1.10"]
+ui = ["gradio>=4.0", "scipy>=1.10"]
+all = ["pyyaml>=6.0", "zarr>=2.16", "scikit-learn>=1.0", "sigmf>=1.0", "h5py>=3.0", "scipy>=1.10", "gradio>=4.0"]
 docs = [
     "mkdocs>=1.6",
     "mkdocs-material>=9.5",
@@ -54,6 +55,7 @@ Documentation = "https://gditzler.github.io/SPECTRA"
 Changelog = "https://github.com/gditzler/SPECTRA/blob/main/CHANGELOG.md"
 
 [project.scripts]
+spectra = "spectra.cli.main:main"
 spectra-build = "spectra.cli.signal_builder:main"
 
 [tool.maturin]
