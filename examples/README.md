@@ -123,6 +123,23 @@ Build and evaluate a cyclostationary AMC classifier.
 cd examples && python 08_csp_classification.py
 ```
 
+### 18 — Link-Level Simulator: BER/SER/PER Curves (Advanced)
+
+Run a `LinkSimulator` to generate BER, SER, and PER vs. Eb/N0 curves for
+BPSK, QPSK, and 16QAM. Compare simulated BPSK BER against the closed-form
+theoretical curve. Demonstrates the `CoherentReceiver`, constellation access
+from the Rust backend, and the new error-rate metrics.
+
+- Access reference **constellations** from the Rust backend
+- Use `CoherentReceiver` to demodulate RRC-filtered waveforms
+- Compute **BER**, **SER**, and **PER** with `bit_error_rate`, `symbol_error_rate`, `packet_error_rate`
+- Run a `LinkSimulator` Eb/N0 sweep and compare against **theoretical BER**
+- Compare BER performance across **BPSK**, **QPSK**, and **16QAM**
+
+```bash
+cd examples && python 18_link_simulator.py
+```
+
 ### 17 — Radar Processing Pipeline (Advanced)
 
 End-to-end radar simulation pipeline: define target trajectories, generate
@@ -237,5 +254,6 @@ examples/
   15_radar_processing.ipynb / .py       # Intermediate
   16_wideband_direction_finding.ipynb / .py  # Intermediate–Advanced
   17_radar_pipeline.ipynb / .py         # Advanced
+  18_link_simulator.ipynb / .py         # Advanced
   outputs/                              # Generated figures
 ```
