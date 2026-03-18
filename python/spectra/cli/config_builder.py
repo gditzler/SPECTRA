@@ -84,20 +84,20 @@ WAVEFORM_CATEGORIES: Dict[str, List[str]] = {
 
 IMPAIRMENT_PRESETS: Dict[str, List[Dict[str, Any]]] = {
     "clean": [
-        {"type": "AWGN"},
+        {"type": "AWGN", "params": {"snr_range": [-5, 30]}},
     ],
     "mild": [
         {"type": "FrequencyOffset", "params": {"max_offset": 50_000}},
         {"type": "PhaseOffset", "params": {"max_offset": 3.14159}},
-        {"type": "AWGN"},
+        {"type": "AWGN", "params": {"snr_range": [-5, 30]}},
     ],
     "realistic": [
         {"type": "FrequencyOffset", "params": {"max_offset": 50_000}},
         {"type": "PhaseOffset", "params": {"max_offset": 3.14159}},
         {"type": "IQImbalance"},
-        {"type": "DCOffset"},
+        {"type": "DCOffset", "params": {"max_offset": 0.05}},
         {"type": "PhaseNoise"},
-        {"type": "AWGN"},
+        {"type": "AWGN", "params": {"snr_range": [-5, 30]}},
     ],
 }
 

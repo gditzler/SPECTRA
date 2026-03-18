@@ -19,6 +19,21 @@ from spectra.studio.plotting import plot_constellation, plot_fft
 def _generate_signal(category, waveform_name, sample_rate, num_samples, snr_db, seed,
                      preset, wideband, capture_bw, num_signals, *param_values):
     """Callback: generate IQ, return (iq, meta, config, constellation_fig, psd_fig)."""
+    try:
+        return _generate_signal_inner(
+            category, waveform_name, sample_rate, num_samples, snr_db, seed,
+            preset, wideband, capture_bw, num_signals, *param_values,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        # Return error state so Gradio doesn't hang
+        return None, {"error": str(e)}, {}, None, None
+
+
+def _generate_signal_inner(category, waveform_name, sample_rate, num_samples, snr_db, seed,
+                           preset, wideband, capture_bw, num_signals, *param_values):
+    """Inner generation logic."""
     registry = get_waveform_registry()
     cls = registry.get(waveform_name)
     if cls is None:
