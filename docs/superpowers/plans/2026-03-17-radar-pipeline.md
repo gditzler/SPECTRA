@@ -1509,7 +1509,7 @@ import torch
 from torch.utils.data import Dataset
 
 from spectra.algorithms.mti import doppler_filter_bank, single_pulse_canceller
-from spectra.algorithms.radar import ca_cfar, matched_filter, os_cfar
+from spectra.algorithms.radar import ca_cfar, os_cfar
 from spectra.impairments.clutter import RadarClutter
 from spectra.targets.rcs import NonFluctuatingRCS, SwerlingRCS
 from spectra.targets.trajectory import Trajectory
