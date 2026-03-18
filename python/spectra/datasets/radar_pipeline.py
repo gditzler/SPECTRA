@@ -19,7 +19,7 @@ from spectra.algorithms.radar import ca_cfar, os_cfar
 from spectra.impairments.clutter import RadarClutter
 from spectra.targets.rcs import NonFluctuatingRCS, SwerlingRCS
 from spectra.targets.trajectory import Trajectory
-from spectra.tracking.kalman import ConstantVelocityKF
+from spectra.tracking.kalman import ConstantVelocityKF, RangeDopplerKF
 from spectra.waveforms.base import Waveform
 
 
@@ -36,6 +36,7 @@ class RadarPipelineTarget:
     waveform_label: str
     snr_db: float
     clutter_preset: str
+    doppler_detections: Optional[List[np.ndarray]] = None
 
 
 class RadarPipelineDataset(Dataset):
@@ -62,6 +63,7 @@ class RadarPipelineDataset(Dataset):
         pulses_per_cpi: int = 16,
         apply_mti: bool = True,
         cfar_type: str = "ca",
+        track_doppler: bool = False,
         num_samples: int = 10000,
         seed: int = 0,
     ) -> None:
@@ -79,6 +81,7 @@ class RadarPipelineDataset(Dataset):
         self.pulses_per_cpi = pulses_per_cpi
         self.apply_mti = apply_mti
         self.cfar_type = cfar_type
+        self.track_doppler = track_doppler
         self.num_samples = num_samples
         self.seed = seed
 
@@ -151,6 +154,7 @@ class RadarPipelineDataset(Dataset):
 
         range_profiles = []
         all_detections = []
+        all_doppler_detections = []
         true_ranges = np.zeros((self.sequence_length, n_targets))
         true_velocities = np.zeros((self.sequence_length, n_targets))
         all_rcs_amps = np.zeros((self.sequence_length, n_targets))
@@ -217,28 +221,75 @@ class RadarPipelineDataset(Dataset):
 
             det_bins = np.where(det_mask)[0]
             all_detections.append(det_bins)
+
+            if self.track_doppler and len(det_bins) > 0:
+                N_doppler = rdm.shape[0]
+                raw_doppler = np.array(
+                    [np.argmax(rdm[:, rb]) for rb in det_bins], dtype=int
+                )
+                centered_doppler = np.where(
+                    raw_doppler < N_doppler // 2, raw_doppler, raw_doppler - N_doppler
+                )
+                all_doppler_detections.append(centered_doppler)
+            elif self.track_doppler:
+                all_doppler_detections.append(np.array([], dtype=int))
+
             range_profiles.append(range_profile)
 
         state_dim = 2
         kf_states = np.zeros((self.sequence_length, n_targets, state_dim))
 
         for k in range(n_targets):
-            kf = ConstantVelocityKF(
-                dt=self.pri * self.pulses_per_cpi,
-                process_noise_std=1.0,
-                measurement_noise_std=5.0,
-                x0=np.array([true_ranges[0, k], true_velocities[0, k]]),
-            )
+            if self.track_doppler:
+                kf = RangeDopplerKF(
+                    dt=self.pri * self.pulses_per_cpi,
+                    wavelength=wavelength,
+                    pri=self.pri,
+                    pulses_per_cpi=self.pulses_per_cpi,
+                    process_noise_std=1.0,
+                    range_noise_std=5.0,
+                    doppler_noise_std=2.0,
+                    x0=np.array([true_ranges[0, k], true_velocities[0, k]]),
+                )
+            else:
+                kf = ConstantVelocityKF(
+                    dt=self.pri * self.pulses_per_cpi,
+                    process_noise_std=1.0,
+                    measurement_noise_std=5.0,
+                    x0=np.array([true_ranges[0, k], true_velocities[0, k]]),
+                )
+
             for frame in range(self.sequence_length):
                 predicted = kf.predict()
-                pred_range = predicted[0]
-                dets = all_detections[frame]
-                if len(dets) > 0:
-                    nearest_idx = np.argmin(np.abs(dets - pred_range))
-                    nearest_det = float(dets[nearest_idx])
-                    gate = 20.0
-                    if abs(nearest_det - pred_range) < gate:
-                        kf.update(np.array([nearest_det]))
+                dets_range = all_detections[frame]
+
+                if len(dets_range) > 0:
+                    if self.track_doppler:
+                        dets_doppler = all_doppler_detections[frame]
+                        H = kf.measurement_matrix
+                        R = kf.measurement_noise
+                        pred_z = H @ predicted
+                        S = H @ kf.covariance @ H.T + R
+                        S_inv = np.linalg.inv(S)
+                        best_dist = float("inf")
+                        best_idx = -1
+                        for j in range(len(dets_range)):
+                            innov = np.array([float(dets_range[j]), float(dets_doppler[j])]) - pred_z
+                            d = float(innov @ S_inv @ innov)
+                            if d < best_dist:
+                                best_dist = d
+                                best_idx = j
+                        gate_threshold = 9.21  # chi-squared, 2 DoF, 99%
+                        if best_dist < gate_threshold and best_idx >= 0:
+                            kf.update(np.array([float(dets_range[best_idx]), float(dets_doppler[best_idx])]))
+                    else:
+                        pred_range = predicted[0]
+                        nearest_idx = np.argmin(np.abs(dets_range - pred_range))
+                        nearest_det = float(dets_range[nearest_idx])
+                        gate = 20.0
+                        if abs(nearest_det - pred_range) < gate:
+                            kf.update(np.array([nearest_det]))
+
                 kf_states[frame, k] = kf.state
 
         profiles = np.stack(range_profiles)
@@ -263,5 +314,6 @@ class RadarPipelineDataset(Dataset):
             waveform_label=waveform.label,
             snr_db=snr_db,
             clutter_preset=clutter_name,
+            doppler_detections=all_doppler_detections if self.track_doppler else None,
         )
         return tensor, target

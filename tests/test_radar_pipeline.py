@@ -99,3 +99,35 @@ def test_pipeline_dataloader():
     batch_data, batch_targets = next(iter(loader))
     assert batch_data.shape[0] == 4
     assert len(batch_targets) == 4
+
+
+def test_pipeline_track_doppler_output():
+    ds = _make_pipeline_ds(track_doppler=True, sequence_length=5)
+    data, target = ds[0]
+    assert isinstance(data, torch.Tensor)
+    assert target.doppler_detections is not None
+    assert len(target.doppler_detections) == 5
+    assert target.kf_states.shape[0] == 5
+    assert target.kf_states.shape[2] == 2
+
+
+def test_pipeline_track_doppler_false_backward_compat():
+    ds = _make_pipeline_ds(track_doppler=False)
+    _, target = ds[0]
+    assert target.doppler_detections is None
+
+
+def test_pipeline_track_doppler_default_is_false():
+    ds = _make_pipeline_ds()
+    _, target = ds[0]
+    assert target.doppler_detections is None
+
+
+def test_pipeline_track_doppler_deterministic():
+    ds = _make_pipeline_ds(track_doppler=True)
+    d1, t1 = ds[3]
+    d2, t2 = ds[3]
+    assert torch.allclose(d1, d2)
+    assert np.allclose(t1.kf_states, t2.kf_states)
+    for dd1, dd2 in zip(t1.doppler_detections, t2.doppler_detections):
+        assert np.array_equal(dd1, dd2)
