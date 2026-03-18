@@ -40,7 +40,7 @@ After any Rust code change, re-run `maturin develop --release` before running Py
 ## Architecture
 
 **Rust layer** (`rust/src/`) — stateless functions that accept and return NumPy arrays via PyO3:
-- `modulators.rs` — QPSK/BPSK symbol generation (xorshift64 PRNG with splitmix64 seeding)
+- `modulators.rs` — QPSK/BPSK symbol generation (xorshift64 PRNG with splitmix64 seeding), `_with_indices` variants for link simulation, `get_*_constellation()` accessors
 - `filters.rs` — Root-Raised-Cosine pulse-shaping filter (upsample + convolve)
 - `oscillators.rs` — chirp and tone complex sinusoid generation
 - `codes.rs` — polyphase code generators (Frank, P1–P4, Costas)
@@ -51,19 +51,27 @@ After any Rust code change, re-run `maturin develop --release` before running Py
 - `lib.rs` — PyO3 module entry point, registers all Rust functions as `spectra._rust`
 
 **Python layer** (`python/spectra/`) — orchestration and PyTorch integration:
-- `waveforms/` — `Waveform` ABC with `generate()`, `bandwidth()`, `label`. 60+ implementations across PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, and polyphase code families.
-- `impairments/` — `Transform` ABC with `__call__(iq, desc, **kwargs) -> (iq, desc)`. 22 impairments (including `MIMOChannel`) composable via `Compose([AWGN(), FrequencyOffset()])`.
+- `waveforms/` — `Waveform` ABC with `generate()`, `bandwidth()`, `label`. 86+ implementations across PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, polyphase code, 5G NR, and protocol families.
+- `impairments/` — `Transform` ABC with `__call__(iq, desc, **kwargs) -> (iq, desc)`. 23 impairments (including `MIMOChannel`, `RadarClutter`) composable via `Compose([AWGN(), FrequencyOffset()])`.
 - `scene/` — `Composer` generates wideband scenes: multiple signals frequency-shifted into a shared capture bandwidth. `SignalDescription` dataclass holds physical-unit ground truth. `to_coco()` converts physical labels to pixel-space bounding boxes.
-- `transforms/` — `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `PSD`, `EnergyDetector`, plus data augmentations (`CutOut`, `TimeReversal`, `PatchShuffle`, etc.).
+- `transforms/` — `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `PSD`, `EnergyDetector`, `AmbiguityFunction`, plus data augmentations (`CutOut`, `TimeReversal`, `PatchShuffle`, etc.).
 - `utils/file_handlers/` — Pluggable RF file readers (`SigMFReader`, `RawIQReader`, `HDF5Reader`, `NumpyReader`) with auto-detection registry, plus `SigMFWriter` for export.
 - `datasets/folder.py` — `SignalFolderDataset`: ImageFolder-style dataset loading IQ recordings from class-per-directory structure.
 - `datasets/manifest.py` — `ManifestDataset`: CSV/JSON manifest-based dataset for flat-file layouts.
-- `datasets/` — `NarrowbandDataset` (single signal → class label), `WidebandDataset` (multi-signal scene → COCO-format detection targets), and `CyclostationaryDataset` (multi-representation CSP features). All use deterministic `(seed, idx)` seeding for DataLoader worker safety.
+- `datasets/` — `NarrowbandDataset` (single signal → class label), `WidebandDataset` (multi-signal scene → COCO-format detection targets), `CyclostationaryDataset` (multi-representation CSP features), `RadarPipelineDataset` (end-to-end waveform → channel → receiver → tracker). All use deterministic `(seed, idx)` seeding for DataLoader worker safety.
+- `targets/` — `ConstantVelocity`, `ConstantTurnRate` trajectory models and `SwerlingRCS` (cases 0–IV) for radar target simulation.
+- `tracking/` — `KalmanFilter` (generic linear KF), `ConstantVelocityKF` and `RangeDopplerKF` factory functions for radar tracking.
+- `algorithms/` — `music`, `esprit`, `root_music`, `capon` (DoA estimation), `delay_and_sum`, `mvdr`, `lcmv` (beamforming), `matched_filter`, `ca_cfar`, `os_cfar` (radar), `single_pulse_canceller`, `double_pulse_canceller`, `doppler_filter_bank` (MTI).
+- `receivers/` — `CoherentReceiver` (matched filter + slicer + demapper), `Decoder` ABC with `PassthroughDecoder`, `ViterbiDecoder`/`LDPCDecoder` stubs.
+- `link/` — `LinkSimulator` for BER/SER/PER vs. Eb/N0 curves with `LinkResults` dataclass.
 - `classifiers/` — `CyclostationaryAMC` for traditional AMC with cumulant/cyclic-peak features and scikit-learn backends. Requires `spectra[classifiers]` optional dep.
 - `benchmarks/` — `load_benchmark()` loads reproducible configs (`spectra-18`, `spectra-18-wideband`).
 - `curriculum.py` — `CurriculumSchedule` for progressive difficulty ramps.
 - `streaming.py` — `StreamingDataLoader` for epoch-aware data generation with curriculum.
+- `studio/` — Gradio-based UI for interactive waveform generation, visualization (7 plot types), and SigMF export. Requires `spectra[ui]` optional dep.
+- `cli/` — Unified CLI: `spectra studio` (launch UI), `spectra generate` (headless batch), `spectra viz` (quick plots), `spectra build` (interactive wizard).
 - `models/` — PyTorch model architectures for AMC (`CNN1D`, `ResNetAMC`).
+- `metrics.py` — Classification metrics plus `bit_error_rate`, `symbol_error_rate`, `packet_error_rate`.
 
 **Key design rule:** Rust functions are pure/stateless. All state, composition, and randomness management lives in Python.
 
