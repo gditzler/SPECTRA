@@ -19,4 +19,10 @@ def launch(port: int = 7860, share: bool = False, dark: bool = False) -> None:
     from spectra.studio.app import create_app
 
     app = create_app(dark=dark)
-    app.launch(server_port=port, share=share)
+    launch_kwargs = {"server_port": port, "share": share}
+    # Gradio 6.0+ accepts theme/css in launch() instead of Blocks()
+    if hasattr(app, "_spectra_theme"):
+        launch_kwargs["theme"] = app._spectra_theme
+    if hasattr(app, "_spectra_css"):
+        launch_kwargs["css"] = app._spectra_css
+    app.launch(**launch_kwargs)

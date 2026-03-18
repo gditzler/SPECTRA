@@ -12,12 +12,12 @@ from spectra.studio.theme import spectra_theme
 def create_app(dark: bool = False) -> gr.Blocks:
     """Create and return the SPECTRA Studio Gradio app."""
     theme = spectra_theme(dark=dark)
+    css = ".gradio-container { max-width: 1200px; margin: auto; }"
 
-    with gr.Blocks(
-        theme=theme,
-        title="SPECTRA Studio",
-        css=".gradio-container { max-width: 1200px; margin: auto; }",
-    ) as app:
+    # Store theme/css for launch() (Gradio 6.0+ moved these from constructor)
+    with gr.Blocks(title="SPECTRA Studio") as app:
+        app._spectra_theme = theme
+        app._spectra_css = css
         gr.Markdown("# SPECTRA Studio\nInteractive RF waveform generation, visualization, and export.")
 
         # Shared state
