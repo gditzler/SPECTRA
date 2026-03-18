@@ -204,6 +204,263 @@ pub fn generate_ask_symbols<'py>(
     Ok(symbols.into_pyarray(py))
 }
 
+/// BPSK with indices: returns (symbols, indices) where indices are 0 or 1.
+#[pyfunction]
+pub fn generate_bpsk_symbols_with_indices<'py>(
+    py: Python<'py>,
+    num_symbols: usize,
+    seed: u64,
+) -> (Bound<'py, PyArray1<Complex32>>, Bound<'py, PyArray1<u32>>) {
+    let mut rng = Xorshift64::new(seed);
+    let mut symbols = Vec::with_capacity(num_symbols);
+    let mut indices = Vec::with_capacity(num_symbols);
+    for _ in 0..num_symbols {
+        let idx = (rng.next() % 2) as u32;
+        indices.push(idx);
+        if idx == 0 {
+            symbols.push(Complex32::new(1.0, 0.0));
+        } else {
+            symbols.push(Complex32::new(-1.0, 0.0));
+        }
+    }
+    (
+        Array1::from_vec(symbols).into_pyarray(py),
+        Array1::from_vec(indices).into_pyarray(py),
+    )
+}
+
+/// QPSK with indices: returns (symbols, indices) where indices are 0..3.
+#[pyfunction]
+pub fn generate_qpsk_symbols_with_indices<'py>(
+    py: Python<'py>,
+    num_symbols: usize,
+    seed: u64,
+) -> (Bound<'py, PyArray1<Complex32>>, Bound<'py, PyArray1<u32>>) {
+    let mut rng = Xorshift64::new(seed);
+    let mut symbols = Vec::with_capacity(num_symbols);
+    let mut indices = Vec::with_capacity(num_symbols);
+    for _ in 0..num_symbols {
+        let idx = (rng.next() % 4) as u32;
+        indices.push(idx);
+        symbols.push(QPSK_CONSTELLATION[idx as usize]);
+    }
+    (
+        Array1::from_vec(symbols).into_pyarray(py),
+        Array1::from_vec(indices).into_pyarray(py),
+    )
+}
+
+/// Generic M-PSK with indices: returns (symbols, indices) where indices are 0..order-1.
+#[pyfunction]
+pub fn generate_psk_symbols_with_indices<'py>(
+    py: Python<'py>,
+    num_symbols: usize,
+    order: usize,
+    seed: u64,
+) -> PyResult<(Bound<'py, PyArray1<Complex32>>, Bound<'py, PyArray1<u32>>)> {
+    if order < 2 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "PSK order must be at least 2",
+        ));
+    }
+    let constellation: Vec<Complex32> = (0..order)
+        .map(|k| {
+            let angle = 2.0 * std::f64::consts::PI * k as f64 / order as f64;
+            Complex32::new(angle.cos() as f32, angle.sin() as f32)
+        })
+        .collect();
+    let mut rng = Xorshift64::new(seed);
+    let mut symbols = Vec::with_capacity(num_symbols);
+    let mut indices = Vec::with_capacity(num_symbols);
+    for _ in 0..num_symbols {
+        let idx = (rng.next() as usize) % order;
+        indices.push(idx as u32);
+        symbols.push(constellation[idx]);
+    }
+    Ok((
+        Array1::from_vec(symbols).into_pyarray(py),
+        Array1::from_vec(indices).into_pyarray(py),
+    ))
+}
+
+/// Square M-QAM with indices: returns (symbols, indices) where indices are 0..order-1.
+/// Order must be a perfect square (16, 64, 256, ...).
+#[pyfunction]
+pub fn generate_qam_symbols_with_indices<'py>(
+    py: Python<'py>,
+    num_symbols: usize,
+    order: usize,
+    seed: u64,
+) -> PyResult<(Bound<'py, PyArray1<Complex32>>, Bound<'py, PyArray1<u32>>)> {
+    let side = (order as f64).sqrt() as usize;
+    if side * side != order {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "QAM order must be a perfect square (16, 64, 256, ...)",
+        ));
+    }
+    let mut constellation = Vec::with_capacity(order);
+    for i in 0..side {
+        for j in 0..side {
+            let re = 2.0 * i as f64 - (side - 1) as f64;
+            let im = 2.0 * j as f64 - (side - 1) as f64;
+            constellation.push(Complex32::new(re as f32, im as f32));
+        }
+    }
+    let avg_power: f64 = constellation
+        .iter()
+        .map(|c| (c.re * c.re + c.im * c.im) as f64)
+        .sum::<f64>()
+        / order as f64;
+    let scale = 1.0 / avg_power.sqrt() as f32;
+    for c in &mut constellation {
+        c.re *= scale;
+        c.im *= scale;
+    }
+    let mut rng = Xorshift64::new(seed);
+    let mut symbols = Vec::with_capacity(num_symbols);
+    let mut indices = Vec::with_capacity(num_symbols);
+    for _ in 0..num_symbols {
+        let idx = (rng.next() as usize) % order;
+        indices.push(idx as u32);
+        symbols.push(constellation[idx]);
+    }
+    Ok((
+        Array1::from_vec(symbols).into_pyarray(py),
+        Array1::from_vec(indices).into_pyarray(py),
+    ))
+}
+
+/// M-ary ASK with indices: returns (symbols, indices) where indices are 0..order-1.
+/// Normalized to unit average power.
+#[pyfunction]
+pub fn generate_ask_symbols_with_indices<'py>(
+    py: Python<'py>,
+    num_symbols: usize,
+    order: usize,
+    seed: u64,
+) -> PyResult<(Bound<'py, PyArray1<Complex32>>, Bound<'py, PyArray1<u32>>)> {
+    if order < 2 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "ASK order must be at least 2",
+        ));
+    }
+    let levels: Vec<f64> = (0..order).map(|k| k as f64).collect();
+    let avg_power: f64 = levels.iter().map(|l| l * l).sum::<f64>() / order as f64;
+    let scale = if avg_power > 0.0 {
+        1.0 / avg_power.sqrt()
+    } else {
+        1.0
+    };
+    let constellation: Vec<Complex32> = levels
+        .iter()
+        .map(|l| Complex32::new((l * scale) as f32, 0.0))
+        .collect();
+    let mut rng = Xorshift64::new(seed);
+    let mut symbols = Vec::with_capacity(num_symbols);
+    let mut indices = Vec::with_capacity(num_symbols);
+    for _ in 0..num_symbols {
+        let idx = (rng.next() as usize) % order;
+        indices.push(idx as u32);
+        symbols.push(constellation[idx]);
+    }
+    Ok((
+        Array1::from_vec(symbols).into_pyarray(py),
+        Array1::from_vec(indices).into_pyarray(py),
+    ))
+}
+
+/// Return the BPSK reference constellation: [+1+0j, -1+0j].
+#[pyfunction]
+pub fn get_bpsk_constellation(py: Python<'_>) -> Bound<'_, PyArray1<Complex32>> {
+    let constellation = vec![Complex32::new(1.0, 0.0), Complex32::new(-1.0, 0.0)];
+    Array1::from_vec(constellation).into_pyarray(py)
+}
+
+/// Return the QPSK reference constellation (4 points at ±pi/4, ±3pi/4).
+#[pyfunction]
+pub fn get_qpsk_constellation(py: Python<'_>) -> Bound<'_, PyArray1<Complex32>> {
+    Array1::from_vec(QPSK_CONSTELLATION.to_vec()).into_pyarray(py)
+}
+
+/// Return the M-PSK reference constellation (M equally-spaced points on the unit circle).
+#[pyfunction]
+pub fn get_psk_constellation(
+    py: Python<'_>,
+    order: usize,
+) -> PyResult<Bound<'_, PyArray1<Complex32>>> {
+    if order < 2 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "PSK order must be at least 2",
+        ));
+    }
+    let constellation: Vec<Complex32> = (0..order)
+        .map(|k| {
+            let angle = 2.0 * std::f64::consts::PI * k as f64 / order as f64;
+            Complex32::new(angle.cos() as f32, angle.sin() as f32)
+        })
+        .collect();
+    Ok(Array1::from_vec(constellation).into_pyarray(py))
+}
+
+/// Return the square M-QAM reference constellation, normalized to unit average power.
+/// Order must be a perfect square (16, 64, 256, ...).
+#[pyfunction]
+pub fn get_qam_constellation(
+    py: Python<'_>,
+    order: usize,
+) -> PyResult<Bound<'_, PyArray1<Complex32>>> {
+    let side = (order as f64).sqrt() as usize;
+    if side * side != order {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "QAM order must be a perfect square (16, 64, 256, ...)",
+        ));
+    }
+    let mut constellation = Vec::with_capacity(order);
+    for i in 0..side {
+        for j in 0..side {
+            let re = 2.0 * i as f64 - (side - 1) as f64;
+            let im = 2.0 * j as f64 - (side - 1) as f64;
+            constellation.push(Complex32::new(re as f32, im as f32));
+        }
+    }
+    let avg_power: f64 = constellation
+        .iter()
+        .map(|c| (c.re * c.re + c.im * c.im) as f64)
+        .sum::<f64>()
+        / order as f64;
+    let scale = 1.0 / avg_power.sqrt() as f32;
+    for c in &mut constellation {
+        c.re *= scale;
+        c.im *= scale;
+    }
+    Ok(Array1::from_vec(constellation).into_pyarray(py))
+}
+
+/// Return the M-ASK reference constellation (M amplitude levels, normalized to unit avg power).
+#[pyfunction]
+pub fn get_ask_constellation(
+    py: Python<'_>,
+    order: usize,
+) -> PyResult<Bound<'_, PyArray1<Complex32>>> {
+    if order < 2 {
+        return Err(pyo3::exceptions::PyValueError::new_err(
+            "ASK order must be at least 2",
+        ));
+    }
+    let levels: Vec<f64> = (0..order).map(|k| k as f64).collect();
+    let avg_power: f64 = levels.iter().map(|l| l * l).sum::<f64>() / order as f64;
+    let scale = if avg_power > 0.0 {
+        1.0 / avg_power.sqrt()
+    } else {
+        1.0
+    };
+    let constellation: Vec<Complex32> = levels
+        .iter()
+        .map(|l| Complex32::new((l * scale) as f32, 0.0))
+        .collect();
+    Ok(Array1::from_vec(constellation).into_pyarray(py))
+}
+
 /// Generate random FSK frequency symbols as normalized floats in [-1, 1].
 /// Returns M-ary frequency values: linspace(-1+1/M, 1-1/M, M).
 #[pyfunction]

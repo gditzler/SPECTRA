@@ -42,6 +42,33 @@ fn _rust(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(modulators::generate_fsk_symbols, m)?)?;
     m.add_function(wrap_pyfunction!(modulators::generate_psk_symbols, m)?)?;
     m.add_function(wrap_pyfunction!(modulators::generate_ask_symbols, m)?)?;
+    // Symbol generators with index output
+    m.add_function(wrap_pyfunction!(
+        modulators::generate_bpsk_symbols_with_indices,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        modulators::generate_qpsk_symbols_with_indices,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        modulators::generate_psk_symbols_with_indices,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        modulators::generate_qam_symbols_with_indices,
+        m
+    )?)?;
+    m.add_function(wrap_pyfunction!(
+        modulators::generate_ask_symbols_with_indices,
+        m
+    )?)?;
+    // Constellation access functions
+    m.add_function(wrap_pyfunction!(modulators::get_bpsk_constellation, m)?)?;
+    m.add_function(wrap_pyfunction!(modulators::get_qpsk_constellation, m)?)?;
+    m.add_function(wrap_pyfunction!(modulators::get_psk_constellation, m)?)?;
+    m.add_function(wrap_pyfunction!(modulators::get_qam_constellation, m)?)?;
+    m.add_function(wrap_pyfunction!(modulators::get_ask_constellation, m)?)?;
     // Filter utilities
     m.add_function(wrap_pyfunction!(filters::gaussian_taps, m)?)?;
     m.add_function(wrap_pyfunction!(filters::lowpass_taps, m)?)?;
