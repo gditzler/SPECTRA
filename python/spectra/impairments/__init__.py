@@ -1,4 +1,5 @@
 from spectra.impairments.adjacent_channel import AdjacentChannelInterference
+from spectra.impairments.clutter import RadarClutter
 from spectra.impairments.awgn import AWGN
 from spectra.impairments.colored_noise import ColoredNoise
 from spectra.impairments.compose import Compose
@@ -53,4 +54,5 @@ __all__ = [
     "SalehPA",
     "FractionalDelay",
     "SamplingJitter",
+    "RadarClutter",
 ]
