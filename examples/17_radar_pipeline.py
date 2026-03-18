@@ -32,7 +32,7 @@ from spectra.algorithms import (
     double_pulse_canceller,
     doppler_filter_bank,
 )
-from spectra.tracking import ConstantVelocityKF
+from spectra.tracking import ConstantVelocityKF, RangeDopplerKF
 from spectra.datasets import RadarPipelineDataset
 from spectra.waveforms import LFM, BarkerCodedPulse
 
@@ -255,5 +255,52 @@ ax.grid(True, alpha=0.3)
 plt.tight_layout()
 savefig("17_kalman_tracking.png")
 print("7. Kalman tracking plotted")
+
+# ── 8. Range+Doppler Tracking ─────────────────────────────────────────────────
+
+# Build two datasets with the same seed — one range-only, one range+Doppler
+common_args = dict(
+    waveform_pool=[LFM()],
+    trajectory_pool=[ConstantVelocity(initial_range=100.0, velocity=0.5, dt=1.0)],
+    swerling_cases=[0],
+    clutter_presets=[RadarClutter.ground(SAMPLE_RATE, terrain="rural")],
+    num_range_bins=NUM_RANGE_BINS, sample_rate=SAMPLE_RATE,
+    carrier_frequency=CARRIER_FREQ, pri=PRI,
+    snr_range=(15.0, 25.0), num_targets_range=(1, 1),
+    sequence_length=SEQ_LEN, pulses_per_cpi=PULSES_PER_CPI,
+    apply_mti=True, cfar_type="ca", num_samples=5, seed=SEED,
+)
+
+ds_range = RadarPipelineDataset(**common_args, track_doppler=False)
+ds_doppler = RadarPipelineDataset(**common_args, track_doppler=True)
+
+_, tgt_r = ds_range[0]
+_, tgt_d = ds_doppler[0]
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+# Range estimate comparison
+axes[0].plot(frames, tgt_r.true_ranges[:, 0], "o-", markersize=4, label="True range")
+axes[0].plot(frames, tgt_r.kf_states[:, 0, 0], "s--", markersize=5, label="Range-only KF")
+axes[0].plot(frames, tgt_d.kf_states[:, 0, 0], "D--", markersize=5, label="Range+Doppler KF")
+axes[0].set_xlabel("CPI frame")
+axes[0].set_ylabel("Range (bin units)")
+axes[0].set_title("Range Estimate Comparison")
+axes[0].legend(fontsize=8)
+axes[0].grid(True, alpha=0.3)
+
+# Velocity estimate comparison
+axes[1].plot(frames, tgt_r.true_velocities[:, 0], "o-", markersize=4, label="True velocity")
+axes[1].plot(frames, tgt_r.kf_states[:, 0, 1], "s--", markersize=5, label="Range-only KF")
+axes[1].plot(frames, tgt_d.kf_states[:, 0, 1], "D--", markersize=5, label="Range+Doppler KF")
+axes[1].set_xlabel("CPI frame")
+axes[1].set_ylabel("Velocity (bin units/frame)")
+axes[1].set_title("Velocity Estimate Comparison")
+axes[1].legend(fontsize=8)
+axes[1].grid(True, alpha=0.3)
+
+plt.tight_layout()
+savefig("17_range_doppler_tracking.png")
+print("8. Range+Doppler tracking comparison plotted")
 
 print(f"\nAll figures saved to {OUTPUT_DIR}")
