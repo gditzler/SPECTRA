@@ -153,6 +153,7 @@ and Doppler filter banks, and track targets with a Kalman filter via
 - Visualise **MTI** clutter suppression and **range-Doppler maps**
 - Build a `RadarPipelineDataset` with waveform → channel → receiver → tracker
 - Compare **Kalman filter** track estimates against ground truth
+- Compare **range-only vs range+Doppler** tracking with `RangeDopplerKF`
 
 ```bash
 cd examples && python 17_radar_pipeline.py
