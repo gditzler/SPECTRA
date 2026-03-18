@@ -294,7 +294,7 @@ print(f"\nAll figures saved to {OUTPUT_DIR}")
 ```bash
 cd /Users/gditzler/git/SPECTRA && /Users/gditzler/.venvs/base/bin/python examples/17_radar_pipeline.py
 ```
-Expected: prints section confirmations, saves 5 PNG figures to `examples/outputs/`.
+Expected: prints section confirmations, saves 6 PNG figures to `examples/outputs/`.
 
 - [ ] **Step 3: Commit**
 
