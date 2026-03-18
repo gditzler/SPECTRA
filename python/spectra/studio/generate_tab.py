@@ -40,22 +40,27 @@ def _generate_signal(category, waveform_name, sample_rate, num_samples, snr_db, 
 
     if wideband:
         from spectra.scene.composer import Composer, SceneConfig
+        # Ensure capture_bw doesn't exceed sample_rate (Nyquist)
+        capture_bw = min(float(capture_bw), float(sample_rate) * 0.9)
+        # Cap preview duration to keep generation fast
+        max_preview_samples = min(int(num_samples), 32768)
         config = SceneConfig(
-            capture_duration=num_samples / sample_rate,
+            capture_duration=max_preview_samples / sample_rate,
             capture_bandwidth=capture_bw,
             sample_rate=sample_rate,
-            num_signals=num_signals,
+            num_signals=int(num_signals),
             signal_pool=[waveform],
             snr_range=(snr_db, snr_db + 10),
         )
         composer = Composer(config)
-        iq, descs = composer.generate(seed=seed)
+        iq, descs = composer.generate(seed=int(seed))
         label = f"Scene ({len(descs)} signals)"
     else:
         sps = getattr(waveform, "samples_per_symbol", 8)
-        n_sym = max(1, num_samples // sps)
-        iq = waveform.generate(num_symbols=n_sym, sample_rate=sample_rate, seed=seed)
-        iq = iq[:num_samples]
+        n_samples = min(int(num_samples), 32768)  # cap preview for speed
+        n_sym = max(1, n_samples // sps)
+        iq = waveform.generate(num_symbols=n_sym, sample_rate=float(sample_rate), seed=int(seed))
+        iq = iq[:n_samples]
         label = waveform.label
 
     # Apply impairments
@@ -93,7 +98,7 @@ def build_generate_tab(iq_state, meta_state, config_state):
             preset = gr.Dropdown(choices=["clean", "mild", "realistic"], value="clean", label="Impairment Preset")
 
             wideband = gr.Checkbox(value=False, label="Wideband Scene Mode")
-            capture_bw = gr.Number(value=10e6, label="Capture Bandwidth (Hz)", visible=False)
+            capture_bw = gr.Number(value=800e3, label="Capture Bandwidth (Hz)", visible=False)
             num_signals = gr.Number(value=3, label="Number of Signals", visible=False, precision=0)
             wideband.change(lambda w: (gr.update(visible=w), gr.update(visible=w)),
                            inputs=[wideband], outputs=[capture_bw, num_signals])
