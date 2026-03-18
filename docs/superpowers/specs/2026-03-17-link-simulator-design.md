@@ -2,7 +2,7 @@
 
 **Goal:** Add a `LinkSimulator` that runs transmitter → channel → receiver loops to generate BER/SER/PER vs. Eb/N0 curves, validating that SPECTRA's generated waveforms have correct physical behaviour.
 
-**Scope:** v1 implements a perfect-sync coherent receiver (no timing/frequency/phase recovery) with nearest-neighbor constellation slicing for PSK, QAM, and ASK families. FEC decoder stubs (Viterbi, LDPC) define the interface for future implementations.
+**Scope:** v1 implements a perfect-sync coherent receiver (no timing/frequency/phase recovery) with nearest-neighbor constellation slicing for PSK, square QAM, and ASK families. Cross-QAM (32, 128, 512) is excluded from v1 — see Future Work. FEC decoder stubs (Viterbi, LDPC) define the interface for future implementations.
 
 ---
 
@@ -10,11 +10,11 @@
 
 ```
 Transmitter           Channel              Receiver              Metrics
-(Rust symbols+idx)    (AWGN + impairments) (MF + slicer + demap) (BER/SER/PER)
+(Rust symbols+idx)    (direct AWGN)        (MF + slicer + demap) (BER/SER/PER)
      |                     |                    |                    |
      v                     v                    v                    v
-generate_*_with_indices → RRC shape → AWGN(Eb/N0→SNR) → RRC MF → downsample →
-  → [optional chain]  → nearest-neighbor slicer → Gray demap → [FEC decode] → compare bits
+generate_*_with_indices → RRC shape → add_awgn(Eb/N0) → RRC MF → downsample →
+  → [optional impairments] → nearest-neighbor slicer → bit demap → [FEC decode] → compare
 ```
 
 The `LinkSimulator` orchestrates this loop over an array of Eb/N0 points and returns a `LinkResults` dataclass.
@@ -28,7 +28,7 @@ The `LinkSimulator` orchestrates this loop over an array of Eb/N0 points and ret
 - `rust/src/modulators.rs` (modify)
 - `rust/src/lib.rs` (modify — register new functions)
 
-### New Functions
+### New Symbol Generator Functions
 
 Add `_with_indices` variants for each modulation family. These use the same xorshift64 PRNG and constellation mappings as the existing generators, but additionally return the symbol index before mapping to a complex point.
 
@@ -46,9 +46,30 @@ Each returns a tuple of `(symbols, indices)` where:
 
 The existing `generate_*` functions remain unchanged — the `_with_indices` variants are only used by the link simulator.
 
-### Gray Code Mapping
+### New Constellation Access Functions
 
-On the Python side, a `gray_map(m_order) -> np.ndarray` utility generates the standard Gray code bit mapping table for a given modulation order. Given an index `k` in `0..M-1`, `gray_map(M)[k]` returns the corresponding bit pattern as an integer. A `bits_from_indices(indices, m_order) -> np.ndarray` function converts index arrays to flat bit arrays.
+Add functions to retrieve the reference constellation for each family:
+
+**`get_bpsk_constellation() -> PyArray1<Complex32>`** — returns `[+1, -1]`
+
+**`get_qpsk_constellation() -> PyArray1<Complex32>`** — returns the 4 QPSK points
+
+**`get_psk_constellation(m_order) -> PyArray1<Complex32>`** — returns M-PSK points
+
+**`get_qam_constellation(m_order) -> PyArray1<Complex32>`** — returns square M-QAM points
+
+These guarantee the receiver uses the exact same constellation as the transmitter.
+
+### Bit Mapping
+
+The Rust constellation orderings use natural indexing (not Gray code). On the Python side:
+
+- `constellation_to_bits(indices, constellation_size) -> np.ndarray` maps indices to bits using the **natural binary** mapping matching the Rust constellation ordering.
+- `bits_to_indices(bits, constellation_size) -> np.ndarray` does the inverse.
+
+Since the Rust constellations do not use Gray coding, `theoretical_ber()` formulas in `LinkResults` will only be provided for BPSK (which is inherently Gray-coded with M=2). For QPSK and higher orders, `theoretical_ber()` returns `None` — users can compare against simulation results instead.
+
+**Note:** Adjacent constellation points in the Rust orderings may differ by more than 1 bit. This means BER will be slightly higher than Gray-coded theoretical curves, but this accurately reflects the actual SPECTRA waveform behaviour. A future enhancement could add Gray-coded constellation variants.
 
 ---
 
@@ -88,33 +109,18 @@ These are standalone utility functions. `LinkSimulator` uses them internally, bu
 - `python/spectra/receivers/coherent.py`
 - `python/spectra/receivers/base.py`
 
-### `coherent.py` — `CoherentReceiver`
+### Design Note: Receivers vs Transforms
 
-Assumes perfect synchronization. Processing pipeline:
+Receivers are intentionally **not** `Transform` subclasses. The `Transform` interface maps `(iq, desc) -> (iq, desc)` — IQ in, IQ out. Receivers map IQ to a fundamentally different domain (symbol indices and bits). A `Receiver` ABC is defined in `base.py` alongside the `Decoder` ABC to establish the interface for future receiver types (e.g., FSK discriminator, OFDM FFT-based).
 
-1. **RRC matched filter** — convolve received IQ with the transmit RRC filter taps (reuses Rust `apply_rrc_filter_with_taps`), providing optimal SNR at symbol sampling points.
-2. **Downsample** — take every `samples_per_symbol`-th sample to get symbol-rate samples.
-3. **Constellation slicer** — nearest-neighbor decision: for each received sample, find the closest constellation point. Returns estimated symbol indices.
-4. **Bit demapper** — convert symbol indices to bits via Gray code lookup.
+### `base.py` — `Receiver` ABC, `Decoder` ABC, and Stubs
 
 ```python
-class CoherentReceiver:
-    def __init__(self, waveform: Waveform):
-        """Extract constellation, samples_per_symbol, RRC params from waveform."""
-
+class Receiver(ABC):
+    @abstractmethod
     def demodulate(self, received_iq: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Returns (estimated_symbol_indices, estimated_bits)."""
-```
+        """Demodulate received IQ to (symbol_indices, bits)."""
 
-The receiver extracts everything it needs from the `Waveform` instance — constellation map, `samples_per_symbol`, RRC `rolloff` and `filter_span`. No separate configuration needed.
-
-**Supported modulation families:** PSK (BPSK, QPSK, 8PSK, 16PSK, 32PSK, 64PSK), QAM (16 through 1024), ASK (OOK, ASK4 through ASK64). All use the same nearest-neighbor slicer — the only difference is the constellation map.
-
-**Constellation access:** The receiver needs the reference constellation points. These will be obtained by calling the `_with_indices` Rust function with a known sequence to extract all M constellation points, or by defining the constellations as Python-side lookup tables that match the Rust definitions.
-
-### `base.py` — `Decoder` ABC and Stubs
-
-```python
 class Decoder(ABC):
     @abstractmethod
     def decode(self, bits: np.ndarray) -> np.ndarray:
@@ -144,7 +150,31 @@ class LDPCDecoder(Decoder):
     """
 ```
 
-The stubs accept configuration parameters and store them, but raise `NotImplementedError` when `decode()` is called. This defines the interface so users know exactly what to implement.
+### `coherent.py` — `CoherentReceiver`
+
+Assumes perfect synchronization. Processing pipeline:
+
+1. **RRC matched filter** — convolve received IQ with the transmit RRC filter taps (reuses Rust `apply_rrc_filter_with_taps`), providing optimal SNR at symbol sampling points.
+2. **Downsample** — take every `samples_per_symbol`-th sample to get symbol-rate samples.
+3. **Constellation slicer** — nearest-neighbor decision: for each received sample, find the closest constellation point from the reference constellation (obtained via `get_*_constellation()` Rust functions). Returns estimated symbol indices.
+4. **Bit demapper** — convert symbol indices to bits via `constellation_to_bits()` (natural binary mapping).
+
+```python
+class CoherentReceiver(Receiver):
+    def __init__(self, waveform: Waveform):
+        """Extract constellation, samples_per_symbol, RRC params from waveform.
+
+        Obtains the reference constellation via the Rust get_*_constellation()
+        functions to guarantee exact match with the transmitter.
+        """
+
+    def demodulate(self, received_iq: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Returns (estimated_symbol_indices, estimated_bits)."""
+```
+
+The receiver extracts everything it needs from the `Waveform` instance — `samples_per_symbol`, RRC `rolloff` and `filter_span` — and loads the constellation from Rust.
+
+**Supported modulation families (v1):** PSK (BPSK, QPSK, 8PSK, 16PSK, 32PSK, 64PSK), square QAM (QAM16, QAM64, QAM256, QAM1024), ASK (OOK, ASK4, ASK8, ASK16, ASK32, ASK64). Cross-QAM (QAM32, QAM128, QAM512) is excluded from v1 because those waveforms use Python-side constellation generation, not the Rust `generate_qam_symbols` path.
 
 ---
 
@@ -171,9 +201,11 @@ class LinkSimulator:
     ):
         """
         Args:
-            waveform: Modulation waveform (must be PSK, QAM, or ASK).
-            channel: Optional list of impairments to apply AFTER AWGN.
-                AWGN is always applied internally at the specified Eb/N0.
+            waveform: Modulation waveform (must be PSK, square QAM, or ASK).
+            channel: Optional list of impairments to apply AFTER noise injection.
+                These use the Transform interface and receive a minimal
+                SignalDescription stub. AWGN is NOT in this list — it is
+                handled internally via direct noise injection.
             decoder: FEC decoder. Default: PassthroughDecoder (no coding).
             num_symbols: Symbols to simulate per Eb/N0 point.
             packet_length: Bits per packet for PER computation.
@@ -186,11 +218,18 @@ class LinkSimulator:
 
 **Per Eb/N0 point, the `.run()` loop:**
 
-1. **Transmit** — call `generate_*_with_indices(num_symbols, seed)` to get `(tx_symbols, tx_indices)`. Convert `tx_indices` to `tx_bits` via Gray demapping. Apply RRC pulse shaping to `tx_symbols` to get `tx_iq`.
+1. **Transmit** — call `generate_*_with_indices(num_symbols, seed)` to get `(tx_symbols, tx_indices)`. Convert `tx_indices` to `tx_bits` via `constellation_to_bits()`. Apply RRC pulse shaping to `tx_symbols` to get `tx_iq`.
 
-2. **Eb/N0 → SNR conversion** — `SNR_dB = Eb/N0_dB + 10*log10(bits_per_symbol) - 10*log10(samples_per_symbol)`. This accounts for oversampling and modulation order.
+2. **Noise injection (direct, not via AWGN transform)** — compute noise variance analytically from Eb/N0:
+   ```
+   bits_per_symbol = log2(M)
+   Eb = mean(|tx_iq|^2) * samples_per_symbol / bits_per_symbol
+   N0 = Eb / (10^(eb_n0_db/10))
+   noise_variance = N0 / 2  (per real/imag component)
+   ```
+   Generate circular complex Gaussian noise using a per-point seeded RNG: `rng = np.random.default_rng((self.seed, point_index))`. Add noise to `tx_iq`. This bypasses the `AWGN` transform entirely, avoiding the empirical power measurement issue and ensuring reproducible, independent noise per Eb/N0 point.
 
-3. **Channel** — apply AWGN at the computed SNR (using the existing `AWGN` transform). Then apply any additional impairments from `channel` list.
+3. **Additional impairments** — if `channel` is provided, apply each `Transform` in sequence to the noisy IQ. A minimal `SignalDescription` is constructed with the waveform's label, bandwidth, and the current SNR.
 
 4. **Receive** — `CoherentReceiver.demodulate(rx_iq)` returns `(rx_indices, rx_bits)`.
 
@@ -198,7 +237,7 @@ class LinkSimulator:
 
 6. **Score** — `bit_error_rate(tx_bits, rx_bits)` for BER, `symbol_error_rate(tx_indices, rx_indices)` for SER, `packet_error_rate(tx_bits, rx_bits, packet_length)` for PER.
 
-**Seeding:** The transmitter seed is fixed per `LinkSimulator` instance. All Eb/N0 points use the same transmitted sequence (different noise realisations come from AWGN's internal randomness).
+**Seeding:** The transmitter seed is fixed per `LinkSimulator` instance (same transmitted sequence for all Eb/N0 points). Each Eb/N0 point gets an independent noise realisation via `np.random.default_rng((self.seed, point_index))`, ensuring reproducibility and independence.
 
 ### `results.py` — `LinkResults`
 
@@ -219,9 +258,9 @@ class LinkResults:
 
         Supported:
         - BPSK: Q(sqrt(2 * Eb/N0))
-        - QPSK: Q(sqrt(2 * Eb/N0))  (same as BPSK for Gray-coded)
 
-        Returns None for other modulations.
+        Returns None for all other modulations (Rust constellation orderings
+        are not Gray-coded, so standard formulas do not apply directly).
         """
 ```
 
@@ -232,7 +271,7 @@ class LinkResults:
 ```
 Sub-project 1: Rust modulators    (no Python dependencies)
 Sub-project 2: Metrics            (standalone functions)
-Sub-project 3: Receivers          (depends on waveform API, Rust _with_indices)
+Sub-project 3: Receivers          (depends on waveform API, Rust constellation access)
 Sub-project 4: Link simulator     (depends on 1, 2, 3, impairments)
 ```
 
@@ -240,11 +279,21 @@ Sub-projects 1 and 2 are independent. Sub-project 3 depends on 1 (for constellat
 
 ---
 
+## Scope Exclusions (v1)
+
+- **Cross-QAM (QAM32, QAM128, QAM512):** These use Python-side constellation generation (`_CrossQAMBase`), not the Rust `generate_qam_symbols` path. Supporting them requires adding Python-side `generate_with_indices` methods, which is deferred to v2.
+- **FSK/OFDM receivers:** Different demodulation structures beyond matched-filter + slicer.
+- **Synchronization:** No timing, frequency, or phase recovery.
+
+---
+
 ## Future Work (out of scope for v1)
 
+- **Cross-QAM support:** Add Python-side `generate_with_indices` to `_CrossQAMBase`
+- **Gray-coded constellations:** Add optional Gray-coded Rust constellation variants for theoretical BER validation
 - **Synchronization:** symbol timing recovery (Mueller-Muller, Gardner), carrier frequency offset estimation, phase tracking
 - **FEC implementations:** actual Viterbi and LDPC decoders (the stubs define the interface)
 - **Soft-decision decoding:** LLR computation from received samples instead of hard bits
-- **FSK/OFDM receivers:** different demodulation structures beyond matched-filter + slicer
+- **FSK/OFDM receivers:** different demodulation structures
 - **Curriculum-by-BER:** use measured BER as feedback to `CurriculumSchedule` for adaptive training difficulty
 - **Parallel simulation:** vectorise the Eb/N0 sweep for throughput
