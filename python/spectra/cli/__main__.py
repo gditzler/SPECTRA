@@ -1,3 +1,3 @@
-from spectra.cli.signal_builder import main
+from spectra.cli.main import main
 
 main()
