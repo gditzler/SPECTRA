@@ -31,3 +31,4 @@ examples/outputs/*.png
 benchmarks/comparison/results/
 examples/.ipynb_checkpoints/
 site/
+.superpowers/
