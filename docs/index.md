@@ -11,15 +11,15 @@ composition, impairments, and PyTorch DataLoader integration.
 
 ## Features
 
-- **60+ waveform generators** — PSK, QAM, FSK, OFDM, AM/FM, chirp, polyphase codes, and more
-- **22 channel impairments** — AWGN, fading, phase noise, IQ imbalance, Doppler, TDL, MIMO, PA nonlinearity, and more
+- **80+ waveform generators** — PSK, QAM, FSK/MSK/GMSK, OFDM/SC-FDMA, 5G NR, AM/FM, radar, spread spectrum, aviation/maritime protocols, chirp, polyphase and Barker/Costas/Zadoff-Chu codes, and more
+- **24 composable channel impairments** — AWGN, fading, phase noise, IQ imbalance, Doppler, TDL, MIMO, PA nonlinearity, timing, spectral effects, and more (plus **RadarClutter** for 2-D radar matrices)
 - **MIMO multi-antenna support** — flat/TDL channels, spatial correlation, steering vectors, seamless dataset integration
 - **Wideband scene composition** — mix multiple signals with COCO-format bounding-box labels
 - **Cyclostationary processing** — SCD (SSCA/FAM/S3CA), SCF, CAF, cumulants, PSD via Rust
 - **Time-frequency analysis** — Wigner-Ville Distribution, Ambiguity Function
 - **Data augmentations** — CutOut, MixUp, CutMix, PatchShuffle, TimeReversal, and more
 - **Class balancing** — built-in `class_weights` and `balanced_sampler` for imbalanced datasets
-- **Reproducible benchmarks** — `spectra-18` (18-class AMC) and `spectra-18-wideband` (detection)
+- **Reproducible benchmarks** — 13 built-in YAML configs (AMC, wideband scenes, 5G, radar, spread spectrum, direction finding, channel robustness, SNR sweeps); load with `load_benchmark()`, `load_channel_benchmark()`, or `load_snr_sweep()`
 - **Curriculum learning** — progressive difficulty ramps with `CurriculumSchedule`
 - **Pluggable file I/O** — SigMF, HDF5, raw IQ, SQLite, Zarr, NumPy
 

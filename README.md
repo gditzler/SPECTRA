@@ -7,7 +7,7 @@ SPECTRA generates synthetic RF signals on-the-fly for training machine learning 
 ## Features
 
 - **85+ waveform generators** — PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, polyphase codes, Zadoff-Chu, Barker, radar (pulsed, FMCW, pulse-Doppler, NLFM, stepped-frequency), spread spectrum (DSSS, FHSS, CDMA, THSS), 5G NR (OFDM, SSB, PDSCH, PUSCH, PRACH), and aviation/maritime (ADS-B, Mode S, AIS, ACARS, DME, ILS)
-- **22 channel impairments** — AWGN, frequency offset, phase noise, IQ imbalance, fading, TDL, MIMO, PA nonlinearity, timing, and others composable like torchvision transforms
+- **24 composable channel impairments** — AWGN, frequency offset, phase noise, IQ imbalance, fading, TDL, MIMO, PA nonlinearity, timing, spectral effects, and more (plus **RadarClutter** for 2-D radar matrices)
 - **MIMO multi-antenna support** — flat Rayleigh and TDL channels, spatial correlation (Kronecker model), ULA steering vectors, seamless `NarrowbandDataset` integration
 - **Cyclostationary signal processing** — Rust-accelerated SCD, SCF, CAF, cumulants, PSD, and energy detection transforms for signal analysis and feature extraction
 - **Time-frequency analysis** — Wigner-Ville Distribution, Ambiguity Function, and Reassigned Gabor transforms for radar and comms research
@@ -16,7 +16,7 @@ SPECTRA generates synthetic RF signals on-the-fly for training machine learning 
 - **AMC classifiers** — `CyclostationaryAMC` with cumulant, cyclic-peak, or combined feature sets and scikit-learn tree-based backends
 - **Wideband scene composition** — overlay multiple signals at different frequencies and times with physically correct complex-domain summation
 - **Detection-ready labels** — ground truth in physical units (seconds, Hz) with automatic conversion to COCO-style bounding boxes on spectrograms
-- **Benchmark configs** — reproducible `spectra-18`, `spectra-18-wideband`, and `spectra-40` benchmarks loadable with one function call
+- **Benchmark configs** — 13 built-in YAML benchmarks (`spectra-18`, `spectra-40`, `spectra-18-wideband`, domain packs for 5G/radar/spread/protocol/airport/maritime/ISM, `spectra-df` for direction finding, plus channel-robustness and SNR-sweep configs); load with `load_benchmark()`, `load_channel_benchmark()`, or `load_snr_sweep()`
 - **Interactive CLI** — `spectra-build` walks you through dataset configuration with guided prompts and exports benchmark-compatible YAML
 - **Curriculum learning** — `CurriculumSchedule` ramps SNR, signal count, and impairment severity over training epochs
 - **Streaming DataLoader** — `StreamingDataLoader` generates fresh data per epoch with deterministic seeding and curriculum integration
@@ -127,10 +127,10 @@ amc.fit_from_dataset(dataset)
 | Module | Key Classes / Functions | Purpose |
 |---|---|---|
 | `spectra.waveforms` | `BPSK`, `QPSK`, `QAM16`..`QAM1024`, `PSK8`..`PSK64`, `FSK`, `GMSK`, `OFDM`, `LFM`, `OOK`, `ASK4`..`ASK64`, `Tone`, `Noise`, `FM`, `AMDSB`, `PulsedRadar`, `FMCW`, `FHSS`, `CDMA_Forward`, `NR_OFDM`, `NR_SSB`, `ADSB`, `ModeS`, `AIS`, ... | 85+ baseband waveform generators |
-| `spectra.impairments` | `AWGN`, `FrequencyOffset`, `PhaseNoise`, `IQImbalance`, `RayleighFading`, `TDLChannel`, `MIMOChannel`, `RappPA`, `SalehPA`, `Compose`, ... | 22 composable channel impairments |
+| `spectra.impairments` | `AWGN`, `FrequencyOffset`, `PhaseNoise`, `IQImbalance`, `RayleighFading`, `TDLChannel`, `MIMOChannel`, `RappPA`, `SalehPA`, `Compose`, ... | 24 composable channel impairments (+ `RadarClutter`) |
 | `spectra.scene` | `Composer`, `SceneConfig`, `SignalDescription`, `STFTParams`, `to_coco` | Multi-signal scene composition and labeling |
 | `spectra.transforms` | `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `WVD`, `AmbiguityFunction`, `ReassignedGabor`, `MixUp`, `CutMix`, `CutOut`, ... | Spectral transforms, CSP features, time-frequency, augmentations |
-| `spectra.datasets` | `NarrowbandDataset`, `WidebandDataset`, `CyclostationaryDataset`, `MixUpDataset`, `CutMixDataset`, `balanced_sampler`, ... | PyTorch dataset classes with balancing and augmentation wrappers |
+| `spectra.datasets` | `NarrowbandDataset`, `WidebandDataset`, `DirectionFindingDataset`, `WidebandDirectionFindingDataset`, `CyclostationaryDataset`, `MixUpDataset`, `CutMixDataset`, `balanced_sampler`, ... | PyTorch dataset classes with balancing and augmentation wrappers |
 | `spectra.classifiers` | `CyclostationaryAMC` | Traditional AMC with cumulant/cyclic-peak features |
 | `spectra.benchmarks` | `load_benchmark` | Reproducible benchmark dataset loader |
 | `spectra.cli` | `spectra-build` | Interactive dataset config builder |
@@ -149,7 +149,9 @@ train_ds, val_ds, test_ds = load_benchmark("spectra-18", split="all")
 # 18-class narrowband AMC: 8000 train / 2000 val / 2000 test
 ```
 
-Available benchmarks: `spectra-18` (narrowband AMC), `spectra-18-wideband` (signal detection).
+**`load_benchmark(name)`** supports `task: narrowband`, `wideband`, or `direction_finding` (for example `spectra-df`). For `spectra-channel` use `load_channel_benchmark(name, condition=...)`. For `spectra-snr` use `load_snr_sweep(name, split=...)`.
+
+Built-in names: `spectra-18`, `spectra-40`, `spectra-18-wideband`, `spectra-5g`, `spectra-radar`, `spectra-spread`, `spectra-protocol`, `spectra-airport`, `spectra-maritime-vhf`, `spectra-congested-ism`, `spectra-df`, `spectra-channel`, `spectra-snr`.
 
 ### Signal Builder CLI
 

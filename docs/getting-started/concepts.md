@@ -59,6 +59,8 @@ worker processes it — no seed collisions, fully reproducible datasets.
 | `NarrowbandDataset` (MIMO) | MIMO AMC | `(Tensor[n_rx*2,N], int)` |
 | `WidebandDataset` | Signal detection | `(Tensor[1,F,T], Dict)` |
 | `CyclostationaryDataset` | CSP-based AMC | `(Dict[str,Tensor], int)` |
+| `DirectionFindingDataset` | DoA from array IQ | `(Tensor[n_el,2,N], DirectionFindingTarget)` |
+| `WidebandDirectionFindingDataset` | Wideband + multi-source DoA | `(Tensor[n_el,2,N], WidebandDFTarget)` |
 | `MixUpDataset` | Soft-label AMC | `(Tensor, (int, int, float))` |
 | `CutMixDataset` | Soft-label AMC | `(Tensor, (int, int, float))` |
 | `SignalFolderDataset` | Disk recordings | `(Tensor[2,N], int)` |
