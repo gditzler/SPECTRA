@@ -2,9 +2,11 @@ import importlib.resources
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+import numpy as np
 import yaml
 
-from spectra.datasets import NarrowbandDataset, WidebandDataset
+from spectra.arrays.array import ula
+from spectra.datasets import DirectionFindingDataset, NarrowbandDataset, WidebandDataset
 from spectra.datasets.snr_sweep import SNRSweepDataset
 from spectra.impairments import AWGN, Compose
 from spectra.scene.composer import SceneConfig
@@ -163,6 +165,49 @@ def _build_wideband(config: Dict[str, Any], split: str) -> WidebandDataset:
     )
 
 
+def _build_direction_finding(config: Dict[str, Any], split: str) -> DirectionFindingDataset:
+    """Build a :class:`~spectra.datasets.DirectionFindingDataset` from YAML."""
+    pool = _build_waveform_pool(config["signal_pool"])
+    impairments = _build_impairments(config.get("impairments", []))
+
+    arr_cfg = config["array"]
+    if arr_cfg.get("type", "ula") != "ula":
+        raise ValueError(
+            f"Only array type 'ula' is supported in benchmark configs, got {arr_cfg.get('type')!r}"
+        )
+    array = ula(
+        num_elements=arr_cfg["num_elements"],
+        spacing=arr_cfg.get("spacing", 0.5),
+        frequency=arr_cfg.get("frequency", 1e9),
+    )
+
+    ns = config["num_signals"]
+    num_signals: Union[int, Tuple[int, int]] = tuple(ns) if isinstance(ns, list) else int(ns)
+
+    az_deg = config["azimuth_range_deg"]
+    el_deg = config["elevation_range_deg"]
+    azimuth_range = (np.deg2rad(az_deg[0]), np.deg2rad(az_deg[1]))
+    elevation_range = (np.deg2rad(el_deg[0]), np.deg2rad(el_deg[1]))
+
+    min_sep = config.get("min_angular_separation_deg")
+    min_angular_separation = None if min_sep is None else float(np.deg2rad(min_sep))
+
+    return DirectionFindingDataset(
+        array=array,
+        signal_pool=pool,
+        num_signals=num_signals,
+        num_snapshots=config["num_snapshots"],
+        sample_rate=config["sample_rate"],
+        snr_range=tuple(config["snr_range"]),
+        azimuth_range=azimuth_range,
+        elevation_range=elevation_range,
+        min_angular_separation=min_angular_separation,
+        impairments=impairments,
+        num_samples=config["num_samples"][split],
+        seed=config["seed"][split],
+    )
+
+
 def _build_channel(config: dict, condition: str) -> NarrowbandDataset:
     conditions = config.get("conditions", {})
     if condition not in conditions:
@@ -243,8 +288,14 @@ def load_benchmark(
 ) -> Union[
     NarrowbandDataset,
     WidebandDataset,
+    DirectionFindingDataset,
     Tuple[NarrowbandDataset, NarrowbandDataset, NarrowbandDataset],
     Tuple[WidebandDataset, WidebandDataset, WidebandDataset],
+    Tuple[
+        DirectionFindingDataset,
+        DirectionFindingDataset,
+        DirectionFindingDataset,
+    ],
 ]:
     """Load a benchmark dataset from a YAML config.
 
@@ -270,7 +321,18 @@ def load_benchmark(
         config = yaml.safe_load(f)
 
     task = config.get("task", "narrowband")
-    builder = _build_narrowband if task == "narrowband" else _build_wideband
+    if task == "narrowband":
+        builder = _build_narrowband
+    elif task == "wideband":
+        builder = _build_wideband
+    elif task == "direction_finding":
+        builder = _build_direction_finding
+    else:
+        raise ValueError(
+            f"Unsupported task '{task}' for load_benchmark(). "
+            "Use load_channel_benchmark() for narrowband_channel, "
+            "or load_snr_sweep() for narrowband_snr_sweep."
+        )
 
     if split == "all":
         return builder(config, "train"), builder(config, "val"), builder(config, "test")
