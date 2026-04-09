@@ -166,7 +166,7 @@ The CLI walks you through waveform selection, impairment presets, and dataset pa
 
 ## Examples
 
-See [`examples/`](examples/) for 8 runnable scripts (with matching Jupyter notebooks):
+See [`examples/`](examples/) for 17 runnable scripts (with matching Jupyter notebooks):
 
 | # | Topic | Level |
 |---|---|---|
@@ -178,6 +178,15 @@ See [`examples/`](examples/) for 8 runnable scripts (with matching Jupyter noteb
 | 06 | Full Pipeline: Dataset to Classifier | Pro |
 | 07 | CSP Feature Visualization | Intermediate |
 | 08 | CSP Classification | Advanced |
+| 09 | S3CA vs SSCA Comparison | Advanced |
+| 11 | Train a Narrowband AMC Classifier | Advanced |
+| 12 | Choi-Williams Distribution: Cross-Term Suppression | Intermediate |
+| 13 | Direction Finding with MUSIC and ESPRIT | Advanced |
+| 14 | Beamforming with a Uniform Linear Array | Advanced |
+| 15 | Radar Range Profile Processing (Matched Filter + CFAR) | Advanced |
+| 16 | Wideband Direction-Finding Dataset | Pro |
+| 17 | Radar Processing Pipeline | Pro |
+| 18 | Link Simulator: BER/SER/PER Curves | Advanced |
 
 ## Running Tests
 

@@ -54,7 +54,7 @@ After any Rust code change, re-run `maturin develop --release` before running Py
 - `nr.rs` — 5G NR primitives: OFDM symbol (IFFT + CP), PSS, SSS, DMRS generation
 - `cyclo_spectral.rs` — SCD (SSCA, FAM), PSD (Welch), channelizer
 - `cyclo_temporal.rs` — cumulants, CAF
-- `s3ca.rs` — S³CA-based SCD estimation
+- `s3ca.rs` — S³CA-based SCD estimation (**work in progress** — algorithm produces incorrect output; full implementation tracked on `feature/s3ca` branch)
 - `cwd.rs` — Choi-Williams Distribution
 - `reassigned_gabor.rs` — Reassigned Gabor (spectrogram) Transform
 - `sfft.rs` — sliding FFT utilities
