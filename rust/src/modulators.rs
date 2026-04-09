@@ -252,6 +252,7 @@ pub fn generate_qpsk_symbols_with_indices<'py>(
 
 /// Generic M-PSK with indices: returns (symbols, indices) where indices are 0..order-1.
 #[pyfunction]
+#[allow(clippy::type_complexity)]
 pub fn generate_psk_symbols_with_indices<'py>(
     py: Python<'py>,
     num_symbols: usize,
@@ -286,6 +287,7 @@ pub fn generate_psk_symbols_with_indices<'py>(
 /// Square M-QAM with indices: returns (symbols, indices) where indices are 0..order-1.
 /// Order must be a perfect square (16, 64, 256, ...).
 #[pyfunction]
+#[allow(clippy::type_complexity)]
 pub fn generate_qam_symbols_with_indices<'py>(
     py: Python<'py>,
     num_symbols: usize,
@@ -333,6 +335,7 @@ pub fn generate_qam_symbols_with_indices<'py>(
 /// M-ary ASK with indices: returns (symbols, indices) where indices are 0..order-1.
 /// Normalized to unit average power.
 #[pyfunction]
+#[allow(clippy::type_complexity)]
 pub fn generate_ask_symbols_with_indices<'py>(
     py: Python<'py>,
     num_symbols: usize,
