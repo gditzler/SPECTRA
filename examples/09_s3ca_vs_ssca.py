@@ -46,20 +46,10 @@ print(f"Generated {len(signals)} signals, each {num_iq} samples at {sample_rate/
 # -- 2. SSCA vs S3CA Side-by-Side (BPSK) ------------------------------------
 
 nfft = 64
+n_alpha = 64
 hop = 16
 
-# n_alpha should be >= n_frames to use all available cyclic-frequency
-# resolution.  Using n_alpha=64 (like the old default) truncates most of
-# the CDP time series and produces poor results.
-n_frames = (num_iq - nfft) // hop + 1
-n_alpha = 1
-while n_alpha < n_frames:
-    n_alpha *= 2
-print(f"n_frames={n_frames}, n_alpha={n_alpha}")
-
-# Reference: S3CA with kappa=n_alpha (full FFT, equivalent to paper's SSCA)
-ssca = sp.SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca", output_format="magnitude",
-              kappa=n_alpha, seed=0)
+ssca = sp.SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="ssca", output_format="magnitude")
 s3ca = sp.SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca", output_format="magnitude",
               kappa=8, seed=0)
 
@@ -184,7 +174,7 @@ n_trials = 5
 ssca_times = []
 s3ca_times = []
 
-ssca_t = sp.SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca", kappa=n_alpha, seed=0)
+ssca_t = sp.SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="ssca")
 s3ca_t = sp.SCD(nfft=nfft, n_alpha=n_alpha, hop=hop, method="s3ca", kappa=8, seed=0)
 
 for _ in range(n_trials):
