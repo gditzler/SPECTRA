@@ -8,9 +8,9 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
 from spectra.arrays.array import AntennaArray
+from spectra.datasets._base import BaseIQDataset
 from spectra.arrays.calibration import CalibrationErrors
 from spectra.datasets.iq_utils import truncate_pad
 from spectra.impairments.compose import Compose
@@ -40,7 +40,7 @@ class DirectionFindingTarget:
     signal_descs: List[SignalDescription] = field(default_factory=list)
 
 
-class DirectionFindingDataset(Dataset):
+class DirectionFindingDataset(BaseIQDataset):
     """On-the-fly direction-finding IQ snapshot dataset.
 
     Generates multi-antenna IQ snapshots deterministically from
@@ -104,6 +104,7 @@ class DirectionFindingDataset(Dataset):
     ):
         if num_snapshots <= 0:
             raise ValueError(f"num_snapshots must be positive, got {num_snapshots}")
+        super().__init__(num_samples=num_samples, seed=seed)
         self.array = array
         self.signal_pool = signal_pool
         self.num_signals = num_signals
@@ -116,14 +117,9 @@ class DirectionFindingDataset(Dataset):
         self.calibration_errors = calibration_errors
         self.impairments = impairments
         self.transform = transform
-        self.num_samples = num_samples
-        self.seed = seed
-
-    def __len__(self) -> int:
-        return self.num_samples
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, DirectionFindingTarget]:
-        rng = np.random.default_rng(seed=(self.seed, idx))
+        rng = self._make_rng(idx)
 
         # --- Determine number of sources ---
         if isinstance(self.num_signals, tuple):

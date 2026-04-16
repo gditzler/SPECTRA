@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple
 
 import torch
 
+from spectra.datasets._base import BaseIQDataset
 from spectra.datasets.cyclo import CyclostationaryDataset
 from spectra.datasets.df_snr_sweep import DirectionFindingSNRSweepDataset
 from spectra.datasets.direction_finding import DirectionFindingDataset, DirectionFindingTarget
@@ -29,6 +30,7 @@ def collate_fn(
 
 __all__ = [
     "balanced_sampler",
+    "BaseIQDataset",
     "collate_fn",
     "CutMixDataset",
     "CyclostationaryDataset",

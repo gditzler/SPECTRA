@@ -11,14 +11,14 @@ from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
+from spectra.datasets._base import BaseIQDataset
 from spectra.datasets.iq_utils import iq_to_tensor, truncate_pad
 from spectra.impairments.compose import Compose
 from spectra.waveforms.base import Waveform
 
 
-class SNRSweepDataset(Dataset):
+class SNRSweepDataset(BaseIQDataset):
     """Fixed (SNR × class × sample) grid. __getitem__ returns (Tensor, int, float)."""
 
     def __init__(
@@ -31,19 +31,16 @@ class SNRSweepDataset(Dataset):
         impairments_fn: Callable[[float], Compose],
         seed: Optional[int] = None,
     ):
+        self._C = len(waveform_pool)
+        self._S = len(list(snr_levels))
+        self._cell_size = self._C * samples_per_cell
+        super().__init__(num_samples=self._S * self._cell_size, seed=seed)
         self.waveform_pool = waveform_pool
         self.snr_levels = list(snr_levels)
         self.samples_per_cell = samples_per_cell
         self.num_iq_samples = num_iq_samples
         self.sample_rate = sample_rate
         self.impairments_fn = impairments_fn
-        self.seed = seed if seed is not None else 0
-        self._C = len(waveform_pool)
-        self._S = len(self.snr_levels)
-        self._cell_size = self._C * self.samples_per_cell
-
-    def __len__(self) -> int:
-        return self._S * self._cell_size
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, float]:
         snr_idx = idx // self._cell_size
