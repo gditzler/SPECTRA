@@ -1,6 +1,14 @@
 import numpy as np
 import pytest
 
+from tests.helpers import make_signal_description
+
+
+@pytest.fixture
+def signal_description():
+    """Default SignalDescription for impairment tests."""
+    return make_signal_description()
+
 
 @pytest.fixture
 def rng():

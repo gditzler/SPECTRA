@@ -1,11 +1,8 @@
 import numpy as np
 import numpy.testing as npt
 import pytest
-from spectra.scene.signal_desc import SignalDescription
 
-
-def _make_desc():
-    return SignalDescription(0.0, 0.001, -5e3, 5e3, "QPSK", 20.0)
+from tests.helpers import make_signal_description
 
 
 class TestSampleRateOffset:
@@ -13,7 +10,7 @@ class TestSampleRateOffset:
         from spectra.impairments.sample_rate_offset import SampleRateOffset
 
         iq = np.exp(1j * np.linspace(0, 10 * np.pi, 1024)).astype(np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = SampleRateOffset(ppm=0.0)(iq, desc)
         npt.assert_allclose(result, iq, atol=1e-4)
 
@@ -21,7 +18,7 @@ class TestSampleRateOffset:
         from spectra.impairments.sample_rate_offset import SampleRateOffset
 
         iq = np.ones(512, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = SampleRateOffset(ppm=100.0)(iq, desc)
         assert len(result) == len(iq)
 
@@ -29,7 +26,7 @@ class TestSampleRateOffset:
         from spectra.impairments.sample_rate_offset import SampleRateOffset
 
         iq = np.ones(256, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = SampleRateOffset(ppm=50.0)(iq, desc)
         assert result.dtype == np.complex64
 
@@ -37,7 +34,7 @@ class TestSampleRateOffset:
         from spectra.impairments.sample_rate_offset import SampleRateOffset
 
         iq = np.exp(1j * np.linspace(0, 20 * np.pi, 1024)).astype(np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = SampleRateOffset(ppm=500.0)(iq, desc)
         assert not np.allclose(result, iq, atol=1e-3)
 
@@ -45,7 +42,7 @@ class TestSampleRateOffset:
         from spectra.impairments.sample_rate_offset import SampleRateOffset
 
         iq = np.exp(1j * np.linspace(0, 10 * np.pi, 512)).astype(np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         sro = SampleRateOffset(max_ppm=200.0)
         results = [sro(iq.copy(), desc)[0] for _ in range(20)]
         diffs = [np.max(np.abs(results[i] - results[i + 1])) for i in range(19)]
@@ -55,7 +52,7 @@ class TestSampleRateOffset:
         from spectra.impairments.sample_rate_offset import SampleRateOffset
 
         iq = np.ones(256, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         _, new_desc = SampleRateOffset(ppm=10.0)(iq, desc)
         assert new_desc.f_low == desc.f_low
 

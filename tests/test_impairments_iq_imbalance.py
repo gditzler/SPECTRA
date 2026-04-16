@@ -1,10 +1,7 @@
 import numpy as np
 import numpy.testing as npt
-from spectra.scene.signal_desc import SignalDescription
 
-
-def _make_desc():
-    return SignalDescription(0.0, 0.001, -5e3, 5e3, "QPSK", 20.0)
+from tests.helpers import make_signal_description
 
 
 class TestIQImbalance:
@@ -13,7 +10,7 @@ class TestIQImbalance:
 
         rng = np.random.default_rng(42)
         iq = (rng.standard_normal(1024) + 1j * rng.standard_normal(1024)).astype(np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = IQImbalance(amplitude_imbalance_db=0.0, phase_imbalance_deg=0.0)(iq, desc)
         npt.assert_allclose(result, iq, atol=1e-5)
 
@@ -21,7 +18,7 @@ class TestIQImbalance:
         from spectra.impairments.iq_imbalance import IQImbalance
 
         iq = np.array([1 + 1j, 1 - 1j, -1 + 1j], dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = IQImbalance(amplitude_imbalance_db=6.0, phase_imbalance_deg=0.0)(iq, desc)
         # With amplitude imbalance, I channel is scaled
         assert not np.allclose(result.real, iq.real, atol=0.01)
@@ -30,7 +27,7 @@ class TestIQImbalance:
         from spectra.impairments.iq_imbalance import IQImbalance
 
         iq = np.ones(256, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = IQImbalance(amplitude_imbalance_db=1.0, phase_imbalance_deg=5.0)(iq, desc)
         assert result.shape == iq.shape
         assert result.dtype == np.complex64
@@ -39,7 +36,7 @@ class TestIQImbalance:
         from spectra.impairments.iq_imbalance import IQImbalance
 
         iq = np.ones(512, dtype=np.complex64) * (1 + 1j)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = IQImbalance(amplitude_imbalance_db=0.0, phase_imbalance_deg=10.0)(iq, desc)
         # Phase imbalance should change the I channel
         assert not np.allclose(result.real, iq.real, atol=0.01)
@@ -48,7 +45,7 @@ class TestIQImbalance:
         from spectra.impairments.iq_imbalance import IQImbalance
 
         iq = np.ones(256, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         _, new_desc = IQImbalance(amplitude_imbalance_db=1.0, phase_imbalance_deg=5.0)(iq, desc)
         assert new_desc.f_low == desc.f_low
         assert new_desc.f_high == desc.f_high
@@ -65,6 +62,6 @@ class TestIQImbalance:
 
         rng = np.random.default_rng(99)
         iq = (rng.standard_normal(256) + 1j * rng.standard_normal(256)).astype(np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = IQImbalance(amplitude_imbalance_db=0.0, phase_imbalance_deg=0.0)(iq, desc)
         npt.assert_allclose(result, iq, atol=1e-5)

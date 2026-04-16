@@ -1,11 +1,8 @@
 import numpy as np
 import numpy.testing as npt
 import pytest
-from spectra.scene.signal_desc import SignalDescription
 
-
-def _make_desc():
-    return SignalDescription(0.0, 0.001, -5e3, 5e3, "QPSK", 20.0)
+from tests.helpers import make_signal_description
 
 
 class TestPhaseOffset:
@@ -13,7 +10,7 @@ class TestPhaseOffset:
         from spectra.impairments.phase_offset import PhaseOffset
 
         iq = np.ones(1024, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         rotated, _ = PhaseOffset(offset=np.pi / 4)(iq, desc)
         expected = np.exp(1j * np.pi / 4).astype(np.complex64)
         npt.assert_allclose(rotated, expected, atol=1e-6)
@@ -22,7 +19,7 @@ class TestPhaseOffset:
         from spectra.impairments.phase_offset import PhaseOffset
 
         iq = np.ones(512, dtype=np.complex64) * (1 + 1j) / np.sqrt(2)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = PhaseOffset(offset=0.0)(iq, desc)
         npt.assert_allclose(result, iq, atol=1e-6)
 
@@ -31,7 +28,7 @@ class TestPhaseOffset:
 
         rng = np.random.default_rng(42)
         iq = (rng.standard_normal(1024) + 1j * rng.standard_normal(1024)).astype(np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         rotated, _ = PhaseOffset(offset=1.23)(iq, desc)
         npt.assert_allclose(np.abs(rotated), np.abs(iq), atol=1e-5)
 
@@ -39,7 +36,7 @@ class TestPhaseOffset:
         from spectra.impairments.phase_offset import PhaseOffset
 
         iq = np.ones(512, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         po = PhaseOffset(max_offset=np.pi)
         results = [po(iq.copy(), desc)[0][0] for _ in range(20)]
         phases = [np.angle(r) for r in results]
@@ -49,7 +46,7 @@ class TestPhaseOffset:
         from spectra.impairments.phase_offset import PhaseOffset
 
         iq = np.ones(256, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         result, _ = PhaseOffset(offset=0.5)(iq, desc)
         assert result.shape == iq.shape
         assert result.dtype == np.complex64
@@ -58,7 +55,7 @@ class TestPhaseOffset:
         from spectra.impairments.phase_offset import PhaseOffset
 
         iq = np.ones(256, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description()
         _, new_desc = PhaseOffset(offset=0.5)(iq, desc)
         assert new_desc.f_low == desc.f_low
         assert new_desc.f_high == desc.f_high

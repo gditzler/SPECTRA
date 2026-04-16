@@ -3,18 +3,12 @@
 import numpy as np
 import pytest
 from spectra.impairments.mimo_channel import MIMOChannel
-from spectra.scene.signal_desc import SignalDescription
+
+from tests.helpers import make_signal_description
 
 
 def _make_desc():
-    return SignalDescription(
-        t_start=0.0,
-        t_stop=1.0,
-        f_low=-500e3,
-        f_high=500e3,
-        label="test",
-        snr=20.0,
-    )
+    return make_signal_description(t_stop=1.0, f_low=-500e3, f_high=500e3, label="test")
 
 
 class TestMIMOFlat:

@@ -1,12 +1,8 @@
 import numpy as np
 import numpy.testing as npt
 import pytest
-from spectra.scene.signal_desc import SignalDescription
 
-
-def _make_desc(f_center=100e6):
-    bw = 200e3
-    return SignalDescription(0.0, 0.001, f_center - bw / 2, f_center + bw / 2, "QPSK", 20.0)
+from tests.helpers import make_signal_description
 
 
 def test_doppler_exported_from_package():
@@ -61,7 +57,7 @@ class TestDopplerShift:
         from spectra.impairments.doppler import DopplerShift
 
         iq = np.ones(512, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         with pytest.raises(ValueError, match="sample_rate"):
             DopplerShift(fd_hz=1000.0)(iq, desc)
 
@@ -71,7 +67,7 @@ class TestDopplerShift:
         from spectra.impairments.doppler import DopplerShift
 
         iq = np.ones(1024, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         result, _ = DopplerShift(fd_hz=1000.0)(iq, desc, sample_rate=sample_rate)
         assert result.shape == iq.shape
         assert result.dtype == np.complex64
@@ -82,7 +78,7 @@ class TestDopplerShift:
         from spectra.impairments.doppler import DopplerShift
 
         iq = np.ones(2048, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         result, _ = DopplerShift(fd_hz=5000.0)(iq, desc, sample_rate=sample_rate)
         assert not np.any(np.isnan(result))
         assert not np.any(np.isinf(result))
@@ -91,7 +87,7 @@ class TestDopplerShift:
         from spectra.impairments.doppler import DopplerShift
 
         iq = np.ones(2048, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         result, _ = DopplerShift(fd_hz=5000.0, profile="linear")(iq, desc, sample_rate=sample_rate)
         assert not np.any(np.isnan(result))
         assert not np.any(np.isinf(result))
@@ -108,7 +104,7 @@ class TestDopplerShift:
         n = 4096
         fd = 1000.0
         iq = np.ones(n, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         result, _ = DopplerShift(fd_hz=fd)(iq, desc, sample_rate=sample_rate)
         # Instantaneous phase should increase by 2*pi*fd/fs per sample
         phase = np.unwrap(np.angle(result))
@@ -124,7 +120,7 @@ class TestDopplerShift:
         n = 4096
         fd = 1000.0
         iq = np.ones(n, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         result, _ = DopplerShift(fd_hz=fd, profile="linear")(iq, desc, sample_rate=sample_rate)
         # Total phase accumulated = integral of fd(t) from 0 to T
         # fd(t) = fd*(1 - 2t/T), integral = fd*T*(1 - 1) = 0
@@ -140,7 +136,7 @@ class TestDopplerShift:
 
         iq = np.ones(1024, dtype=np.complex64)
         f_center = 100e6
-        desc = _make_desc(f_center=f_center)
+        desc = make_signal_description(f_low=f_center - 100e3, f_high=f_center + 100e3)
         fd = 2000.0
         _, new_desc = DopplerShift(fd_hz=fd)(iq, desc, sample_rate=sample_rate)
         npt.assert_allclose(new_desc.f_low, desc.f_low + fd, atol=1.0)
@@ -151,7 +147,7 @@ class TestDopplerShift:
         from spectra.impairments.doppler import DopplerShift
 
         iq = np.ones(1024, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         _, new_desc = DopplerShift(fd_hz=2000.0, profile="linear")(
             iq, desc, sample_rate=sample_rate
         )
@@ -167,7 +163,7 @@ class TestDopplerShift:
         # f_d = v/c * f_c = 30/3e8 * 1e9 = 100 Hz
         d = DopplerShift(speed_mps=30.0, carrier_hz=1e9, angle_deg=0.0)
         iq = np.ones(4096, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         result, new_desc = d(iq, desc, sample_rate=sample_rate)
         npt.assert_allclose(new_desc.f_low, desc.f_low + 100.0, atol=1.0)
 
@@ -177,7 +173,7 @@ class TestDopplerShift:
 
         d = DopplerShift(speed_mps=100.0, carrier_hz=2.4e9, angle_deg=90.0)
         iq = np.ones(1024, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         result, new_desc = d(iq, desc, sample_rate=sample_rate)
         npt.assert_allclose(result, iq, atol=1e-4)
         assert new_desc.f_low == desc.f_low
@@ -189,7 +185,7 @@ class TestDopplerShift:
 
         d = DopplerShift(max_fd_hz=5000.0)
         iq = np.ones(1024, dtype=np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         results = [d(iq.copy(), desc, sample_rate=sample_rate)[0] for _ in range(10)]
         diffs = [np.max(np.abs(results[i] - results[i + 1])) for i in range(9)]
         assert not all(d < 1e-6 for d in diffs)
@@ -201,7 +197,7 @@ class TestDopplerShift:
         from spectra.impairments.doppler import DopplerShift
 
         iq = (np.random.randn(2048) + 1j * np.random.randn(2048)).astype(np.complex64)
-        desc = _make_desc()
+        desc = make_signal_description(f_low=99.9e6, f_high=100.1e6)
         for profile in ("constant", "linear"):
             result, _ = DopplerShift(fd_hz=3000.0, profile=profile)(
                 iq, desc, sample_rate=sample_rate
