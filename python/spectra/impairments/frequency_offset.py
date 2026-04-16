@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 
+from spectra.impairments._param_utils import resolve_param, validate_fixed_or_random
 from spectra.impairments.base import Transform
 from spectra.scene.signal_desc import SignalDescription
 
@@ -12,8 +13,7 @@ class FrequencyOffset(Transform):
         offset: Optional[float] = None,
         max_offset: Optional[float] = None,
     ):
-        if offset is None and max_offset is None:
-            raise ValueError("Must provide either offset or max_offset")
+        validate_fixed_or_random(offset, max_offset, "offset")
         self.offset = offset
         self.max_offset = max_offset
 
@@ -24,10 +24,7 @@ class FrequencyOffset(Transform):
         if sample_rate is None:
             raise ValueError("FrequencyOffset requires sample_rate kwarg")
 
-        if self.max_offset is not None:
-            fo = np.random.uniform(-self.max_offset, self.max_offset)
-        else:
-            fo = self.offset
+        fo = resolve_param(self.offset, self.max_offset)
 
         t = np.arange(len(iq)) / sample_rate
         shift = np.exp(1j * 2.0 * np.pi * fo * t).astype(np.complex64)

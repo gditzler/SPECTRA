@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 
+from spectra.impairments._param_utils import resolve_param, validate_fixed_or_random
 from spectra.impairments.base import Transform
 from spectra.scene.signal_desc import SignalDescription
 
@@ -12,18 +13,14 @@ class SampleRateOffset(Transform):
         ppm: Optional[float] = None,
         max_ppm: Optional[float] = None,
     ):
-        if ppm is None and max_ppm is None:
-            raise ValueError("Must provide either ppm or max_ppm")
+        validate_fixed_or_random(ppm, max_ppm, "ppm")
         self.ppm = ppm
         self.max_ppm = max_ppm
 
     def __call__(
         self, iq: np.ndarray, desc: SignalDescription, **kwargs
     ) -> Tuple[np.ndarray, SignalDescription]:
-        if self.max_ppm is not None:
-            ppm_val = np.random.uniform(-self.max_ppm, self.max_ppm)
-        else:
-            ppm_val = self.ppm
+        ppm_val = resolve_param(self.ppm, self.max_ppm)
 
         n = len(iq)
         ratio = 1.0 + ppm_val * 1e-6
