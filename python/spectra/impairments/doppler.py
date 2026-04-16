@@ -98,5 +98,6 @@ class DopplerShift(Transform):
             phase = 2.0 * np.pi * np.cumsum(fd_t) / sample_rate
             new_desc = desc  # net shift is zero
 
-        out = (iq * np.exp(1j * phase).astype(np.complex64)).astype(np.complex64)
+        phase = phase.astype(np.float32)
+        out = (iq * np.exp(1j * phase)).astype(np.complex64)
         return out, new_desc

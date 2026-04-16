@@ -30,8 +30,8 @@ class FrequencyOffset(Transform):
             fo = self.offset
 
         t = np.arange(len(iq)) / sample_rate
-        shift = np.exp(1j * 2.0 * np.pi * fo * t).astype(np.complex64)
-        shifted_iq = iq * shift
+        phase = (2.0 * np.pi * fo * t).astype(np.float32)
+        shifted_iq = (iq * np.exp(1j * phase)).astype(np.complex64)
 
         from dataclasses import replace
 

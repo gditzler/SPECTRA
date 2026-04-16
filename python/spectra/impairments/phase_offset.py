@@ -25,5 +25,5 @@ class PhaseOffset(Transform):
         else:
             theta = self.offset
 
-        rotated = (iq * np.exp(1j * theta)).astype(np.complex64)
+        rotated = (iq * np.complex64(np.exp(1j * theta))).astype(np.complex64)
         return rotated, desc
