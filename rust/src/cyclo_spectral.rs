@@ -92,9 +92,10 @@ pub fn compute_scd_ssca<'py>(
     n_alpha: usize,
     hop: usize,
 ) -> Bound<'py, PyArray2<Complex32>> {
-    let samples: Vec<Complex32> = iq.as_array().to_vec();
+    let iq_array = iq.as_array();
+    let samples = iq_array.as_slice().unwrap();
 
-    let frames = channelize_frames(&samples, nfft, hop);
+    let frames = channelize_frames(samples, nfft, hop);
     let n_frames = frames.len();
 
     if n_frames == 0 {
@@ -137,7 +138,8 @@ pub fn compute_psd_welch<'py>(
     nfft: usize,
     overlap: usize,
 ) -> Bound<'py, PyArray1<f32>> {
-    let samples: Vec<Complex32> = iq.as_array().to_vec();
+    let iq_array = iq.as_array();
+    let samples = iq_array.as_slice().unwrap();
     let n = samples.len();
 
     if n == 0 || nfft == 0 {
@@ -207,9 +209,10 @@ pub fn compute_scd_fam<'py>(
     nfft_fft: usize,
     hop: usize,
 ) -> Bound<'py, PyArray2<Complex32>> {
-    let samples: Vec<Complex32> = iq.as_array().to_vec();
+    let iq_array = iq.as_array();
+    let samples = iq_array.as_slice().unwrap();
 
-    let frames = channelize_frames(&samples, nfft_chan, hop);
+    let frames = channelize_frames(samples, nfft_chan, hop);
     let n_frames = frames.len();
 
     if n_frames == 0 {
@@ -267,9 +270,10 @@ pub fn channelize<'py>(
     nfft: usize,
     hop: usize,
 ) -> Bound<'py, PyArray2<Complex32>> {
-    let samples: Vec<Complex32> = iq.as_array().to_vec();
+    let iq_array = iq.as_array();
+    let samples = iq_array.as_slice().unwrap();
 
-    let frames = channelize_frames(&samples, nfft, hop);
+    let frames = channelize_frames(samples, nfft, hop);
     let n_frames = frames.len();
 
     if n_frames == 0 {
