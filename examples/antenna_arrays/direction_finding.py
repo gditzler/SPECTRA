@@ -14,10 +14,10 @@ Run:
     python examples/13_direction_finding.py
 """
 
-import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -29,7 +29,6 @@ from spectra.arrays import ula
 from spectra.datasets import DirectionFindingDataset
 from spectra.waveforms import BPSK, QAM16, QPSK
 
-sys.path.insert(0, os.path.dirname(__file__))
 from plot_helpers import OUTPUT_DIR, savefig
 
 # ── Configuration ─────────────────────────────────────────────────────────────
