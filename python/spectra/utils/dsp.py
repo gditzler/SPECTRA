@@ -13,6 +13,8 @@ from spectra._rust import (
     lowpass_taps as _lowpass_taps,
 )
 
+_RESAMPLE_TAPS_MULTIPLIER = 64  # taps-per-rate for polyphase anti-aliasing filter
+
 
 def low_pass(num_taps: int, cutoff: float) -> np.ndarray:
     """Windowed-sinc (Blackman) FIR lowpass filter taps.
@@ -101,7 +103,7 @@ def multistage_resampler(signal: np.ndarray, up: int, down: int) -> np.ndarray:
     """Rational resampling: upsample by up, filter, downsample by down."""
     # Design anti-aliasing filter
     cutoff = min(1.0 / up, 1.0 / down)
-    taps = low_pass(64 * max(up, down) + 1, cutoff)
+    taps = low_pass(_RESAMPLE_TAPS_MULTIPLIER * max(up, down) + 1, cutoff)
     # Upsample
     upsampled = upsample(signal, up)
     # Filter
@@ -140,10 +142,7 @@ def noise_generator(
             spectrum = 1.0 / freqs
         else:
             spectrum = np.ones_like(freqs)
-        # Apply spectral shaping to real and imag independently
-        for part_fn in [np.real, np.imag]:
-            pass
-        # Simpler approach: shape in frequency domain
+        # Shape in frequency domain
         X = np.fft.rfft(noise.real)
         noise_real = np.fft.irfft(X * spectrum, n=num_samples)
         X = np.fft.rfft(noise.imag)
