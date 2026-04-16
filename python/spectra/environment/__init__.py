@@ -1,6 +1,7 @@
 """Environment and propagation modeling for SPECTRA."""
 
 from spectra.environment.core import Emitter, Environment, LinkParams, ReceiverConfig
+from spectra.environment.integration import link_params_to_impairments
 from spectra.environment.position import Position
 from spectra.environment.presets import propagation_presets
 from spectra.environment.propagation import (
@@ -22,5 +23,6 @@ __all__ = [
     "Position",
     "PropagationModel",
     "ReceiverConfig",
+    "link_params_to_impairments",
     "propagation_presets",
 ]
