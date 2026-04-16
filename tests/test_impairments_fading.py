@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.testing as npt
 
-from tests.helpers import make_signal_description
+from conftest import make_signal_description
 
 
 class TestRayleighFading:

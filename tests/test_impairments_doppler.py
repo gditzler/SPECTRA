@@ -2,7 +2,7 @@ import numpy as np
 import numpy.testing as npt
 import pytest
 
-from tests.helpers import make_signal_description
+from conftest import make_signal_description
 
 
 def test_doppler_exported_from_package():

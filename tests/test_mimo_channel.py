@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from spectra.impairments.mimo_channel import MIMOChannel
 
-from tests.helpers import make_signal_description
+from conftest import make_signal_description
 
 
 def _make_desc():
