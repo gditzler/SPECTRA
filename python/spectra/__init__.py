@@ -73,6 +73,22 @@ from spectra.models import CNNAMC, ResNetAMC
 # Scene composition
 from spectra.scene import Composer, SceneConfig, SignalDescription, STFTParams, to_coco
 
+# Environment
+from spectra.environment import (
+    COST231HataPL,
+    Emitter,
+    Environment,
+    FreeSpacePathLoss,
+    LinkParams,
+    LogDistancePL,
+    PathLossResult,
+    Position,
+    PropagationModel,
+    ReceiverConfig,
+    link_params_to_impairments,
+    propagation_presets,
+)
+
 # Streaming
 from spectra.streaming import StreamingDataLoader
 
@@ -297,6 +313,19 @@ __all__ = [
     "SignalDescription",
     "STFTParams",
     "to_coco",
+    # Environment
+    "COST231HataPL",
+    "Emitter",
+    "Environment",
+    "FreeSpacePathLoss",
+    "LinkParams",
+    "LogDistancePL",
+    "PathLossResult",
+    "Position",
+    "PropagationModel",
+    "ReceiverConfig",
+    "link_params_to_impairments",
+    "propagation_presets",
     # Impairments
     "AdjacentChannelInterference",
     "AWGN",
