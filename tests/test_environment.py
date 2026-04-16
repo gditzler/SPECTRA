@@ -1,6 +1,7 @@
 """Tests for Environment, Emitter, ReceiverConfig, and LinkParams."""
 
 import math
+import os
 
 import numpy as np
 import pytest
@@ -9,6 +10,8 @@ from spectra.environment.core import Emitter, Environment, LinkParams, ReceiverC
 from spectra.environment.position import Position
 from spectra.environment.propagation import FreeSpacePathLoss, LogDistancePL
 from spectra.waveforms import QPSK
+
+yaml = pytest.importorskip("yaml")
 
 import math as _math
 
@@ -204,3 +207,79 @@ class TestEnvironmentCompute:
         result = env.compute()
         assert result[0].emitter_index == 0
         assert result[1].emitter_index == 1
+
+
+class TestEnvironmentYAML:
+    def test_to_yaml_creates_file(self, simple_env, tmp_path):
+        path = str(tmp_path / "env.yaml")
+        simple_env.to_yaml(path)
+        assert os.path.exists(path)
+
+    def test_round_trip(self, tmp_path):
+        env = Environment(
+            propagation=LogDistancePL(n=3.5, sigma_db=8.0),
+            emitters=[
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(500.0, 200.0),
+                    power_dbm=30.0,
+                    freq_hz=2.4e9,
+                ),
+            ],
+            receiver=ReceiverConfig(
+                position=Position(0.0, 0.0),
+                noise_figure_db=6.0,
+                bandwidth_hz=1e6,
+            ),
+        )
+        path = str(tmp_path / "env.yaml")
+        env.to_yaml(path)
+        loaded = Environment.from_yaml(path)
+
+        orig = env.compute(seed=42)
+        reloaded = loaded.compute(seed=42)
+        assert len(orig) == len(reloaded)
+        assert math.isclose(orig[0].snr_db, reloaded[0].snr_db, rel_tol=1e-6)
+        assert math.isclose(orig[0].distance_m, reloaded[0].distance_m, rel_tol=1e-6)
+
+    def test_round_trip_free_space(self, tmp_path):
+        env = Environment(
+            propagation=FreeSpacePathLoss(),
+            emitters=[
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(1000.0, 0.0),
+                    power_dbm=20.0,
+                    freq_hz=1e9,
+                ),
+            ],
+            receiver=ReceiverConfig(position=Position(0.0, 0.0)),
+        )
+        path = str(tmp_path / "env.yaml")
+        env.to_yaml(path)
+        loaded = Environment.from_yaml(path)
+        orig = env.compute()
+        reloaded = loaded.compute()
+        assert math.isclose(orig[0].snr_db, reloaded[0].snr_db, rel_tol=1e-6)
+
+    def test_round_trip_cost231(self, tmp_path):
+        from spectra.environment.propagation import COST231HataPL
+
+        env = Environment(
+            propagation=COST231HataPL(h_bs_m=50, h_ms_m=2.0, environment="suburban"),
+            emitters=[
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(2000.0, 0.0),
+                    power_dbm=40.0,
+                    freq_hz=1800e6,
+                ),
+            ],
+            receiver=ReceiverConfig(position=Position(0.0, 0.0)),
+        )
+        path = str(tmp_path / "env.yaml")
+        env.to_yaml(path)
+        loaded = Environment.from_yaml(path)
+        orig = env.compute()
+        reloaded = loaded.compute()
+        assert math.isclose(orig[0].snr_db, reloaded[0].snr_db, rel_tol=1e-6)
