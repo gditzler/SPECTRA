@@ -1,6 +1,9 @@
 # SPECTRA Examples
 
-Example notebooks and scripts demonstrating SPECTRA's capabilities for RF waveform generation, impairment simulation, and machine learning dataset construction. Each example is available as both a Jupyter notebook (`.ipynb`) and a standalone Python script (`.py`).
+Example scripts demonstrating SPECTRA's capabilities for RF waveform generation,
+impairment simulation, signal processing, and machine learning dataset construction.
+Examples are organized into domain-specific sub-folders. Most examples are available
+as both standalone Python scripts (`.py`) and Jupyter notebooks (`.ipynb`).
 
 ## Prerequisites
 
@@ -11,250 +14,183 @@ maturin develop --release
 # Install dependencies
 pip install numpy matplotlib torch --index-url https://download.pytorch.org/whl/cpu
 
-# For CSP classification examples (08)
+# For CSP classification examples
 pip install 'spectra[classifiers]'
 ```
 
-## Examples
+## Running Examples
 
-### 01 — Basic Waveform Generation (Novice)
-
-Generate and visualize digital and analog modulation waveforms.
-
-- Generate QPSK, BPSK, QAM, PSK, OOK, FSK, GMSK, OFDM signals
-- Plot IQ time-domain, constellation diagrams, and power spectral density
-- Compare digital vs. analog modulations (AM-DSB, AM-USB, FM, Tone)
+All scripts are designed to be run from the repository root:
 
 ```bash
-cd examples && python 01_basic_waveforms.py
+python examples/getting_started/basic_waveforms.py
+python examples/radar/mti_doppler.py
 ```
 
-### 02 — Impairments and Channel Effects (Intermediate)
-
-Apply realistic channel impairments and visualize their effects.
-
-- AWGN at varying SNR levels (0–20 dB)
-- Frequency offset, phase noise, and IQ imbalance
-- Multipath fading: Rayleigh and Rician channels
-- Chain impairments with `Compose`
-
-```bash
-cd examples && python 02_impairments_and_channels.py
-```
-
-### 03 — Transforms and Spectrograms (Intermediate)
-
-Compute spectrograms, apply data augmentations, and use DSP utilities.
-
-- STFT spectrograms for different modulation types
-- `ComplexTo2D` and `Normalize` transforms
-- Data augmentations: CutOut, TimeReversal, PatchShuffle, RandomDropSamples, AddSlope
-- DSP utilities: filter design (low-pass, SRRC, Gaussian) and frequency shifting
-
-```bash
-cd examples && python 03_transforms_and_spectrograms.py
-```
-
-### 04 — Narrowband Classification Dataset (Advanced)
-
-Build a PyTorch dataset for automatic modulation classification (AMC).
-
-- `NarrowbandDataset` with 8 modulation classes
-- PyTorch `DataLoader` integration
-- Per-class spectrogram visualization
-- Family-level grouping with `FamilyName`
-- SNR-dependent constellation analysis
-
-```bash
-cd examples && python 04_narrowband_dataset.py
-```
-
-### 05 — Wideband Scene Composition (Pro)
-
-Generate multi-signal wideband RF captures with detection labels.
-
-- `SceneConfig` and `Composer` for wideband scene generation
-- Spectrogram visualization with COCO-format bounding boxes
-- Multiple scene generation with varying signal compositions
-- `WidebandDataset` with `DataLoader` for object detection tasks
-
-```bash
-cd examples && python 05_wideband_scenes.py
-```
-
-### 06 — Full Pipeline: Dataset to Classifier (Pro)
-
-End-to-end workflow from dataset generation to trained classifier.
-
-- Generate a reproducible 8-class AMC dataset with impairments
-- Train a CNN classifier on STFT spectrograms
-- Evaluate with training curves, per-class accuracy, and confusion matrix
-- Save and reload dataset metadata via YAML
-
-```bash
-cd examples && python 06_full_pipeline.py
-```
-
-### 07 — CSP Feature Visualization (Intermediate)
-
-Explore cyclostationary signal processing transforms for RF signal analysis.
-
-- Spectral Correlation Density (SCD) comparison across modulations
-- Spectral Coherence Function (SCF) for BPSK vs QPSK
-- Cyclic Autocorrelation Function (CAF) heatmaps
-- Higher-order cumulant feature comparison
-- Rust-backed Welch PSD and energy detection
-
-```bash
-cd examples && python 07_csp_features.py
-```
-
-### 08 — CSP Classification (Advanced)
-
-Build and evaluate a cyclostationary AMC classifier.
-
-- `CyclostationaryDataset` with SCD, cumulant, and PSD representations
-- `CyclostationaryAMC` with random forest classifier
-- Confusion matrix evaluation
-- Feature set comparison (cumulants vs cyclic_peaks vs combined)
-- Accuracy vs SNR sweep
-
-```bash
-cd examples && python 08_csp_classification.py
-```
-
-### 18 — Link-Level Simulator: BER/SER/PER Curves (Advanced)
-
-Run a `LinkSimulator` to generate BER, SER, and PER vs. Eb/N0 curves for
-BPSK, QPSK, and 16QAM. Compare simulated BPSK BER against the closed-form
-theoretical curve. Demonstrates the `CoherentReceiver`, constellation access
-from the Rust backend, and the new error-rate metrics.
-
-- Access reference **constellations** from the Rust backend
-- Use `CoherentReceiver` to demodulate RRC-filtered waveforms
-- Compute **BER**, **SER**, and **PER** with `bit_error_rate`, `symbol_error_rate`, `packet_error_rate`
-- Run a `LinkSimulator` Eb/N0 sweep and compare against **theoretical BER**
-- Compare BER performance across **BPSK**, **QPSK**, and **16QAM**
-
-```bash
-cd examples && python 18_link_simulator.py
-```
-
-### 17 — Radar Processing Pipeline (Advanced)
-
-End-to-end radar simulation pipeline: define target trajectories, generate
-Swerling RCS fluctuations, apply terrain-typed clutter, process with MTI
-and Doppler filter banks, and track targets with a Kalman filter via
-`RadarPipelineDataset`.
-
-- Define **CV** and **CT** target trajectories with `ConstantVelocity` / `ConstantTurnRate`
-- Generate **Swerling RCS** amplitude patterns (cases 0–IV)
-- Apply **radar clutter** presets (ground, sea, weather) via `RadarClutter`
-- Visualise **MTI** clutter suppression and **range-Doppler maps**
-- Build a `RadarPipelineDataset` with waveform → channel → receiver → tracker
-- Compare **Kalman filter** track estimates against ground truth
-- Compare **range-only vs range+Doppler** tracking with `RangeDopplerKF`
-
-```bash
-cd examples && python 17_radar_pipeline.py
-```
-
-### 16 — Wideband Direction-Finding Dataset (Intermediate–Advanced)
-
-Build a `WidebandDirectionFindingDataset` with multiple co-channel sources each occupying
-a distinct sub-band within a wideband capture. Apply sub-band MUSIC at each source's
-center frequency to estimate per-source azimuth angles.
-
-- Build a `WidebandDirectionFindingDataset` with frequency-dependent steering vectors
-- Visualise multi-antenna wideband spectrograms with per-source frequency markers
-- Apply **sub-band MUSIC** via frequency-shift + low-pass filtering per source
-- Analyse the source center frequency distribution across the dataset
-
-```bash
-cd examples && python 16_wideband_direction_finding.py
-```
-
-### 15 — Radar Range Profile Processing (Intermediate)
-
-Build a `RadarDataset` with LFM, Barker-coded, and P4 polyphase-coded radar
-waveforms. Apply a matched filter to detect point targets, then compare
-CA-CFAR and OS-CFAR adaptive threshold detectors against range-bin ground truth.
-
-- Build a `RadarDataset` with point-scatterer targets at random range bins
-- Apply `matched_filter` to maximise SNR for a known pulse shape
-- Apply **CA-CFAR** and **OS-CFAR** adaptive threshold detectors
-- Visualise and compare detection results against ground truth
-
-```bash
-cd examples && python 15_radar_processing.py
-```
-
-### 14 — Beamforming with a ULA (Intermediate)
-
-Apply Delay-and-Sum, MVDR (Capon), and LCMV beamformers to a two-source scenario with a
-desired signal and a strong interferer. Visualises and compares normalised beam patterns
-showing where each algorithm places its main lobe and nulls.
-
-- Apply **Delay-and-Sum** (DAS) conventional beamforming
-- Apply **MVDR** (Capon) minimum-variance distortionless-response beamforming
-- Apply **LCMV** beamforming with simultaneous gain and null constraints
-- Compare normalised beam patterns with `compute_beam_pattern()`
-
-```bash
-cd examples && python 14_beamforming.py
-```
-
-### 13 — Direction-Finding Dataset with MUSIC and ESPRIT (Intermediate)
-
-Build a `DirectionFindingDataset` with multiple co-channel sources at known azimuths, then
-estimate those azimuths using the MUSIC pseudospectrum and ESPRIT subspace algorithms.
-Compares estimated angles to ground truth and reports RMSE over 100 samples.
-
-- Configure a ULA with `spectra.arrays.ula()`
-- Build a `DirectionFindingDataset` with multiple concurrent sources
-- Apply **MUSIC** (noise-subspace pseudospectrum) and **ESPRIT** (rotational invariance)
-- Compute RMSE and compare algorithm performance
-
-```bash
-cd examples && python 13_direction_finding.py
-```
-
-### 12 — Choi-Williams Distribution (Intermediate)
-
-Compare the Choi-Williams Distribution against the WVD for cross-term suppression.
-
-- Side-by-side WVD vs CWD on multi-component signals
-- Sigma parameter sweep showing resolution vs. cross-term trade-off
-- Linear chirp instantaneous frequency tracking
-- Output format demonstration (magnitude, mag_phase, real_imag)
-
-```bash
-cd examples && python 12_cwd_cross_term_suppression.py
-```
-
-## Output
-
-All figures are saved to `examples/outputs/`. Running all scripts produces 37+ PNG figures and 1 YAML metadata file.
-
-## File Structure
+## Directory Structure
 
 ```
 examples/
-  plot_helpers.py                       # Shared plotting utilities
-  01_basic_waveforms.ipynb / .py        # Novice
-  02_impairments_and_channels.ipynb / .py   # Intermediate
-  03_transforms_and_spectrograms.ipynb / .py # Intermediate
-  04_narrowband_dataset.ipynb / .py     # Advanced
-  05_wideband_scenes.ipynb / .py        # Pro
-  06_full_pipeline.ipynb / .py          # Pro
-  07_csp_features.ipynb / .py           # Intermediate
-  08_csp_classification.ipynb / .py     # Advanced
-  12_cwd_cross_term_suppression.ipynb / .py  # Intermediate
-  13_direction_finding.ipynb / .py      # Intermediate
-  14_beamforming.ipynb / .py            # Intermediate
-  15_radar_processing.ipynb / .py       # Intermediate
-  16_wideband_direction_finding.ipynb / .py  # Intermediate–Advanced
-  17_radar_pipeline.ipynb / .py         # Advanced
-  18_link_simulator.ipynb / .py         # Advanced
-  outputs/                              # Generated figures
+├── plot_helpers.py                          # Shared plotting utilities
+├── outputs/                                 # Generated figures
+│
+├── getting_started/                         # Introductory examples
+│   ├── basic_waveforms.py                   # Novice
+│   ├── impairments_and_channels.py          # Intermediate
+│   └── transforms_and_spectrograms.py       # Intermediate
+│
+├── waveforms/                               # Advanced signal generation
+│   ├── spread_spectrum.py                   # Intermediate
+│   ├── protocol_signals.py                  # Intermediate
+│   └── nr_5g_signals.py                     # Advanced
+│
+├── impairments/                             # Channel effects & distortions
+│   └── advanced_impairments.py              # Intermediate
+│
+├── transforms/                              # Signal processing & features
+│   ├── alignment_transforms.py              # Intermediate
+│   └── time_frequency_analysis.py           # Intermediate
+│
+├── datasets/                                # Dataset construction & I/O
+│   ├── narrowband_dataset.py                # Advanced
+│   ├── wideband_scenes.py                   # Pro
+│   ├── folder_and_manifest.py               # Intermediate
+│   ├── snr_sweep_evaluation.py              # Advanced
+│   ├── augmentation_wrappers.py             # Intermediate
+│   ├── dataset_io.py                        # Intermediate
+│   └── streaming_curriculum.py              # Advanced
+│
+├── classification/                          # AMC training & evaluation
+│   ├── full_pipeline.py                     # Pro
+│   ├── csp_classification.py                # Advanced
+│   ├── train_narrowband_cnn.py              # Advanced
+│   └── resnet_amc.py                        # Advanced
+│
+├── cyclostationary/                         # CSP features & time-frequency
+│   ├── csp_features.py                      # Intermediate
+│   ├── s3ca_vs_ssca.py                      # Advanced
+│   ├── cwd_cross_term_suppression.py        # Intermediate
+│   └── wvd_time_frequency.py                # Intermediate
+│
+├── antenna_arrays/                          # Arrays, DoA, beamforming
+│   ├── direction_finding.py                 # Intermediate
+│   ├── beamforming.py                       # Intermediate
+│   ├── wideband_direction_finding.py        # Intermediate–Advanced
+│   ├── antenna_elements.py                  # Intermediate
+│   └── array_geometries.py                  # Intermediate
+│
+├── radar/                                   # Radar processing & tracking
+│   ├── radar_processing.py                  # Intermediate
+│   ├── radar_pipeline.py                    # Advanced
+│   └── mti_doppler.py                       # Intermediate
+│
+├── communications/                          # Link simulation & receivers
+│   └── link_simulator.py                    # Advanced
+│
+├── environment/                             # Propagation & link budgets
+│   └── propagation_and_links.py             # Intermediate
+│
+└── benchmarks/                              # Reproducible evaluation
+    └── benchmark_evaluation.py              # Advanced
 ```
+
+## Examples by Category
+
+### Getting Started
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `basic_waveforms.py` | Novice | Generate BPSK, QPSK, QAM, FSK; plot IQ, constellation, PSD |
+| `impairments_and_channels.py` | Intermediate | AWGN, frequency offset, phase noise, Rayleigh/Rician fading, Compose |
+| `transforms_and_spectrograms.py` | Intermediate | STFT, ComplexTo2D, data augmentations, DSP filter design |
+
+### Waveforms
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `spread_spectrum.py` | Intermediate | DSSS-BPSK/QPSK, FHSS, THSS, CDMA Forward/Reverse, ChirpSS |
+| `protocol_signals.py` | Intermediate | ADS-B, Mode S, AIS, ACARS, DME, ILS Localizer |
+| `nr_5g_signals.py` | Advanced | NR OFDM, PDSCH, PUSCH, PRACH, SSB signals |
+
+### Impairments
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `advanced_impairments.py` | Intermediate | ColoredNoise, DopplerShift, IQImbalance, TDL channels, PA models, quantization |
+
+### Transforms
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `alignment_transforms.py` | Intermediate | DCRemove, PowerNormalize, AGC, ClipNormalize, SpectralWhitening |
+| `time_frequency_analysis.py` | Intermediate | ReassignedGabor, InstantaneousFrequency, AmbiguityFunction |
+
+### Datasets
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `narrowband_dataset.py` | Advanced | NarrowbandDataset, PyTorch DataLoader, per-class spectrograms |
+| `wideband_scenes.py` | Pro | SceneConfig, Composer, COCO bounding boxes, WidebandDataset |
+| `folder_and_manifest.py` | Intermediate | SignalFolderDataset, ManifestDataset for pre-existing recordings |
+| `snr_sweep_evaluation.py` | Advanced | SNRSweepDataset for structured (SNR × class) evaluation |
+| `augmentation_wrappers.py` | Intermediate | MixUpDataset, CutMixDataset cross-sample augmentation |
+| `dataset_io.py` | Intermediate | DatasetWriter, export_dataset_to_folder, NumpyWriter |
+| `streaming_curriculum.py` | Advanced | StreamingDataLoader, CurriculumSchedule, progressive difficulty |
+
+### Classification
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `full_pipeline.py` | Pro | End-to-end: dataset → CNN training → evaluation |
+| `csp_classification.py` | Advanced | CyclostationaryAMC with SCD/cumulant features, random forest |
+| `train_narrowband_cnn.py` | Advanced | CNNAMC benchmark training with confusion matrix |
+| `resnet_amc.py` | Advanced | ResNetAMC on spectrogram features |
+
+### Cyclostationary & Time-Frequency
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `csp_features.py` | Intermediate | SCD, SCF, CAF heatmaps, cumulant features, PSD |
+| `s3ca_vs_ssca.py` | Advanced | S³CA vs SSCA SCD estimators |
+| `cwd_cross_term_suppression.py` | Intermediate | Choi-Williams Distribution vs WVD, sigma sweep |
+| `wvd_time_frequency.py` | Intermediate | Wigner-Ville Distribution analysis |
+
+### Antenna Arrays
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `direction_finding.py` | Intermediate | ULA, DirectionFindingDataset, MUSIC, ESPRIT |
+| `beamforming.py` | Intermediate | Delay-and-Sum, MVDR, LCMV beam patterns |
+| `wideband_direction_finding.py` | Intermediate–Advanced | WidebandDirectionFindingDataset, sub-band MUSIC |
+| `antenna_elements.py` | Intermediate | Isotropic, dipole, Yagi, cosine-power radiation patterns |
+| `array_geometries.py` | Intermediate | ULA, UCA, rectangular arrays, CalibrationErrors |
+
+### Radar
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `radar_processing.py` | Intermediate | Matched filter, CA-CFAR, OS-CFAR on LFM/coded pulses |
+| `radar_pipeline.py` | Advanced | Target trajectories, Swerling RCS, clutter, MTI, Kalman tracking |
+| `mti_doppler.py` | Intermediate | Single/double pulse canceller, Doppler filter bank, range-Doppler map |
+
+### Communications
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `link_simulator.py` | Advanced | CoherentReceiver, BER/SER/PER curves, LinkSimulator |
+
+### Environment
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `propagation_and_links.py` | Intermediate | Free-space/log-distance/COST231 propagation, multi-emitter link budget |
+
+### Benchmarks
+
+| Example | Level | Description |
+|---------|-------|-------------|
+| `benchmark_evaluation.py` | Advanced | Load and evaluate built-in benchmarks (spectra-18, spectra-spread, etc.) |
+
+## Output
+
+All figures are saved to `examples/outputs/`. Running all scripts produces 60+ PNG figures.
