@@ -8,9 +8,9 @@ from typing import List, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
 from spectra.algorithms.radar import matched_filter
+from spectra.datasets._base import BaseIQDataset
 from spectra.waveforms.base import Waveform
 
 
@@ -32,7 +32,7 @@ class RadarTarget:
     waveform_label: str
 
 
-class RadarDataset(Dataset):
+class RadarDataset(BaseIQDataset):
     """On-the-fly radar range-profile dataset for target detection.
 
     Generates a matched-filter range profile for each item.  Each item
@@ -72,19 +72,15 @@ class RadarDataset(Dataset):
         num_samples: int = 10000,
         seed: int = 0,
     ):
+        super().__init__(num_samples=num_samples, seed=seed)
         self.waveform_pool = waveform_pool
         self.num_range_bins = num_range_bins
         self.sample_rate = sample_rate
         self.snr_range = snr_range
         self.num_targets_range = num_targets_range
-        self.num_samples = num_samples
-        self.seed = seed
-
-    def __len__(self) -> int:
-        return self.num_samples
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, RadarTarget]:
-        rng = np.random.default_rng(seed=(self.seed, idx))
+        rng = self._make_rng(idx)
 
         # Pick waveform
         wf_idx = int(rng.integers(0, len(self.waveform_pool)))

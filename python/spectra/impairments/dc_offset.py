@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 
+from spectra.impairments._param_utils import validate_fixed_or_random
 from spectra.impairments.base import Transform
 from spectra.scene.signal_desc import SignalDescription
 
@@ -12,8 +13,7 @@ class DCOffset(Transform):
         offset: Optional[complex] = None,
         max_offset: Optional[float] = None,
     ):
-        if offset is None and max_offset is None:
-            raise ValueError("Must provide either offset or max_offset")
+        validate_fixed_or_random(offset, max_offset, "offset")
         self.offset = offset
         self.max_offset = max_offset
 

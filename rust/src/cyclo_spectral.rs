@@ -5,6 +5,15 @@ use pyo3::prelude::*;
 use rustfft::FftPlanner;
 use std::f32::consts::PI;
 
+/// Apply a real-valued window to complex samples element-wise.
+pub(crate) fn apply_window(samples: &[Complex32], window: &[f32]) -> Vec<Complex32> {
+    samples
+        .iter()
+        .zip(window.iter())
+        .map(|(&s, &w)| Complex32::new(s.re * w, s.im * w))
+        .collect()
+}
+
 /// Hann window of given size.
 pub(crate) fn hann_window(size: usize) -> Vec<f32> {
     if size <= 1 {
@@ -38,11 +47,7 @@ pub(crate) fn channelize_frames(
 
     for t in 0..n_frames {
         let start = t * hop;
-        let mut buffer: Vec<Complex32> = samples[start..start + nfft]
-            .iter()
-            .zip(window.iter())
-            .map(|(&s, &w)| Complex32::new(s.re * w, s.im * w))
-            .collect();
+        let mut buffer = apply_window(&samples[start..start + nfft], &window);
         fft.process(&mut buffer);
         frames.push(buffer);
     }
@@ -87,9 +92,10 @@ pub fn compute_scd_ssca<'py>(
     n_alpha: usize,
     hop: usize,
 ) -> Bound<'py, PyArray2<Complex32>> {
-    let samples: Vec<Complex32> = iq.as_array().to_vec();
+    let iq_array = iq.as_array();
+    let samples = iq_array.as_slice().unwrap();
 
-    let frames = channelize_frames(&samples, nfft, hop);
+    let frames = channelize_frames(samples, nfft, hop);
     let n_frames = frames.len();
 
     if n_frames == 0 {
@@ -132,7 +138,8 @@ pub fn compute_psd_welch<'py>(
     nfft: usize,
     overlap: usize,
 ) -> Bound<'py, PyArray1<f32>> {
-    let samples: Vec<Complex32> = iq.as_array().to_vec();
+    let iq_array = iq.as_array();
+    let samples = iq_array.as_slice().unwrap();
     let n = samples.len();
 
     if n == 0 || nfft == 0 {
@@ -153,11 +160,7 @@ pub fn compute_psd_welch<'py>(
 
     let mut start = 0;
     while start + nfft <= n {
-        let mut buffer: Vec<Complex32> = samples[start..start + nfft]
-            .iter()
-            .zip(window.iter())
-            .map(|(&s, &w)| Complex32::new(s.re * w, s.im * w))
-            .collect();
+        let mut buffer = apply_window(&samples[start..start + nfft], &window);
         fft.process(&mut buffer);
 
         for (k, val) in buffer.iter().enumerate() {
@@ -206,9 +209,10 @@ pub fn compute_scd_fam<'py>(
     nfft_fft: usize,
     hop: usize,
 ) -> Bound<'py, PyArray2<Complex32>> {
-    let samples: Vec<Complex32> = iq.as_array().to_vec();
+    let iq_array = iq.as_array();
+    let samples = iq_array.as_slice().unwrap();
 
-    let frames = channelize_frames(&samples, nfft_chan, hop);
+    let frames = channelize_frames(samples, nfft_chan, hop);
     let n_frames = frames.len();
 
     if n_frames == 0 {
@@ -266,9 +270,10 @@ pub fn channelize<'py>(
     nfft: usize,
     hop: usize,
 ) -> Bound<'py, PyArray2<Complex32>> {
-    let samples: Vec<Complex32> = iq.as_array().to_vec();
+    let iq_array = iq.as_array();
+    let samples = iq_array.as_slice().unwrap();
 
-    let frames = channelize_frames(&samples, nfft, hop);
+    let frames = channelize_frames(samples, nfft, hop);
     let n_frames = frames.len();
 
     if n_frames == 0 {

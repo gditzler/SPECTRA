@@ -2,14 +2,14 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
+from spectra.datasets._base import BaseIQDataset
 from spectra.datasets.iq_utils import iq_to_tensor, truncate_pad
 from spectra.impairments.compose import Compose
 from spectra.waveforms.base import Waveform
 
 
-class NarrowbandDataset(Dataset):
+class NarrowbandDataset(BaseIQDataset):
     """On-the-fly narrowband IQ dataset for AMC classification.
 
     Generates signals deterministically from ``(base_seed, idx)`` pairs using
@@ -50,22 +50,18 @@ class NarrowbandDataset(Dataset):
         class_weights: Optional[List[float]] = None,
         mimo_config: Optional[Dict] = None,
     ):
+        super().__init__(num_samples=num_samples, seed=seed)
         self.waveform_pool = waveform_pool
-        self.num_samples = num_samples
         self.num_iq_samples = num_iq_samples
         self.sample_rate = sample_rate
         self.impairments = impairments
         self.transform = transform
         self.target_transform = target_transform
-        self.seed = seed if seed is not None else 0
         self.class_weights = class_weights
         self.mimo_config = mimo_config
 
-    def __len__(self) -> int:
-        return self.num_samples
-
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        rng = np.random.default_rng(seed=(self.seed, idx))
+        rng = self._make_rng(idx)
 
         # Pick a waveform class
         if self.class_weights is not None:

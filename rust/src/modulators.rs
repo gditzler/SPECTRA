@@ -3,6 +3,44 @@ use numpy::ndarray::Array1;
 use numpy::{IntoPyArray, PyArray1};
 use pyo3::prelude::*;
 
+/// Normalize a constellation to unit average power in-place.
+fn normalize_constellation(constellation: &mut [Complex32]) {
+    let n = constellation.len();
+    if n == 0 {
+        return;
+    }
+    let avg_power: f64 = constellation
+        .iter()
+        .map(|c| (c.re * c.re + c.im * c.im) as f64)
+        .sum::<f64>()
+        / n as f64;
+    if avg_power > 0.0 {
+        let scale = 1.0 / avg_power.sqrt() as f32;
+        for c in constellation.iter_mut() {
+            c.re *= scale;
+            c.im *= scale;
+        }
+    }
+}
+
+/// Build a normalized QAM constellation for the given order.
+fn build_qam_constellation(order: usize) -> Result<Vec<Complex32>, String> {
+    let side = (order as f64).sqrt() as usize;
+    if side * side != order {
+        return Err("QAM order must be a perfect square (16, 64, 256, ...)".to_string());
+    }
+    let mut constellation = Vec::with_capacity(order);
+    for i in 0..side {
+        for j in 0..side {
+            let re = 2.0 * i as f64 - (side - 1) as f64;
+            let im = 2.0 * j as f64 - (side - 1) as f64;
+            constellation.push(Complex32::new(re as f32, im as f32));
+        }
+    }
+    normalize_constellation(&mut constellation);
+    Ok(constellation)
+}
+
 /// QPSK constellation: points at pi/4, 3pi/4, -3pi/4, -pi/4
 const QPSK_CONSTELLATION: [Complex32; 4] = [
     Complex32::new(
@@ -107,33 +145,8 @@ pub fn generate_qam_symbols<'py>(
     order: usize,
     seed: u64,
 ) -> PyResult<Bound<'py, PyArray1<Complex32>>> {
-    let side = (order as f64).sqrt() as usize;
-    if side * side != order {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "QAM order must be a perfect square (16, 64, 256, ...)",
-        ));
-    }
-    // Build constellation
-    let mut constellation = Vec::with_capacity(order);
-    for i in 0..side {
-        for j in 0..side {
-            let re = 2.0 * i as f64 - (side - 1) as f64;
-            let im = 2.0 * j as f64 - (side - 1) as f64;
-            constellation.push(Complex32::new(re as f32, im as f32));
-        }
-    }
-    // Normalize to unit average power
-    let avg_power: f64 = constellation
-        .iter()
-        .map(|c| (c.re * c.re + c.im * c.im) as f64)
-        .sum::<f64>()
-        / order as f64;
-    let scale = 1.0 / avg_power.sqrt() as f32;
-    for c in &mut constellation {
-        c.re *= scale;
-        c.im *= scale;
-    }
-    // Generate random symbols
+    let constellation =
+        build_qam_constellation(order).map_err(pyo3::exceptions::PyValueError::new_err)?;
     let mut rng = Xorshift64::new(seed);
     let symbols = Array1::from_shape_fn(num_symbols, |_| {
         let idx = (rng.next() as usize) % order;
@@ -294,30 +307,8 @@ pub fn generate_qam_symbols_with_indices<'py>(
     order: usize,
     seed: u64,
 ) -> PyResult<(Bound<'py, PyArray1<Complex32>>, Bound<'py, PyArray1<u32>>)> {
-    let side = (order as f64).sqrt() as usize;
-    if side * side != order {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "QAM order must be a perfect square (16, 64, 256, ...)",
-        ));
-    }
-    let mut constellation = Vec::with_capacity(order);
-    for i in 0..side {
-        for j in 0..side {
-            let re = 2.0 * i as f64 - (side - 1) as f64;
-            let im = 2.0 * j as f64 - (side - 1) as f64;
-            constellation.push(Complex32::new(re as f32, im as f32));
-        }
-    }
-    let avg_power: f64 = constellation
-        .iter()
-        .map(|c| (c.re * c.re + c.im * c.im) as f64)
-        .sum::<f64>()
-        / order as f64;
-    let scale = 1.0 / avg_power.sqrt() as f32;
-    for c in &mut constellation {
-        c.re *= scale;
-        c.im *= scale;
-    }
+    let constellation =
+        build_qam_constellation(order).map_err(pyo3::exceptions::PyValueError::new_err)?;
     let mut rng = Xorshift64::new(seed);
     let mut symbols = Vec::with_capacity(num_symbols);
     let mut indices = Vec::with_capacity(num_symbols);
@@ -348,16 +339,11 @@ pub fn generate_ask_symbols_with_indices<'py>(
         ));
     }
     let levels: Vec<f64> = (0..order).map(|k| k as f64).collect();
-    let avg_power: f64 = levels.iter().map(|l| l * l).sum::<f64>() / order as f64;
-    let scale = if avg_power > 0.0 {
-        1.0 / avg_power.sqrt()
-    } else {
-        1.0
-    };
-    let constellation: Vec<Complex32> = levels
+    let mut constellation: Vec<Complex32> = levels
         .iter()
-        .map(|l| Complex32::new((l * scale) as f32, 0.0))
+        .map(|l| Complex32::new(*l as f32, 0.0))
         .collect();
+    normalize_constellation(&mut constellation);
     let mut rng = Xorshift64::new(seed);
     let mut symbols = Vec::with_capacity(num_symbols);
     let mut indices = Vec::with_capacity(num_symbols);
@@ -412,30 +398,8 @@ pub fn get_qam_constellation(
     py: Python<'_>,
     order: usize,
 ) -> PyResult<Bound<'_, PyArray1<Complex32>>> {
-    let side = (order as f64).sqrt() as usize;
-    if side * side != order {
-        return Err(pyo3::exceptions::PyValueError::new_err(
-            "QAM order must be a perfect square (16, 64, 256, ...)",
-        ));
-    }
-    let mut constellation = Vec::with_capacity(order);
-    for i in 0..side {
-        for j in 0..side {
-            let re = 2.0 * i as f64 - (side - 1) as f64;
-            let im = 2.0 * j as f64 - (side - 1) as f64;
-            constellation.push(Complex32::new(re as f32, im as f32));
-        }
-    }
-    let avg_power: f64 = constellation
-        .iter()
-        .map(|c| (c.re * c.re + c.im * c.im) as f64)
-        .sum::<f64>()
-        / order as f64;
-    let scale = 1.0 / avg_power.sqrt() as f32;
-    for c in &mut constellation {
-        c.re *= scale;
-        c.im *= scale;
-    }
+    let constellation =
+        build_qam_constellation(order).map_err(pyo3::exceptions::PyValueError::new_err)?;
     Ok(Array1::from_vec(constellation).into_pyarray(py))
 }
 
@@ -451,16 +415,11 @@ pub fn get_ask_constellation(
         ));
     }
     let levels: Vec<f64> = (0..order).map(|k| k as f64).collect();
-    let avg_power: f64 = levels.iter().map(|l| l * l).sum::<f64>() / order as f64;
-    let scale = if avg_power > 0.0 {
-        1.0 / avg_power.sqrt()
-    } else {
-        1.0
-    };
-    let constellation: Vec<Complex32> = levels
+    let mut constellation: Vec<Complex32> = levels
         .iter()
-        .map(|l| Complex32::new((l * scale) as f32, 0.0))
+        .map(|l| Complex32::new(*l as f32, 0.0))
         .collect();
+    normalize_constellation(&mut constellation);
     Ok(Array1::from_vec(constellation).into_pyarray(py))
 }
 

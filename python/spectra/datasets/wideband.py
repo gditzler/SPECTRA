@@ -2,14 +2,14 @@ from typing import Callable, Dict, Optional, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
+from spectra.datasets._base import BaseIQDataset
 from spectra.impairments.compose import Compose
 from spectra.scene.composer import Composer, SceneConfig
 from spectra.scene.labels import STFTParams, to_coco
 
 
-class WidebandDataset(Dataset):
+class WidebandDataset(BaseIQDataset):
     def __init__(
         self,
         scene_config: SceneConfig,
@@ -19,23 +19,19 @@ class WidebandDataset(Dataset):
         target_transform: Optional[Callable] = None,
         seed: Optional[int] = None,
     ):
+        super().__init__(num_samples=num_samples, seed=seed)
         self.scene_config = scene_config
-        self.num_samples = num_samples
         self.impairments = impairments
         self.transform = transform
         self.target_transform = target_transform
-        self.seed = seed if seed is not None else 0
         self.composer = Composer(scene_config)
 
         # Build class list from signal pool
         self.class_list = sorted(set(w.label for w in scene_config.signal_pool))
 
-    def __len__(self) -> int:
-        return self.num_samples
-
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Dict]:
         # Deterministic seed from (base_seed, idx)
-        rng = np.random.default_rng(seed=(self.seed, idx))
+        rng = self._make_rng(idx)
         scene_seed = int(rng.integers(0, 2**32))
 
         iq, signal_descs = self.composer.generate(seed=scene_seed)
