@@ -1,3 +1,4 @@
+use crate::cyclo_spectral::apply_window;
 use num_complex::Complex32;
 use numpy::ndarray::Array2;
 use numpy::{IntoPyArray, PyArray2, PyReadonlyArray1};
@@ -82,12 +83,10 @@ pub fn compute_reassigned_gabor<'py>(
         let start = m * hop;
 
         // Window the frame with each of the three windows
-        for i in 0..nfft {
-            let s = x[start + i];
-            buf_g[i] = Complex32::new(s.re * g[i], s.im * g[i]);
-            buf_tg[i] = Complex32::new(s.re * tg[i], s.im * tg[i]);
-            buf_dg[i] = Complex32::new(s.re * dg[i], s.im * dg[i]);
-        }
+        let frame = &x[start..start + nfft];
+        buf_g.copy_from_slice(&apply_window(frame, &g));
+        buf_tg.copy_from_slice(&apply_window(frame, &tg));
+        buf_dg.copy_from_slice(&apply_window(frame, &dg));
 
         fft.process(&mut buf_g);
         fft.process(&mut buf_tg);

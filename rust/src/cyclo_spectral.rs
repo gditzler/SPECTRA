@@ -5,6 +5,15 @@ use pyo3::prelude::*;
 use rustfft::FftPlanner;
 use std::f32::consts::PI;
 
+/// Apply a real-valued window to complex samples element-wise.
+pub(crate) fn apply_window(samples: &[Complex32], window: &[f32]) -> Vec<Complex32> {
+    samples
+        .iter()
+        .zip(window.iter())
+        .map(|(&s, &w)| Complex32::new(s.re * w, s.im * w))
+        .collect()
+}
+
 /// Hann window of given size.
 pub(crate) fn hann_window(size: usize) -> Vec<f32> {
     if size <= 1 {
@@ -38,11 +47,7 @@ pub(crate) fn channelize_frames(
 
     for t in 0..n_frames {
         let start = t * hop;
-        let mut buffer: Vec<Complex32> = samples[start..start + nfft]
-            .iter()
-            .zip(window.iter())
-            .map(|(&s, &w)| Complex32::new(s.re * w, s.im * w))
-            .collect();
+        let mut buffer = apply_window(&samples[start..start + nfft], &window);
         fft.process(&mut buffer);
         frames.push(buffer);
     }
@@ -153,11 +158,7 @@ pub fn compute_psd_welch<'py>(
 
     let mut start = 0;
     while start + nfft <= n {
-        let mut buffer: Vec<Complex32> = samples[start..start + nfft]
-            .iter()
-            .zip(window.iter())
-            .map(|(&s, &w)| Complex32::new(s.re * w, s.im * w))
-            .collect();
+        let mut buffer = apply_window(&samples[start..start + nfft], &window);
         fft.process(&mut buffer);
 
         for (k, val) in buffer.iter().enumerate() {
