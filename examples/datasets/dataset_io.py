@@ -24,17 +24,17 @@ import matplotlib.pyplot as plt
 from spectra.waveforms import BPSK, QPSK, QAM16
 from spectra.impairments import AWGN
 from spectra.datasets import NarrowbandDataset
-from spectra.utils.writer import DatasetWriter
-from spectra.utils.file_handlers import export_dataset_to_folder, NumpyWriter
+from spectra.utils.file_handlers import NumpyWriter
+from spectra.utils.file_handlers.dataset_export import export_dataset_to_folder
 from plot_helpers import savefig
 
 sample_rate = 1e6
 
 # ── 1. Build a small dataset ────────────────────────────────────────────────
 dataset = NarrowbandDataset(
-    waveforms=[BPSK(), QPSK(), QAM16()],
+    waveform_pool=[BPSK(), QPSK(), QAM16()],
+    num_samples=60,  # 3 classes × 20
     num_iq_samples=1024,
-    num_samples_per_class=20,
     sample_rate=sample_rate,
     impairments=AWGN(snr=15.0),
     seed=42,
@@ -48,7 +48,8 @@ export_dir = Path(tmpdir) / "exported"
 export_dataset_to_folder(
     dataset=dataset,
     output_dir=str(export_dir),
-    writer=NumpyWriter(),
+    writer_factory=lambda path: NumpyWriter(path),
+    file_extension=".npy",
 )
 
 # List exported structure

@@ -36,15 +36,15 @@ sample_rate = 1e6
 freq = 900e6  # 900 MHz
 distances = np.logspace(1, 4, 100)  # 10 m to 10 km
 
-fspl = FreeSpacePathLoss(frequency_hz=freq)
-logd = LogDistancePL(frequency_hz=freq, path_loss_exp=3.5)
-cost231 = COST231HataPL(frequency_hz=freq, is_urban=True)
+fspl = FreeSpacePathLoss()
+logd = LogDistancePL(n=3.5)
+cost231 = COST231HataPL(environment="urban")
 
 plt.figure(figsize=(10, 5))
 for model, name in [(fspl, "Free Space"), (logd, "Log-Distance (n=3.5)"), (cost231, "COST231-Hata (urban)")]:
     losses = []
     for d in distances:
-        result = model.compute(d)
+        result = model(d, freq)
         losses.append(result.path_loss_db)
     plt.plot(distances / 1e3, losses, linewidth=1.5, label=name)
 
@@ -60,7 +60,7 @@ plt.close()
 
 # ── 2. Multi-emitter environment ────────────────────────────────────────────
 rx = ReceiverConfig(
-    position=Position(x_m=0, y_m=0),
+    position=Position(x=0, y=0),
     noise_figure_db=6.0,
     bandwidth_hz=sample_rate,
 )
@@ -68,20 +68,20 @@ rx = ReceiverConfig(
 emitters = [
     Emitter(
         waveform=QPSK(samples_per_symbol=8, rolloff=0.35),
-        position=Position(x_m=500, y_m=300),
+        position=Position(x=500, y=300),
         power_dbm=30.0,
         freq_hz=freq,
         velocity_mps=(10.0, 5.0),
     ),
     Emitter(
         waveform=BPSK(samples_per_symbol=8, rolloff=0.35),
-        position=Position(x_m=-200, y_m=800),
+        position=Position(x=-200, y=800),
         power_dbm=25.0,
         freq_hz=freq,
     ),
     Emitter(
         waveform=QPSK(samples_per_symbol=8, rolloff=0.35),
-        position=Position(x_m=1000, y_m=-100),
+        position=Position(x=1000, y=-100),
         power_dbm=35.0,
         freq_hz=freq,
         velocity_mps=(-15.0, 0.0),
@@ -89,7 +89,7 @@ emitters = [
 ]
 
 env = Environment(
-    propagation=FreeSpacePathLoss(frequency_hz=freq),
+    propagation=FreeSpacePathLoss(),
     emitters=emitters,
     receiver=rx,
 )
@@ -104,12 +104,12 @@ for i, lp in enumerate(link_params_list):
 
 # ── 3. Plot environment geometry ─────────────────────────────────────────────
 fig, ax = plt.subplots(figsize=(8, 8))
-ax.scatter(rx.position.x_m, rx.position.y_m, s=200, marker="^", color="blue", zorder=5, label="Receiver")
+ax.scatter(rx.position.x, rx.position.y, s=200, marker="^", color="blue", zorder=5, label="Receiver")
 for i, em in enumerate(emitters):
-    ax.scatter(em.position.x_m, em.position.y_m, s=100, marker="o", color="red", zorder=5)
-    ax.annotate(f"TX{i}\n{em.power_dbm:.0f}dBm", (em.position.x_m, em.position.y_m),
+    ax.scatter(em.position.x, em.position.y, s=100, marker="o", color="red", zorder=5)
+    ax.annotate(f"TX{i}\n{em.power_dbm:.0f}dBm", (em.position.x, em.position.y),
                 textcoords="offset points", xytext=(10, 10), fontsize=8)
-    ax.plot([rx.position.x_m, em.position.x_m], [rx.position.y_m, em.position.y_m],
+    ax.plot([rx.position.x, em.position.x], [rx.position.y, em.position.y],
             "k--", alpha=0.3)
 
 ax.set_xlabel("x (m)")
@@ -129,7 +129,6 @@ for i, lp in enumerate(link_params_list):
     print(f"  Emitter {i}: {imp_chain}")
 
 # ── 5. Propagation presets ───────────────────────────────────────────────────
-presets = propagation_presets()
-print(f"\nAvailable presets: {list(presets.keys())}")
+print(f"\nAvailable presets: {list(propagation_presets.keys())}")
 
 print("\nDone — environment/propagation examples saved.")

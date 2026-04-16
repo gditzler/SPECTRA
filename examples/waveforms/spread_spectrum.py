@@ -32,8 +32,8 @@ num_symbols = 256
 seed = 42
 
 # ── 1. DSSS-BPSK vs DSSS-QPSK ──────────────────────────────────────────────
-dsss_bpsk = DSSS_BPSK(chips_per_symbol=31)
-dsss_qpsk = DSSS_QPSK(chips_per_symbol=31)
+dsss_bpsk = DSSS_BPSK(processing_gain=31)
+dsss_qpsk = DSSS_QPSK(code_order=5)
 
 iq_bpsk = dsss_bpsk.generate(num_symbols=num_symbols, sample_rate=sample_rate, seed=seed)
 iq_qpsk = dsss_qpsk.generate(num_symbols=num_symbols, sample_rate=sample_rate, seed=seed)
@@ -53,7 +53,7 @@ savefig("spread_spectrum_dsss.png")
 plt.close()
 
 # ── 2. FHSS — Frequency Hopping ─────────────────────────────────────────────
-fhss = FHSS(num_hops=16, hop_bandwidth=50e3)
+fhss = FHSS(num_channels=16)
 iq_fhss = fhss.generate(num_symbols=num_symbols, sample_rate=sample_rate, seed=seed)
 
 fig, axes = plt.subplots(2, 1, figsize=(10, 6))
@@ -77,7 +77,7 @@ savefig("spread_spectrum_fhss.png")
 plt.close()
 
 # ── 3. THSS — Time Hopping ──────────────────────────────────────────────────
-thss = THSS(num_slots=8, slot_duration_symbols=4)
+thss = THSS(num_frames=32, slots_per_frame=8)
 iq_thss = thss.generate(num_symbols=num_symbols, sample_rate=sample_rate, seed=seed)
 
 plt.figure(figsize=(10, 3))
@@ -91,8 +91,8 @@ savefig("spread_spectrum_thss.png")
 plt.close()
 
 # ── 4. CDMA Forward and Reverse ─────────────────────────────────────────────
-cdma_fwd = CDMA_Forward(num_users=4, code_length=64)
-cdma_rev = CDMA_Reverse(num_users=4, code_length=64)
+cdma_fwd = CDMA_Forward(num_users=4, spreading_factor=64)
+cdma_rev = CDMA_Reverse(num_users=4, spreading_factor=64)
 
 iq_fwd = cdma_fwd.generate(num_symbols=num_symbols, sample_rate=sample_rate, seed=seed)
 iq_rev = cdma_rev.generate(num_symbols=num_symbols, sample_rate=sample_rate, seed=seed)
@@ -110,7 +110,7 @@ savefig("spread_spectrum_cdma.png")
 plt.close()
 
 # ── 5. ChirpSS ──────────────────────────────────────────────────────────────
-chirpss = ChirpSS(spreading_factor=128)
+chirpss = ChirpSS(spreading_factor=7)
 iq_css = chirpss.generate(num_symbols=64, sample_rate=sample_rate, seed=seed)
 
 plot_psd(iq_css, sample_rate, title=f"ChirpSS PSD — {chirpss.label}")

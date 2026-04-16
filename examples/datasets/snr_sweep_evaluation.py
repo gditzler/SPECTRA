@@ -24,7 +24,6 @@ from spectra.waveforms import BPSK, QPSK, QAM16, FSK
 from spectra.impairments import AWGN
 from spectra.datasets import SNRSweepDataset
 from spectra.transforms import Spectrogram
-from spectra.scene import SignalDescription
 from plot_helpers import savefig
 
 sample_rate = 1e6
@@ -54,17 +53,23 @@ class_names = [w.label for w in waveform_pool]
 fig, axes = plt.subplots(len(waveform_pool), len(snr_levels),
                          figsize=(3 * len(snr_levels), 3 * len(waveform_pool)))
 
-spec_xform = Spectrogram(nfft=64, hop_size=16)
+spec_xform = Spectrogram(nfft=64, hop_length=16)
 
 for cls_idx in range(len(waveform_pool)):
     for snr_idx, snr in enumerate(snr_levels):
         idx = (snr_idx * len(waveform_pool) + cls_idx) * 5
-        iq, label = dataset[idx]
+        iq, label, snr_val = dataset[idx]
 
-        desc = SignalDescription(sample_rate=sample_rate, num_iq_samples=len(iq))
-        spec, _ = spec_xform(iq, desc)
+        iq_np = iq.numpy() if hasattr(iq, "numpy") else iq
+        # SNRSweepDataset returns [2, N] (I, Q channels); convert to complex 1D
+        if iq_np.ndim == 2 and iq_np.shape[0] == 2:
+            iq_complex = iq_np[0] + 1j * iq_np[1]
+        else:
+            iq_complex = iq_np
+        spec = spec_xform(iq_complex.astype(np.complex64))
+        spec = spec.numpy() if hasattr(spec, "numpy") else spec
         if spec.ndim == 3:
-            spec = np.sqrt(spec[0] ** 2 + spec[1] ** 2)
+            spec = spec[0]  # take the single channel [freq, time]
 
         axes[cls_idx, snr_idx].imshow(
             10 * np.log10(np.abs(spec) + 1e-12),

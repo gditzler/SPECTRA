@@ -47,29 +47,20 @@ print(f"  Samples: {len(ds_snr)}")
 
 # ── 4. Simulate a simple classifier on the SNR sweep ────────────────────────
 # (Predictions are intentionally simple to demonstrate the evaluate_snr_sweep API)
-rng = np.random.default_rng(42)
-all_labels = []
-all_preds = []
-all_snrs = []
+import torch
 
-for idx in range(min(len(ds_snr), 200)):
-    iq, label = ds_snr[idx]
-    all_labels.append(label)
-    all_preds.append(label)  # placeholder "perfect" classifier
-    all_snrs.append(idx % 6 * 5 - 5)  # mock SNR values
+def identity_predict_fn(batch):
+    """Placeholder: always predict class 0 — replace with a real model."""
+    return torch.zeros(batch.shape[0], dtype=torch.long)
 
-all_labels = np.array(all_labels)
-all_preds = np.array(all_preds)
-all_snrs = np.array(all_snrs, dtype=float)
-
-results = evaluate_snr_sweep(all_labels, all_preds, all_snrs)
+results = evaluate_snr_sweep(identity_predict_fn, ds_snr, batch_size=64)
 print("\nPer-SNR accuracy:")
-for snr, acc in sorted(results.items()):
-    print(f"  SNR={snr:>6.1f} dB: accuracy={acc:.1%}")
+for snr, result in sorted(results.items()):
+    print(f"  SNR={snr:>6.1f} dB: accuracy={result['accuracy']:.1%}")
 
 # ── 5. Plot per-SNR accuracy ────────────────────────────────────────────────
 snrs = sorted(results.keys())
-accs = [results[s] for s in snrs]
+accs = [results[s]["accuracy"] for s in snrs]
 
 plt.figure(figsize=(8, 4))
 plt.plot(snrs, accs, "o-", linewidth=1.5, markersize=6)

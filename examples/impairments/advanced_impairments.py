@@ -43,12 +43,16 @@ from plot_helpers import savefig
 sample_rate = 1e6
 waveform = QPSK(samples_per_symbol=8, rolloff=0.35)
 iq_clean = waveform.generate(num_symbols=512, sample_rate=sample_rate, seed=42)
-desc = SignalDescription(sample_rate=sample_rate, num_iq_samples=len(iq_clean))
+desc = SignalDescription(
+    t_start=0.0, t_stop=len(iq_clean) / sample_rate,
+    f_low=-sample_rate / 4, f_high=sample_rate / 4,
+    label="QPSK", snr=30.0,
+)
 
 
 def apply_and_plot(impairment, name, ax_time, ax_const):
     """Apply impairment, plot time domain and constellation."""
-    iq_out, _ = impairment(iq_clean.copy(), desc)
+    iq_out, _ = impairment(iq_clean.copy(), desc, sample_rate=sample_rate)
     n = min(200, len(iq_out))
     ax_time.plot(iq_out[:n].real, linewidth=0.5)
     ax_time.set_title(name, fontsize=9)
@@ -95,13 +99,17 @@ plt.close()
 # ── 2. PA AM/AM curves ──────────────────────────────────────────────────────
 input_amp = np.linspace(0, 2.0, 200)
 input_signal = input_amp.astype(np.complex128)
-dummy_desc = SignalDescription(sample_rate=sample_rate, num_iq_samples=len(input_signal))
+dummy_desc = SignalDescription(
+    t_start=0.0, t_stop=len(input_signal) / sample_rate,
+    f_low=-sample_rate / 4, f_high=sample_rate / 4,
+    label="test", snr=30.0,
+)
 
 rapp = RappPA(smoothness=3.0, saturation=1.0)
 saleh = SalehPA(alpha_a=2.0, beta_a=1.0, alpha_p=1.0, beta_p=1.0)
 
-rapp_out, _ = rapp(input_signal.copy(), dummy_desc)
-saleh_out, _ = saleh(input_signal.copy(), dummy_desc)
+rapp_out, _ = rapp(input_signal.copy(), dummy_desc, sample_rate=sample_rate)
+saleh_out, _ = saleh(input_signal.copy(), dummy_desc, sample_rate=sample_rate)
 
 fig, ax = plt.subplots(figsize=(8, 5))
 ax.plot(input_amp, np.abs(rapp_out), label="Rapp PA (p=3)", linewidth=1.5)

@@ -40,12 +40,12 @@ num_classes = 4
 waveforms = [BPSK(), QPSK(), QAM16(), FSK()]
 
 # ── 1. Build spectrogram dataset ────────────────────────────────────────────
-spec_transform = Spectrogram(nfft=64, hop_size=16)
+spec_transform = Spectrogram(nfft=64, hop_length=16)
 
 train_ds = NarrowbandDataset(
-    waveforms=waveforms,
+    waveform_pool=waveforms,
+    num_samples=400,  # 4 classes × 100
     num_iq_samples=1024,
-    num_samples_per_class=100,
     sample_rate=sample_rate,
     impairments=AWGN(snr=15.0),
     transform=spec_transform,
@@ -53,9 +53,9 @@ train_ds = NarrowbandDataset(
 )
 
 test_ds = NarrowbandDataset(
-    waveforms=waveforms,
+    waveform_pool=waveforms,
+    num_samples=100,  # 4 classes × 25
     num_iq_samples=1024,
-    num_samples_per_class=25,
     sample_rate=sample_rate,
     impairments=AWGN(snr=15.0),
     transform=spec_transform,

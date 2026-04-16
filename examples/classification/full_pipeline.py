@@ -219,11 +219,14 @@ metadata = sp.NarrowbandMetadata(
     num_iq_samples=num_iq_samples,
     snr_range=(0, 20),
 )
-metadata.to_yaml("outputs/06_dataset_metadata.yaml")
-print(f"\nMetadata saved to outputs/06_dataset_metadata.yaml")
+_out_dir = Path(__file__).resolve().parent.parent / "outputs"
+_out_dir.mkdir(parents=True, exist_ok=True)
+_meta_path = str(_out_dir / "06_dataset_metadata.yaml")
+metadata.to_yaml(_meta_path)
+print(f"\nMetadata saved to {_meta_path}")
 
 # Demonstrate reload
-loaded = sp.NarrowbandMetadata.from_yaml("outputs/06_dataset_metadata.yaml")
+loaded = sp.NarrowbandMetadata.from_yaml(_meta_path)
 print(f"Reloaded: {loaded.name}, {loaded.num_samples} samples, "
       f"{len(loaded.waveform_labels)} classes")
 

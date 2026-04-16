@@ -28,9 +28,9 @@ sample_rate = 1e6
 
 # ── 1. Build base dataset ───────────────────────────────────────────────────
 base_ds = NarrowbandDataset(
-    waveforms=[BPSK(), QPSK(), QAM16(), FSK()],
+    waveform_pool=[BPSK(), QPSK(), QAM16(), FSK()],
+    num_samples=200,  # 4 classes × 50
     num_iq_samples=1024,
-    num_samples_per_class=50,
     sample_rate=sample_rate,
     impairments=AWGN(snr=15.0),
     seed=42,

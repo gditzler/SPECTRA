@@ -32,13 +32,19 @@ seed = 42
 # ── 1. ReassignedGabor vs standard Spectrogram ──────────────────────────────
 lfm = LFM(bandwidth_fraction=0.2, samples_per_pulse=256)
 iq_lfm = lfm.generate(num_symbols=4, sample_rate=sample_rate, seed=seed)
-desc = SignalDescription(sample_rate=sample_rate, num_iq_samples=len(iq_lfm))
+desc = SignalDescription(
+    t_start=0.0, t_stop=len(iq_lfm) / sample_rate,
+    f_low=-sample_rate / 4, f_high=sample_rate / 4,
+    label="LFM", snr=30.0,
+)
 
 spec_xform = Spectrogram(nfft=128, hop_length=16)
 rg_xform = ReassignedGabor(nfft=128, hop_length=16)
 
-spec_out, _ = spec_xform(iq_lfm, desc)
-rg_out, _ = rg_xform(iq_lfm, desc)
+spec_out = spec_xform(iq_lfm)
+rg_out = rg_xform(iq_lfm)
+spec_out = spec_out.numpy() if hasattr(spec_out, "numpy") else spec_out
+rg_out = rg_out.numpy() if hasattr(rg_out, "numpy") else rg_out
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 for ax, data, title in [
@@ -46,7 +52,7 @@ for ax, data, title in [
     (axes[1], rg_out, "Reassigned Gabor"),
 ]:
     if data.ndim == 3:
-        data = np.sqrt(data[0] ** 2 + data[1] ** 2)
+        data = data[0]  # take first (and only) channel [freq, time]
     ax.imshow(
         10 * np.log10(np.abs(data) + 1e-12),
         aspect="auto", origin="lower", cmap="viridis",
@@ -64,10 +70,11 @@ plt.close()
 if_xform = InstantaneousFrequency()
 iq_qpsk = QPSK(samples_per_symbol=8, rolloff=0.35).generate(
     num_symbols=128, sample_rate=sample_rate, seed=seed)
-desc_qpsk = SignalDescription(sample_rate=sample_rate, num_iq_samples=len(iq_qpsk))
 
-if_out, _ = if_xform(iq_lfm, desc)
-if_qpsk, _ = if_xform(iq_qpsk, desc_qpsk)
+if_out = if_xform(iq_lfm)
+if_qpsk = if_xform(iq_qpsk)
+if_out = if_out.numpy() if hasattr(if_out, "numpy") else if_out
+if_qpsk = if_qpsk.numpy() if hasattr(if_qpsk, "numpy") else if_qpsk
 
 fig, axes = plt.subplots(2, 1, figsize=(10, 6))
 axes[0].plot(if_out[:500], linewidth=0.8)
@@ -86,11 +93,12 @@ plt.close()
 
 # ── 3. Ambiguity Function ───────────────────────────────────────────────────
 af_xform = AmbiguityFunction()
-af_lfm, _ = af_xform(iq_lfm, desc)
+af_lfm = af_xform(iq_lfm)
+af_lfm = af_lfm.numpy() if hasattr(af_lfm, "numpy") else af_lfm
 
 fig, ax = plt.subplots(figsize=(8, 6))
 if af_lfm.ndim == 3:
-    af_plot = np.sqrt(af_lfm[0] ** 2 + af_lfm[1] ** 2)
+    af_plot = af_lfm[0]  # take first channel [delay, doppler]
 else:
     af_plot = np.abs(af_lfm)
 ax.imshow(

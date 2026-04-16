@@ -35,7 +35,11 @@ from plot_helpers import savefig
 sample_rate = 1e6
 waveform = QPSK(samples_per_symbol=8, rolloff=0.35)
 iq_clean = waveform.generate(num_symbols=512, sample_rate=sample_rate, seed=42)
-desc = SignalDescription(sample_rate=sample_rate, num_iq_samples=len(iq_clean))
+desc = SignalDescription(
+    t_start=0.0, t_stop=len(iq_clean) / sample_rate,
+    f_low=-sample_rate / 4, f_high=sample_rate / 4,
+    label="QPSK", snr=30.0,
+)
 
 # Apply DC offset + noise to create a "dirty" signal
 dirty_pipeline = Compose([DCOffset(offset=0.3 + 0.2j), AWGN(snr=15.0)])

@@ -48,9 +48,8 @@ for cls_name, wf in waveforms.items():
         filepath = cls_dir / f"sample_{i:03d}.npy"
         np.save(filepath, iq[:num_iq])
         manifest_entries.append({
-            "path": str(filepath),
+            "file": str(filepath),
             "label": cls_name,
-            "sample_rate": sample_rate,
         })
 
 # Write manifest JSON

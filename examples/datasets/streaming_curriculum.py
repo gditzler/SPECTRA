@@ -30,7 +30,7 @@ sample_rate = 1e6
 
 # ── 1. Define curriculum schedule ────────────────────────────────────────────
 curriculum = CurriculumSchedule(
-    snr_range=(20.0, 0.0),  # start easy (20 dB) → hard (0 dB)
+    snr_range={"start": (20.0, 20.0), "end": (0.0, 0.0)},  # start easy (20 dB) → hard (0 dB)
 )
 
 print("Curriculum progression:")
@@ -41,11 +41,12 @@ for progress in [0.0, 0.25, 0.5, 0.75, 1.0]:
 
 # ── 2. Dataset factory ──────────────────────────────────────────────────────
 def make_dataset(params):
-    snr = params.get("snr", 15.0)
+    snr_range = params.get("snr_range", (15.0, 15.0))
+    snr = float(snr_range[0])  # use the low end of the current range
     return NarrowbandDataset(
-        waveforms=[BPSK(), QPSK(), QAM16(), FSK()],
+        waveform_pool=[BPSK(), QPSK(), QAM16(), FSK()],
+        num_samples=100,  # 4 classes × 25
         num_iq_samples=1024,
-        num_samples_per_class=25,
         sample_rate=sample_rate,
         impairments=AWGN(snr=snr),
         seed=0,  # StreamingDataLoader overrides this per epoch
@@ -76,7 +77,7 @@ for epoch_idx in range(num_epochs):
 
     progress = epoch_idx / max(num_epochs - 1, 1)
     params = curriculum.at(progress)
-    epoch_snrs.append(params.get("snr", 15.0))
+    epoch_snrs.append(float(params.get("snr_range", (15.0, 15.0))[0]))
     epoch_powers.append(np.mean(batch_powers))
     print(f"Epoch {epoch_idx}: SNR={epoch_snrs[-1]:.1f} dB, mean power={epoch_powers[-1]:.4f}")
 

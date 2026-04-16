@@ -30,11 +30,10 @@ freq = 1e9
 
 # ── 1. Create three array geometries ────────────────────────────────────────
 element = IsotropicElement(frequency=freq)
-arr_ula = ula(num_elements=8, element=element, frequency=freq, spacing_wavelengths=0.5)
-arr_uca = uca(num_elements=8, element=element, frequency=freq, radius_wavelengths=1.0)
+arr_ula = ula(num_elements=8, spacing=0.5, element=element, frequency=freq)
+arr_uca = uca(num_elements=8, radius=1.0, element=element, frequency=freq)
 arr_rect = rectangular(
-    x_elements=4, y_elements=3, element=element, frequency=freq,
-    x_spacing_wavelengths=0.5, y_spacing_wavelengths=0.5,
+    rows=3, cols=4, spacing_x=0.5, spacing_y=0.5, element=element, frequency=freq,
 )
 
 # ── 2. Plot array geometries ────────────────────────────────────────────────
