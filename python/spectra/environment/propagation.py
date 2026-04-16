@@ -79,3 +79,56 @@ class LogDistancePL(PropagationModel):
             path_loss_db=pl_db + shadow,
             shadow_fading_db=shadow,
         )
+
+
+_VALID_ENVIRONMENTS = {"urban", "suburban", "rural"}
+
+
+class COST231HataPL(PropagationModel):
+    """COST-231 Hata path loss model for 1500-2000 MHz.
+
+    Valid ranges: fc 1500-2000 MHz, h_bs 30-200 m, h_ms 1-10 m, d 1-20 km.
+    """
+
+    def __init__(
+        self,
+        h_bs_m: float = 30.0,
+        h_ms_m: float = 1.5,
+        environment: str = "urban",
+    ):
+        if environment not in _VALID_ENVIRONMENTS:
+            raise ValueError(
+                f"environment must be one of {_VALID_ENVIRONMENTS}, got '{environment}'"
+            )
+        self.h_bs_m = h_bs_m
+        self.h_ms_m = h_ms_m
+        self.environment = environment
+
+    def __call__(self, distance_m: float, freq_hz: float, **kwargs) -> PathLossResult:
+        if distance_m <= 0:
+            raise ValueError("distance_m must be positive")
+
+        fc_mhz = freq_hz / 1e6
+        d_km = distance_m / 1000.0
+
+        a_hms = (1.1 * math.log10(fc_mhz) - 0.7) * self.h_ms_m - (
+            1.56 * math.log10(fc_mhz) - 0.8
+        )
+
+        c_m = 3.0 if self.environment == "urban" else 0.0
+
+        pl_db = (
+            46.3
+            + 33.9 * math.log10(fc_mhz)
+            - 13.82 * math.log10(self.h_bs_m)
+            - a_hms
+            + (44.9 - 6.55 * math.log10(self.h_bs_m)) * math.log10(d_km)
+            + c_m
+        )
+
+        if self.environment == "suburban":
+            pl_db -= 2 * (math.log10(fc_mhz / 28)) ** 2 + 5.4
+        elif self.environment == "rural":
+            pl_db -= 4.78 * (math.log10(fc_mhz)) ** 2 + 18.33 * math.log10(fc_mhz) - 40.94
+
+        return PathLossResult(path_loss_db=pl_db)

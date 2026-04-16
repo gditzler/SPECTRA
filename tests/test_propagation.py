@@ -127,3 +127,56 @@ class TestLogDistancePL:
         result_no_shadow = model_no_shadow(distance_m=500.0, freq_hz=1e9)
         expected = result_no_shadow.path_loss_db + result.shadow_fading_db
         assert math.isclose(result.path_loss_db, expected, rel_tol=1e-6)
+
+
+from spectra.environment.propagation import COST231HataPL
+
+
+class TestCOST231HataPL:
+    def test_is_propagation_model(self):
+        assert isinstance(COST231HataPL(), PropagationModel)
+
+    def test_urban_more_loss_than_suburban(self):
+        urban = COST231HataPL(environment="urban")
+        suburban = COST231HataPL(environment="suburban")
+        r_urban = urban(distance_m=1000.0, freq_hz=1800e6)
+        r_suburban = suburban(distance_m=1000.0, freq_hz=1800e6)
+        assert r_urban.path_loss_db > r_suburban.path_loss_db
+
+    def test_suburban_more_loss_than_rural(self):
+        suburban = COST231HataPL(environment="suburban")
+        rural = COST231HataPL(environment="rural")
+        r_sub = suburban(distance_m=1000.0, freq_hz=1800e6)
+        r_rural = rural(distance_m=1000.0, freq_hz=1800e6)
+        assert r_sub.path_loss_db > r_rural.path_loss_db
+
+    def test_farther_distance_more_loss(self):
+        model = COST231HataPL()
+        r1 = model(distance_m=1000.0, freq_hz=1800e6)
+        r2 = model(distance_m=5000.0, freq_hz=1800e6)
+        assert r2.path_loss_db > r1.path_loss_db
+
+    def test_higher_frequency_more_loss(self):
+        model = COST231HataPL()
+        r1 = model(distance_m=1000.0, freq_hz=1500e6)
+        r2 = model(distance_m=1000.0, freq_hz=2000e6)
+        assert r2.path_loss_db > r1.path_loss_db
+
+    def test_reasonable_range_1km_1800mhz(self):
+        model = COST231HataPL(h_bs_m=30, h_ms_m=1.5, environment="urban")
+        result = model(distance_m=1000.0, freq_hz=1800e6)
+        assert 110 < result.path_loss_db < 160
+
+    def test_invalid_environment(self):
+        with pytest.raises(ValueError, match="environment must be"):
+            COST231HataPL(environment="space")
+
+    def test_minimum_distance_clamp(self):
+        model = COST231HataPL()
+        with pytest.raises(ValueError, match="distance_m must be positive"):
+            model(distance_m=0.0, freq_hz=1800e6)
+
+    def test_no_fading_metadata(self):
+        model = COST231HataPL()
+        result = model(distance_m=1000.0, freq_hz=1800e6)
+        assert result.shadow_fading_db == 0.0

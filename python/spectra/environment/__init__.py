@@ -2,6 +2,7 @@
 
 from spectra.environment.position import Position
 from spectra.environment.propagation import (
+    COST231HataPL,
     FreeSpacePathLoss,
     LogDistancePL,
     PathLossResult,
@@ -9,6 +10,7 @@ from spectra.environment.propagation import (
 )
 
 __all__ = [
+    "COST231HataPL",
     "FreeSpacePathLoss",
     "LogDistancePL",
     "PathLossResult",
