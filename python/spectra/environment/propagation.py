@@ -111,9 +111,7 @@ class COST231HataPL(PropagationModel):
         fc_mhz = freq_hz / 1e6
         d_km = distance_m / 1000.0
 
-        a_hms = (1.1 * math.log10(fc_mhz) - 0.7) * self.h_ms_m - (
-            1.56 * math.log10(fc_mhz) - 0.8
-        )
+        a_hms = (1.1 * math.log10(fc_mhz) - 0.7) * self.h_ms_m - (1.56 * math.log10(fc_mhz) - 0.8)
 
         c_m = 3.0 if self.environment == "urban" else 0.0
 

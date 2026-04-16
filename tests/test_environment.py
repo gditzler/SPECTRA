@@ -3,9 +3,7 @@
 import math
 import os
 
-import numpy as np
 import pytest
-
 from spectra.environment.core import Emitter, Environment, LinkParams, ReceiverConfig
 from spectra.environment.position import Position
 from spectra.environment.propagation import FreeSpacePathLoss, LogDistancePL
@@ -13,12 +11,10 @@ from spectra.waveforms import QPSK
 
 yaml = pytest.importorskip("yaml")
 
-import math as _math
-
 SPEED_OF_LIGHT = 299_792_458.0
 BOLTZMANN_K = 1.380649e-23  # J/K
 # Exact thermal noise floor: 10*log10(k_B * T) + 30 dBm/Hz at T=290K
-BOLTZMANN_DBM_HZ = 10 * _math.log10(BOLTZMANN_K * 290.0) + 30
+BOLTZMANN_DBM_HZ = 10 * math.log10(BOLTZMANN_K * 290.0) + 30
 
 
 @pytest.fixture
@@ -76,18 +72,28 @@ class TestReceiverConfig:
 class TestLinkParams:
     def test_fields(self):
         lp = LinkParams(
-            emitter_index=0, snr_db=15.0, path_loss_db=100.0,
-            received_power_dbm=-70.0, delay_s=3.3e-6, doppler_hz=0.0,
-            distance_m=1000.0, fading_suggestion=None,
+            emitter_index=0,
+            snr_db=15.0,
+            path_loss_db=100.0,
+            received_power_dbm=-70.0,
+            delay_s=3.3e-6,
+            doppler_hz=0.0,
+            distance_m=1000.0,
+            fading_suggestion=None,
         )
         assert lp.snr_db == 15.0
         assert lp.fading_suggestion is None
 
     def test_mutable_for_override(self):
         lp = LinkParams(
-            emitter_index=0, snr_db=15.0, path_loss_db=100.0,
-            received_power_dbm=-70.0, delay_s=3.3e-6, doppler_hz=0.0,
-            distance_m=1000.0, fading_suggestion=None,
+            emitter_index=0,
+            snr_db=15.0,
+            path_loss_db=100.0,
+            received_power_dbm=-70.0,
+            delay_s=3.3e-6,
+            doppler_hz=0.0,
+            distance_m=1000.0,
+            fading_suggestion=None,
         )
         lp.snr_db = 20.0
         assert lp.snr_db == 20.0
@@ -129,7 +135,8 @@ class TestEnvironmentCompute:
                 Emitter(
                     waveform=QPSK(samples_per_symbol=8),
                     position=Position(1000.0, 0.0),
-                    power_dbm=30.0, freq_hz=2.4e9,
+                    power_dbm=30.0,
+                    freq_hz=2.4e9,
                     velocity_mps=(-30.0, 0.0),
                 ),
             ],
@@ -146,7 +153,8 @@ class TestEnvironmentCompute:
                 Emitter(
                     waveform=QPSK(samples_per_symbol=8),
                     position=Position(1000.0, 0.0),
-                    power_dbm=30.0, freq_hz=2.4e9,
+                    power_dbm=30.0,
+                    freq_hz=2.4e9,
                     velocity_mps=(0.0, 30.0),
                 ),
             ],
@@ -159,8 +167,18 @@ class TestEnvironmentCompute:
         env = Environment(
             propagation=FreeSpacePathLoss(),
             emitters=[
-                Emitter(waveform=QPSK(samples_per_symbol=8), position=Position(100.0, 0.0), power_dbm=30.0, freq_hz=2.4e9),
-                Emitter(waveform=QPSK(samples_per_symbol=8), position=Position(500.0, 0.0), power_dbm=30.0, freq_hz=2.4e9),
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(100.0, 0.0),
+                    power_dbm=30.0,
+                    freq_hz=2.4e9,
+                ),
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(500.0, 0.0),
+                    power_dbm=30.0,
+                    freq_hz=2.4e9,
+                ),
             ],
             receiver=ReceiverConfig(position=Position(0.0, 0.0)),
         )
@@ -173,12 +191,28 @@ class TestEnvironmentCompute:
     def test_antenna_gain_increases_snr(self):
         env_no_gain = Environment(
             propagation=FreeSpacePathLoss(),
-            emitters=[Emitter(waveform=QPSK(samples_per_symbol=8), position=Position(1000.0, 0.0), power_dbm=30.0, freq_hz=2.4e9, antenna_gain_dbi=0.0)],
+            emitters=[
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(1000.0, 0.0),
+                    power_dbm=30.0,
+                    freq_hz=2.4e9,
+                    antenna_gain_dbi=0.0,
+                )
+            ],
             receiver=ReceiverConfig(position=Position(0.0, 0.0), antenna_gain_dbi=0.0),
         )
         env_with_gain = Environment(
             propagation=FreeSpacePathLoss(),
-            emitters=[Emitter(waveform=QPSK(samples_per_symbol=8), position=Position(1000.0, 0.0), power_dbm=30.0, freq_hz=2.4e9, antenna_gain_dbi=10.0)],
+            emitters=[
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(1000.0, 0.0),
+                    power_dbm=30.0,
+                    freq_hz=2.4e9,
+                    antenna_gain_dbi=10.0,
+                )
+            ],
             receiver=ReceiverConfig(position=Position(0.0, 0.0), antenna_gain_dbi=5.0),
         )
         r1 = env_no_gain.compute()
@@ -188,7 +222,14 @@ class TestEnvironmentCompute:
     def test_deterministic_with_seed(self):
         env = Environment(
             propagation=LogDistancePL(n=3.5, sigma_db=8.0),
-            emitters=[Emitter(waveform=QPSK(samples_per_symbol=8), position=Position(500.0, 0.0), power_dbm=30.0, freq_hz=2.4e9)],
+            emitters=[
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(500.0, 0.0),
+                    power_dbm=30.0,
+                    freq_hz=2.4e9,
+                )
+            ],
             receiver=ReceiverConfig(position=Position(0.0, 0.0)),
         )
         r1 = env.compute(seed=42)
@@ -199,8 +240,18 @@ class TestEnvironmentCompute:
         env = Environment(
             propagation=FreeSpacePathLoss(),
             emitters=[
-                Emitter(waveform=QPSK(samples_per_symbol=8), position=Position(100.0, 0.0), power_dbm=20.0, freq_hz=1e9),
-                Emitter(waveform=QPSK(samples_per_symbol=8), position=Position(200.0, 0.0), power_dbm=40.0, freq_hz=2e9),
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(100.0, 0.0),
+                    power_dbm=20.0,
+                    freq_hz=1e9,
+                ),
+                Emitter(
+                    waveform=QPSK(samples_per_symbol=8),
+                    position=Position(200.0, 0.0),
+                    power_dbm=40.0,
+                    freq_hz=2e9,
+                ),
             ],
             receiver=ReceiverConfig(position=Position(0.0, 0.0)),
         )

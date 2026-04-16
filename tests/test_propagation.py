@@ -2,11 +2,11 @@
 
 import math
 
-import numpy as np
 import pytest
-
 from spectra.environment.propagation import (
+    COST231HataPL,
     FreeSpacePathLoss,
+    LogDistancePL,
     PathLossResult,
     PropagationModel,
 )
@@ -71,9 +71,6 @@ class TestFreeSpacePathLoss:
         assert isinstance(result, PathLossResult)
 
 
-from spectra.environment.propagation import LogDistancePL
-
-
 class TestLogDistancePL:
     def test_is_propagation_model(self):
         assert isinstance(LogDistancePL(), PropagationModel)
@@ -127,9 +124,6 @@ class TestLogDistancePL:
         result_no_shadow = model_no_shadow(distance_m=500.0, freq_hz=1e9)
         expected = result_no_shadow.path_loss_db + result.shadow_fading_db
         assert math.isclose(result.path_loss_db, expected, rel_tol=1e-6)
-
-
-from spectra.environment.propagation import COST231HataPL
 
 
 class TestCOST231HataPL:

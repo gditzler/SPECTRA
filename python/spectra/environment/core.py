@@ -5,8 +5,6 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-import numpy as np
-
 from spectra.environment.position import Position
 from spectra.environment.propagation import (
     COST231HataPL,
@@ -41,6 +39,7 @@ def _waveform_from_dict(d: dict) -> Waveform:
     cls = getattr(wmod, d["type"])
     params = d.get("params", {})
     return cls(**params)
+
 
 SPEED_OF_LIGHT = 299_792_458.0
 BOLTZMANN_K = 1.380649e-23  # J/K
@@ -164,7 +163,12 @@ class Environment:
         if isinstance(prop, FreeSpacePathLoss):
             prop_dict = {"type": "free_space"}
         elif isinstance(prop, LogDistancePL):
-            prop_dict = {"type": "log_distance", "n": prop.n, "sigma_db": prop.sigma_db, "d0": prop.d0}
+            prop_dict = {
+                "type": "log_distance",
+                "n": prop.n,
+                "sigma_db": prop.sigma_db,
+                "d0": prop.d0,
+            }
         elif isinstance(prop, COST231HataPL):
             prop_dict = {
                 "type": "cost231_hata",

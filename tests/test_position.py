@@ -2,8 +2,6 @@
 
 import math
 
-import pytest
-
 from spectra.environment.position import Position
 
 
