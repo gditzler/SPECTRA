@@ -9,6 +9,7 @@ SPECTRA generates synthetic RF signals on-the-fly for training machine learning 
 - **85+ waveform generators** — PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, polyphase codes, Zadoff-Chu, Barker, radar (pulsed, FMCW, pulse-Doppler, NLFM, stepped-frequency), spread spectrum (DSSS, FHSS, CDMA, THSS), 5G NR (OFDM, SSB, PDSCH, PUSCH, PRACH), and aviation/maritime (ADS-B, Mode S, AIS, ACARS, DME, ILS)
 - **24 composable channel impairments** — AWGN, frequency offset, phase noise, IQ imbalance, fading, TDL, MIMO, PA nonlinearity, timing, spectral effects, and more (plus **RadarClutter** for 2-D radar matrices)
 - **MIMO multi-antenna support** — flat Rayleigh and TDL channels, spatial correlation (Kronecker model), ULA steering vectors, seamless `NarrowbandDataset` integration
+- **Geometry-driven propagation** — `Environment` + `Emitter` + `ReceiverConfig` compute per-link SNR, delay, Doppler, and delay spread; propagation models include free space, log-distance, COST231-Hata, Okumura-Hata, ITU-R P.525/P.676/P.1411, and 3GPP 38.901 (UMa/UMi/RMa/InH). `link_params_to_impairments()` auto-wires matching AWGN + Doppler + fading + TDL.
 - **Cyclostationary signal processing** — Rust-accelerated SCD, SCF, CAF, cumulants, PSD, and energy detection transforms for signal analysis and feature extraction
 - **Time-frequency analysis** — Wigner-Ville Distribution, Ambiguity Function, and Reassigned Gabor transforms for radar and comms research
 - **Data augmentations** — CutOut, MixUp, CutMix, PatchShuffle, TimeReversal with dataset-level wrappers for soft-label training
@@ -132,6 +133,7 @@ amc.fit_from_dataset(dataset)
 | `spectra.transforms` | `STFT`, `Spectrogram`, `SCD`, `SCF`, `CAF`, `Cumulants`, `WVD`, `AmbiguityFunction`, `ReassignedGabor`, `MixUp`, `CutMix`, `CutOut`, ... | Spectral transforms, CSP features, time-frequency, augmentations |
 | `spectra.datasets` | `NarrowbandDataset`, `WidebandDataset`, `DirectionFindingDataset`, `WidebandDirectionFindingDataset`, `CyclostationaryDataset`, `MixUpDataset`, `CutMixDataset`, `balanced_sampler`, ... | PyTorch dataset classes with balancing and augmentation wrappers |
 | `spectra.classifiers` | `CyclostationaryAMC` | Traditional AMC with cumulant/cyclic-peak features |
+| `spectra.environment` | `Environment`, `Emitter`, `ReceiverConfig`, `Position`, `LinkParams`, `FreeSpacePathLoss`, `LogDistancePL`, `COST231HataPL`, `OkumuraHataPL`, `GPP38901UMa`/`UMi`/`RMa`/`InH`, `link_params_to_impairments`, `propagation_presets` | Geometry-driven path loss, link budgets, and auto-wired channel impairments |
 | `spectra.benchmarks` | `load_benchmark` | Reproducible benchmark dataset loader |
 | `spectra.cli` | `spectra-build` | Interactive dataset config builder |
 | `spectra.curriculum` | `CurriculumSchedule` | Progressive difficulty scheduling |
@@ -166,27 +168,22 @@ The CLI walks you through waveform selection, impairment presets, and dataset pa
 
 ## Examples
 
-See [`examples/`](examples/) for 17 runnable scripts (with matching Jupyter notebooks):
+See [`examples/`](examples/) for 30+ runnable scripts (with matching Jupyter notebooks for many) organized by domain. See [`examples/README.md`](examples/README.md) for the full annotated index.
 
-| # | Topic | Level |
-|---|---|---|
-| 01 | Basic Waveform Generation | Novice |
-| 02 | Impairments and Channel Effects | Intermediate |
-| 03 | Transforms and Spectrograms | Intermediate |
-| 04 | Narrowband Classification Dataset | Advanced |
-| 05 | Wideband Scene Composition | Pro |
-| 06 | Full Pipeline: Dataset to Classifier | Pro |
-| 07 | CSP Feature Visualization | Intermediate |
-| 08 | CSP Classification | Advanced |
-| 09 | S3CA vs SSCA Comparison | Advanced |
-| 11 | Train a Narrowband AMC Classifier | Advanced |
-| 12 | Choi-Williams Distribution: Cross-Term Suppression | Intermediate |
-| 13 | Direction Finding with MUSIC and ESPRIT | Advanced |
-| 14 | Beamforming with a Uniform Linear Array | Advanced |
-| 15 | Radar Range Profile Processing (Matched Filter + CFAR) | Advanced |
-| 16 | Wideband Direction-Finding Dataset | Pro |
-| 17 | Radar Processing Pipeline | Pro |
-| 18 | Link Simulator: BER/SER/PER Curves | Advanced |
+| Folder | Highlights |
+|---|---|
+| `getting_started/` | Basic waveforms, impairments, transforms |
+| `waveforms/` | Spread spectrum, protocols (ADS-B/Mode S/AIS/ACARS/DME/ILS), 5G NR (PDSCH/PUSCH/PRACH/SSB) |
+| `impairments/` | Advanced impairments: colored noise, Doppler, IQ imbalance, TDL, PA, quantization |
+| `transforms/` | Alignment transforms, time-frequency analysis (Reassigned Gabor, Ambiguity Function) |
+| `datasets/` | Narrowband, wideband, folder/manifest, SNR sweep, augmentation, I/O, streaming + curriculum |
+| `classification/` | Full pipeline, CSP classification, narrowband CNN/ResNet AMC |
+| `cyclostationary/` | SCD/SCF/CAF/cumulants, S³CA vs SSCA, CWD, WVD |
+| `antenna_arrays/` | DoA (MUSIC/ESPRIT), beamforming (DAS/MVDR/LCMV), wideband DF, antenna patterns, geometries |
+| `radar/` | Matched filter + CFAR, MTI/Doppler, end-to-end pipeline with tracking |
+| `communications/` | Link simulator, BER/SER/PER curves |
+| `environment/` | Propagation + link budgets, terrestrial models, urban 5G scene with auto-impairments |
+| `benchmarks/` | Loading and evaluating built-in benchmarks |
 
 ## Running Tests
 
