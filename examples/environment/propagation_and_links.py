@@ -5,7 +5,7 @@ Level: Intermediate
 
 Demonstrate SPECTRA's environment simulation module:
   - Position, Emitter, ReceiverConfig
-  - Propagation models: FreeSpacePathLoss, LogDistancePL, COST231HataPL
+  - Propagation models: FreeSpacePathLoss, LogDistancePL, OkumuraHataPL, GPP38901UMa
   - Environment.compute() — link budget computation
   - link_params_to_impairments — auto-generate impairment chains
   - propagation_presets — quick model selection
@@ -16,19 +16,30 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import QPSK, BPSK
-from spectra.environment import (
-    Position, Emitter, ReceiverConfig, Environment,
-    FreeSpacePathLoss, LogDistancePL, COST231HataPL,
-    link_params_to_impairments, propagation_presets,
-)
 from plot_helpers import savefig
+from spectra.environment import (
+    Emitter,
+    Environment,
+    FreeSpacePathLoss,
+    LogDistancePL,
+    Position,
+    ReceiverConfig,
+    link_params_to_impairments,
+    propagation_presets,
+)
+from spectra.environment.propagation import (
+    GPP38901UMa,
+    OkumuraHataPL,
+)
+from spectra.waveforms import BPSK, QPSK
 
 sample_rate = 1e6
 
@@ -38,19 +49,30 @@ distances = np.logspace(1, 4, 100)  # 10 m to 10 km
 
 fspl = FreeSpacePathLoss()
 logd = LogDistancePL(n=3.5)
-cost231 = COST231HataPL(environment="urban")
+hata = OkumuraHataPL(
+    h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium"
+)
+uma = GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="force_nlos")
 
 plt.figure(figsize=(10, 5))
-for model, name in [(fspl, "Free Space"), (logd, "Log-Distance (n=3.5)"), (cost231, "COST231-Hata (urban)")]:
+for model, name in [
+    (fspl, "Free Space"),
+    (logd, "Log-Distance (n=3.5)"),
+    (hata, "Okumura-Hata (urban, 50m)"),
+    (uma, "38.901 UMa (NLOS)"),
+]:
     losses = []
     for d in distances:
-        result = model(d, freq)
-        losses.append(result.path_loss_db)
+        try:
+            r = model(d, freq, seed=0)
+            losses.append(r.path_loss_db - r.shadow_fading_db)
+        except ValueError:
+            losses.append(np.nan)
     plt.plot(distances / 1e3, losses, linewidth=1.5, label=name)
 
 plt.xlabel("Distance (km)")
 plt.ylabel("Path Loss (dB)")
-plt.title(f"Propagation Model Comparison @ {freq/1e6:.0f} MHz")
+plt.title(f"Propagation Model Comparison @ {freq / 1e6:.0f} MHz")
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.xscale("log")
@@ -97,14 +119,19 @@ env = Environment(
 link_params_list = env.compute(seed=42)
 
 print("Link Budget Results:")
-print(f"{'Emitter':>8} {'Distance':>10} {'PathLoss':>10} {'SNR':>8} {'Doppler':>10} {'Rx Power':>10}")
+print(
+    f"{'Emitter':>8} {'Distance':>10} {'PathLoss':>10} "
+    f"{'SNR':>8} {'Doppler':>10} {'Rx Power':>10}"
+)
 for i, lp in enumerate(link_params_list):
     print(f"  {i:>5d} {lp.distance_m:>9.1f}m {lp.path_loss_db:>9.1f}dB "
           f"{lp.snr_db:>7.1f}dB {lp.doppler_hz:>9.1f}Hz {lp.received_power_dbm:>9.1f}dBm")
 
 # ── 3. Plot environment geometry ─────────────────────────────────────────────
 fig, ax = plt.subplots(figsize=(8, 8))
-ax.scatter(rx.position.x, rx.position.y, s=200, marker="^", color="blue", zorder=5, label="Receiver")
+ax.scatter(
+    rx.position.x, rx.position.y, s=200, marker="^", color="blue", zorder=5, label="Receiver"
+)
 for i, em in enumerate(emitters):
     ax.scatter(em.position.x, em.position.y, s=100, marker="o", color="red", zorder=5)
     ax.annotate(f"TX{i}\n{em.power_dbm:.0f}dBm", (em.position.x, em.position.y),
