@@ -788,3 +788,30 @@ def test_frequency_agile_deterministic():
         seed=12,
     )
     assert np.array_equal(iq1, iq2)
+
+
+# ── Task 12: Example 4 — RadCom ──────────────────────────────────────────────
+
+
+def test_radcom_emitter_produces_both_families(assert_valid_iq):
+    from spectra.waveforms import radcom_emitter
+
+    sw = radcom_emitter()
+    iq, segs = sw.generate_with_segments(num_samples=60_000, sample_rate=20e6, seed=0)
+
+    assert_valid_iq(iq, expected_length=60_000)
+    modes = {s.mode for s in segs}
+    assert "radar" in modes
+    assert "comms" in modes
+
+    labels = {s.label for s in segs}
+    assert "PulsedRadar" in labels
+    assert "QPSK" in labels
+
+
+def test_radcom_emitter_deterministic():
+    from spectra.waveforms import radcom_emitter
+
+    iq1 = radcom_emitter().generate(num_symbols=30_000, sample_rate=20e6, seed=9)
+    iq2 = radcom_emitter().generate(num_symbols=30_000, sample_rate=20e6, seed=9)
+    assert np.array_equal(iq1, iq2)
