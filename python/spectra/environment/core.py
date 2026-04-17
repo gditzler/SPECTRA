@@ -80,6 +80,11 @@ class LinkParams:
     doppler_hz: float
     distance_m: float
     fading_suggestion: str | None
+    # Populated from PathLossResult (optional; defaulted for back-compat)
+    shadow_fading_db: float = 0.0
+    rms_delay_spread_s: float | None = None
+    k_factor_db: float | None = None
+    angular_spread_deg: float | None = None
 
 
 class Environment:
@@ -150,6 +155,10 @@ class Environment:
                     doppler_hz=doppler,
                     distance_m=distance,
                     fading_suggestion=fading,
+                    shadow_fading_db=pl_result.shadow_fading_db,
+                    rms_delay_spread_s=pl_result.rms_delay_spread_s,
+                    k_factor_db=pl_result.k_factor_db,
+                    angular_spread_deg=pl_result.angular_spread_deg,
                 )
             )
         return results

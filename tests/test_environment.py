@@ -334,3 +334,44 @@ class TestEnvironmentYAML:
         orig = env.compute()
         reloaded = loaded.compute()
         assert math.isclose(orig[0].snr_db, reloaded[0].snr_db, rel_tol=1e-6)
+
+
+def test_link_params_defaults_for_new_fields():
+    from spectra.environment.core import LinkParams
+    lp = LinkParams(
+        emitter_index=0,
+        snr_db=10.0,
+        path_loss_db=100.0,
+        received_power_dbm=-70.0,
+        delay_s=1e-6,
+        doppler_hz=0.0,
+        distance_m=100.0,
+        fading_suggestion=None,
+    )
+    assert lp.shadow_fading_db == 0.0
+    assert lp.rms_delay_spread_s is None
+    assert lp.k_factor_db is None
+    assert lp.angular_spread_deg is None
+
+
+def test_environment_compute_populates_multipath_from_uma():
+    from spectra.environment import Emitter, Environment, Position, ReceiverConfig
+    from spectra.environment.propagation import GPP38901UMa
+    from spectra.waveforms import QPSK
+
+    env = Environment(
+        propagation=GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="force_los"),
+        emitters=[
+            Emitter(
+                waveform=QPSK(samples_per_symbol=8),
+                position=Position(100.0, 0.0),
+                power_dbm=30.0,
+                freq_hz=3.5e9,
+            )
+        ],
+        receiver=ReceiverConfig(position=Position(0.0, 0.0)),
+    )
+    lp = env.compute(seed=0)[0]
+    assert lp.rms_delay_spread_s is not None
+    assert lp.k_factor_db is not None
+    assert lp.angular_spread_deg is not None
