@@ -573,3 +573,93 @@ def test_cognitive_schedule_returning_none_ends_schedule():
     sched = FixedLength(3)
     out = list(sched.iter_segments(10_000, 1e6, seed=0))
     assert len(out) == 3
+
+
+# ── Task 7: segments_to_mode_mask helper ─────────────────────────────────────
+
+
+def test_segments_to_mode_mask_basic():
+    from spectra.waveforms.multifunction import segments_to_mode_mask
+
+    segs = [
+        SignalDescription(
+            t_start=0.0,
+            t_stop=0.001,
+            f_low=0,
+            f_high=1,
+            label="x",
+            snr=0.0,
+            mode="a",
+        ),
+        SignalDescription(
+            t_start=0.001,
+            t_stop=0.003,
+            f_low=0,
+            f_high=1,
+            label="x",
+            snr=0.0,
+            mode="b",
+        ),
+    ]
+    mask = segments_to_mode_mask(
+        segments=segs,
+        total_samples=3000,
+        sample_rate=1e6,
+        mode_to_index={"a": 0, "b": 1},
+        fill_index=-1,
+    )
+    assert mask.shape == (3000,)
+    assert mask[0] == 0
+    assert mask[999] == 0
+    assert mask[1000] == 1
+    assert mask[2999] == 1
+
+
+def test_segments_to_mode_mask_fill_index_for_uncovered():
+    from spectra.waveforms.multifunction import segments_to_mode_mask
+
+    segs = [
+        SignalDescription(
+            t_start=0.0,
+            t_stop=0.001,
+            f_low=0,
+            f_high=1,
+            label="x",
+            snr=0.0,
+            mode="a",
+        ),
+    ]
+    mask = segments_to_mode_mask(
+        segments=segs,
+        total_samples=3000,
+        sample_rate=1e6,
+        mode_to_index={"a": 0},
+        fill_index=-1,
+    )
+    assert mask[0] == 0
+    assert mask[999] == 0
+    assert mask[1000] == -1
+    assert mask[2999] == -1
+
+
+def test_segments_to_mode_mask_unknown_mode_raises():
+    from spectra.waveforms.multifunction import segments_to_mode_mask
+
+    segs = [
+        SignalDescription(
+            t_start=0.0,
+            t_stop=0.001,
+            f_low=0,
+            f_high=1,
+            label="x",
+            snr=0.0,
+            mode="unknown",
+        ),
+    ]
+    with pytest.raises(KeyError):
+        segments_to_mode_mask(
+            segments=segs,
+            total_samples=1000,
+            sample_rate=1e6,
+            mode_to_index={"a": 0},
+        )
