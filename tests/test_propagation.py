@@ -174,3 +174,44 @@ class TestCOST231HataPL:
         model = COST231HataPL()
         result = model(distance_m=1000.0, freq_hz=1800e6)
         assert result.shadow_fading_db == 0.0
+
+
+from spectra.environment.propagation import ITU_R_P525
+
+
+class TestITU_R_P525:
+    def test_is_propagation_model(self):
+        assert isinstance(ITU_R_P525(), PropagationModel)
+
+    def test_matches_free_space_without_gaseous(self):
+        p525 = ITU_R_P525()
+        fspl = FreeSpacePathLoss()
+        for d, f in [(1000.0, 2.4e9), (10.0, 28e9), (5000.0, 900e6)]:
+            assert math.isclose(
+                p525(d, f).path_loss_db, fspl(d, f).path_loss_db, rel_tol=1e-9
+            )
+
+    def test_gaseous_adds_attenuation_at_mmwave(self):
+        p525_clean = ITU_R_P525(include_gaseous=False)
+        p525_absorb = ITU_R_P525(include_gaseous=True)
+        # At 60 GHz the oxygen complex must add measurable loss
+        clean = p525_clean(1000.0, 60e9).path_loss_db
+        absorb = p525_absorb(1000.0, 60e9).path_loss_db
+        assert absorb > clean + 1.0  # at least 1 dB extra
+
+    def test_gaseous_negligible_at_low_freq(self):
+        p525_clean = ITU_R_P525(include_gaseous=False)
+        p525_absorb = ITU_R_P525(include_gaseous=True)
+        clean = p525_clean(1000.0, 2.4e9).path_loss_db
+        absorb = p525_absorb(1000.0, 2.4e9).path_loss_db
+        assert absorb - clean < 0.1
+
+    def test_no_fading_metadata(self):
+        result = ITU_R_P525()(1000.0, 2.4e9)
+        assert result.shadow_fading_db == 0.0
+        assert result.k_factor_db is None
+        assert result.rms_delay_spread_s is None
+
+    def test_minimum_distance_clamp(self):
+        with pytest.raises(ValueError, match="distance_m must be positive"):
+            ITU_R_P525()(0.0, 2.4e9)
