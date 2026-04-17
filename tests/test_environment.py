@@ -2,6 +2,8 @@
 
 import math
 import os
+import tempfile
+from pathlib import Path
 
 import pytest
 from spectra.environment.core import Emitter, Environment, LinkParams, ReceiverConfig
@@ -375,3 +377,61 @@ def test_environment_compute_populates_multipath_from_uma():
     assert lp.rms_delay_spread_s is not None
     assert lp.k_factor_db is not None
     assert lp.angular_spread_deg is not None
+
+
+def _basic_env(propagation):
+    from spectra.environment import Emitter, Environment, Position, ReceiverConfig
+    from spectra.waveforms import QPSK
+    return Environment(
+        propagation=propagation,
+        emitters=[
+            Emitter(
+                waveform=QPSK(samples_per_symbol=8),
+                position=Position(500.0, 0.0),
+                power_dbm=30.0,
+                freq_hz=3.5e9,
+            )
+        ],
+        receiver=ReceiverConfig(position=Position(0.0, 0.0)),
+    )
+
+
+@pytest.mark.parametrize(
+    "prop_factory",
+    [
+        lambda: __import__(
+            "spectra.environment.propagation", fromlist=["ITU_R_P525"]
+        ).ITU_R_P525(include_gaseous=True),
+        lambda: __import__(
+            "spectra.environment.propagation", fromlist=["OkumuraHataPL"]
+        ).OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium"),
+        lambda: __import__(
+            "spectra.environment.propagation", fromlist=["GPP38901UMa"]
+        ).GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5),
+        lambda: __import__(
+            "spectra.environment.propagation", fromlist=["GPP38901UMi"]
+        ).GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5),
+        lambda: __import__(
+            "spectra.environment.propagation", fromlist=["GPP38901RMa"]
+        ).GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5),
+        lambda: __import__(
+            "spectra.environment.propagation", fromlist=["GPP38901InH"]
+        ).GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, variant="mixed_office"),
+        lambda: __import__(
+            "spectra.environment.propagation", fromlist=["ITU_R_P1411"]
+        ).ITU_R_P1411(environment="urban_high_rise"),
+    ],
+)
+def test_yaml_roundtrip_for_new_propagation_models(prop_factory):
+    from spectra.environment import Environment
+    env = _basic_env(prop_factory())
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "env.yaml"
+        env.to_yaml(str(path))
+        env2 = Environment.from_yaml(str(path))
+        assert type(env2.propagation) is type(env.propagation)
+        # Key attributes match
+        for k in vars(env.propagation):
+            if k.startswith("_"):
+                continue
+            assert getattr(env2.propagation, k) == getattr(env.propagation, k), k
