@@ -293,3 +293,99 @@ class GPP38901UMi(_GPP38901Base):
     def _k_factor_params(self, f_ghz: float) -> tuple[float, float]:
         # Table 7.5-6 Part 1 (UMi LOS)
         return 9.0, 5.0
+
+
+# ---------------------------------------------------------------------
+# RMa — Rural Macro (TR 38.901 Table 7.4.1-1, 7.4.2-1, 7.5-6)
+# ---------------------------------------------------------------------
+
+
+class GPP38901RMa(_GPP38901Base):
+    """3GPP 38.901 Rural Macro (0.5-30 GHz, 10 m - 10 km).
+
+    Extra parameters:
+        h_building_m: average building height (default 5 m, per Note 3).
+        w_street_m: average street width (default 20 m, per Note 3).
+    """
+
+    MODEL_NAME = "GPP38901RMa"
+    FREQ_RANGE_HZ = (500e6, 30e9)
+    DISTANCE_RANGE_M = (10.0, 10000.0)
+
+    def __init__(
+        self,
+        h_bs_m: float,
+        h_ut_m: float,
+        h_building_m: float = 5.0,
+        w_street_m: float = 20.0,
+        los_mode: LOSMode = "stochastic",
+        strict_range: bool = True,
+    ):
+        super().__init__(
+            h_bs_m=h_bs_m,
+            h_ut_m=h_ut_m,
+            los_mode=los_mode,
+            strict_range=strict_range,
+        )
+        self.h_building_m = h_building_m
+        self.w_street_m = w_street_m
+
+    def _los_probability(self, d_2d_m: float) -> float:
+        # Table 7.4.2-1: RMa
+        if d_2d_m <= 10.0:
+            return 1.0
+        return math.exp(-(d_2d_m - 10.0) / 1000.0)
+
+    def _breakpoint_m(self, f_ghz: float) -> float:
+        # d_BP = 2*pi*h_BS*h_UT*f_c/c   (note: 2*pi, not 4)
+        return 2.0 * math.pi * self.h_bs_m * self.h_ut_m * (f_ghz * 1e9) / SPEED_OF_LIGHT
+
+    def _path_loss_los(
+        self, d_3d_m: float, d_2d_m: float, f_ghz: float
+    ) -> float:
+        h_b = self.h_building_m
+        pl_1 = (
+            20.0 * math.log10(40.0 * math.pi * d_3d_m * f_ghz / 3.0)
+            + min(0.03 * h_b ** 1.72, 10.0) * math.log10(d_3d_m)
+            - min(0.044 * h_b ** 1.72, 14.77)
+            + 0.002 * math.log10(h_b) * d_3d_m
+        )
+        d_bp = self._breakpoint_m(f_ghz)
+        if d_2d_m <= d_bp:
+            return pl_1
+        pl_at_bp = (
+            20.0 * math.log10(40.0 * math.pi * d_bp * f_ghz / 3.0)
+            + min(0.03 * h_b ** 1.72, 10.0) * math.log10(d_bp)
+            - min(0.044 * h_b ** 1.72, 14.77)
+            + 0.002 * math.log10(h_b) * d_bp
+        )
+        return pl_at_bp + 40.0 * math.log10(d_3d_m / d_bp)
+
+    def _path_loss_nlos(
+        self, d_3d_m: float, d_2d_m: float, f_ghz: float
+    ) -> float:
+        h_b = self.h_building_m
+        w = self.w_street_m
+        pl_nlos_prime = (
+            161.04
+            - 7.1 * math.log10(w)
+            + 7.5 * math.log10(h_b)
+            - (24.37 - 3.7 * (h_b / self.h_bs_m) ** 2) * math.log10(self.h_bs_m)
+            + (43.42 - 3.1 * math.log10(self.h_bs_m)) * (math.log10(d_3d_m) - 3.0)
+            + 20.0 * math.log10(f_ghz)
+            - (3.2 * (math.log10(11.75 * self.h_ut_m)) ** 2 - 4.97)
+        )
+        pl_los = self._path_loss_los(d_3d_m, d_2d_m, f_ghz)
+        return max(pl_los, pl_nlos_prime)
+
+    def _large_scale_params(
+        self, is_los: bool, f_ghz: float
+    ) -> tuple[float, float, float, float]:
+        # Table 7.5-6 Part 2 (RMa) — RMa values are frequency-independent
+        if is_los:
+            return 4.0, -7.49, 0.55, 10.0 ** 1.52
+        return 8.0, -7.43, 0.48, 10.0 ** 1.52
+
+    def _k_factor_params(self, f_ghz: float) -> tuple[float, float]:
+        # Table 7.5-6 Part 2 (RMa LOS)
+        return 7.0, 4.0

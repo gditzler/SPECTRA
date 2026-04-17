@@ -7,6 +7,7 @@ from spectra.environment.propagation import (
     ITU_R_P525,
     COST231HataPL,
     FreeSpacePathLoss,
+    GPP38901RMa,
     GPP38901UMa,
     GPP38901UMi,
     LogDistancePL,
@@ -431,3 +432,45 @@ class TestGPP38901UMi:
         r1 = m(300.0, 28e9, seed=42)
         r2 = m(300.0, 28e9, seed=42)
         assert r1.path_loss_db == r2.path_loss_db
+
+
+class TestGPP38901RMa:
+    def test_is_propagation_model(self):
+        m = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5)
+        assert isinstance(m, PropagationModel)
+
+    def test_los_less_than_nlos(self):
+        los = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5, los_mode="force_los")
+        nlos = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5, los_mode="force_nlos")
+        assert (
+            los(1000.0, 700e6, seed=0).path_loss_db
+            < nlos(1000.0, 700e6, seed=0).path_loss_db
+        )
+
+    def test_accepts_building_and_street_params(self):
+        m = GPP38901RMa(
+            h_bs_m=35.0, h_ut_m=1.5, h_building_m=10.0, w_street_m=30.0
+        )
+        r = m(1000.0, 700e6, seed=0)
+        assert isinstance(r, PathLossResult)
+
+    def test_populates_multipath_fields(self):
+        m = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5, los_mode="force_los")
+        r = m(1000.0, 700e6, seed=0)
+        assert r.rms_delay_spread_s is not None
+        assert r.k_factor_db is not None
+        assert r.angular_spread_deg is not None
+
+    def test_distance_envelope_10km(self):
+        m = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5)
+        # Should accept up to 10 km
+        m(9000.0, 700e6, seed=0)
+        # Should reject above
+        with pytest.raises(ValueError):
+            m(11000.0, 700e6)
+
+    def test_freq_envelope_30ghz(self):
+        m = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5)
+        m(1000.0, 30e9, seed=0)  # OK
+        with pytest.raises(ValueError):
+            m(1000.0, 60e9)  # Above 30 GHz
