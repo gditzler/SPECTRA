@@ -274,3 +274,28 @@ class TestTDLAutoChain:
         tdl = [t for t in chain if isinstance(t, TDLChannel)]
         assert len(rayleigh) == 1
         assert len(tdl) == 0
+
+    def test_tdl_realized_rms_matches_target(self):
+        """After scaling, the realized RMS delay spread should closely match the target.
+
+        Computes the RMS of the scaled profile (weighted by normalized power) and
+        verifies it matches the requested `rms_delay_spread_s` within a few percent.
+        """
+        import numpy as np
+        target_rms_s = 300e-9  # 300 ns
+        lp = self._lp(rms_delay_spread_s=target_rms_s)
+        chain = link_params_to_impairments(lp)
+        tdl = next(t for t in chain if isinstance(t, TDLChannel))
+
+        delays_s = np.asarray(tdl._profile["delays_ns"]) * 1e-9
+        powers_lin = 10.0 ** (np.asarray(tdl._profile["powers_db"]) / 10.0)
+        powers_lin /= powers_lin.sum()
+        mean_d = (delays_s * powers_lin).sum()
+        realized_rms = np.sqrt(((delays_s - mean_d) ** 2 * powers_lin).sum())
+
+        # Allow 1% tolerance (floating-point round-trip)
+        rel_err = abs(realized_rms - target_rms_s) / target_rms_s
+        assert rel_err < 0.01, (
+            f"Realized RMS {realized_rms*1e9:.2f} ns differs from target "
+            f"{target_rms_s*1e9:.2f} ns by {rel_err*100:.2f}%"
+        )

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+import numpy as np
+
 from spectra.environment.core import LinkParams
 from spectra.impairments import (
     AWGN,
@@ -14,17 +16,23 @@ from spectra.impairments import (
 )
 from spectra.impairments.base import Transform
 
-# Reference profile RMS delay spreads (in seconds).
-# These are the nominal delay spreads associated with each TDL profile's
-# default (unscaled) delays. Computed from PROFILES in tdl_channel.py.
-# TDL-A through TDL-E are normalized to 1.0 when nominal_rms is used as the
-# divisor — we keep tabulated nominal values for scaling.
-_TDL_NOMINAL_RMS_S = {
-    "TDL-A": 5.70e-8,  # 57 ns nominal
-    "TDL-B": 4.20e-8,  # 42 ns nominal
-    "TDL-C": 3.80e-7,  # 380 ns nominal
-    "TDL-D": 3.20e-8,  # 32 ns nominal (LOS, K=13.3 dB)
-    "TDL-E": 3.00e-8,  # 30 ns nominal (LOS, K=22.0 dB)
+
+def _compute_profile_rms_s(delays_ns, powers_db):
+    """Compute the normalized RMS delay spread (seconds) of a TDL profile."""
+    d = np.asarray(delays_ns, dtype=float) * 1e-9
+    p = 10.0 ** (np.asarray(powers_db, dtype=float) / 10.0)
+    p /= p.sum()
+    mean_d = float((d * p).sum())
+    return float(np.sqrt(((d - mean_d) ** 2 * p).sum()))
+
+
+# Runtime-computed nominal RMS delay spread for each TDL profile.
+# Replaces the previously hand-tabulated values, which differed from the
+# actual simplified PROFILES by up to ~3x.
+_TDL_NOMINAL_RMS_S: dict[str, float] = {
+    name: _compute_profile_rms_s(prof["delays_ns"], prof["powers_db"])
+    for name, prof in TDLChannel.PROFILES.items()
+    if name.startswith("TDL-")
 }
 
 
