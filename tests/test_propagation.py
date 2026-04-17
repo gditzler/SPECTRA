@@ -4,6 +4,7 @@ import math
 
 import pytest
 from spectra.environment.propagation import (
+    ITU_R_P525,
     COST231HataPL,
     FreeSpacePathLoss,
     LogDistancePL,
@@ -174,9 +175,6 @@ class TestCOST231HataPL:
         model = COST231HataPL()
         result = model(distance_m=1000.0, freq_hz=1800e6)
         assert result.shadow_fading_db == 0.0
-
-
-from spectra.environment.propagation import ITU_R_P525
 
 
 class TestITU_R_P525:

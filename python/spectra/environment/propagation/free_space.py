@@ -9,6 +9,7 @@ from spectra.environment.propagation._base import (
     PathLossResult,
     PropagationModel,
 )
+from spectra.environment.propagation.atmospheric import gaseous_attenuation_db
 
 
 class FreeSpacePathLoss(PropagationModel):
@@ -23,9 +24,6 @@ class FreeSpacePathLoss(PropagationModel):
             + 20 * math.log10(4 * math.pi / SPEED_OF_LIGHT)
         )
         return PathLossResult(path_loss_db=pl_db)
-
-
-from spectra.environment.propagation.atmospheric import gaseous_attenuation_db
 
 
 class ITU_R_P525(PropagationModel):
@@ -49,6 +47,7 @@ class ITU_R_P525(PropagationModel):
 
     def __init__(
         self,
+        *,
         include_gaseous: bool = False,
         temperature_k: float = 288.15,
         pressure_hpa: float = 1013.25,
