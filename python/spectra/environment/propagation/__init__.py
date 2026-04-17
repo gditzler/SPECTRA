@@ -11,10 +11,12 @@ from spectra.environment.propagation.empirical import (
     OkumuraHataPL,
 )
 from spectra.environment.propagation.free_space import ITU_R_P525, FreeSpacePathLoss
+from spectra.environment.propagation.gpp_38_901 import GPP38901UMa
 
 __all__ = [
     "COST231HataPL",
     "FreeSpacePathLoss",
+    "GPP38901UMa",
     "ITU_R_P525",
     "LogDistancePL",
     "OkumuraHataPL",
