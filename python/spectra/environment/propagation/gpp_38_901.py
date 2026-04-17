@@ -389,3 +389,93 @@ class GPP38901RMa(_GPP38901Base):
     def _k_factor_params(self, f_ghz: float) -> tuple[float, float]:
         # Table 7.5-6 Part 2 (RMa LOS)
         return 7.0, 4.0
+
+
+# ---------------------------------------------------------------------
+# InH — Indoor Hotspot (TR 38.901 Table 7.4.1-1, 7.4.2-1, 7.5-6)
+# ---------------------------------------------------------------------
+
+
+class GPP38901InH(_GPP38901Base):
+    """3GPP 38.901 Indoor Hotspot (0.5-100 GHz, 1 m - 150 m).
+
+    Supports two variants:
+        variant="mixed_office"  — mixed office environment (default)
+        variant="open_office"   — open office environment
+    """
+
+    MODEL_NAME = "GPP38901InH"
+    FREQ_RANGE_HZ = (500e6, 100e9)
+    DISTANCE_RANGE_M = (1.0, 150.0)
+
+    _VALID_VARIANTS = {"mixed_office", "open_office"}
+
+    def __init__(
+        self,
+        h_bs_m: float = 3.0,
+        h_ut_m: float = 1.0,
+        variant: str = "mixed_office",
+        los_mode: LOSMode = "stochastic",
+        strict_range: bool = True,
+    ):
+        if variant not in self._VALID_VARIANTS:
+            raise ValueError(
+                f"variant must be one of {self._VALID_VARIANTS}, got '{variant}'"
+            )
+        super().__init__(
+            h_bs_m=h_bs_m,
+            h_ut_m=h_ut_m,
+            los_mode=los_mode,
+            strict_range=strict_range,
+        )
+        self.variant = variant
+
+    def _los_probability(self, d_2d_m: float) -> float:
+        # Table 7.4.2-1 (InH)
+        if self.variant == "mixed_office":
+            if d_2d_m <= 1.2:
+                return 1.0
+            if d_2d_m <= 6.5:
+                return math.exp(-(d_2d_m - 1.2) / 4.7)
+            return math.exp(-(d_2d_m - 6.5) / 32.6) * 0.32
+        # open_office
+        if d_2d_m <= 5.0:
+            return 1.0
+        if d_2d_m <= 49.0:
+            return math.exp(-(d_2d_m - 5.0) / 70.8)
+        return math.exp(-(d_2d_m - 49.0) / 211.7) * 0.54
+
+    def _path_loss_los(
+        self, d_3d_m: float, d_2d_m: float, f_ghz: float
+    ) -> float:
+        # Table 7.4.1-1 InH LOS (single-slope)
+        return 32.4 + 17.3 * math.log10(d_3d_m) + 20.0 * math.log10(f_ghz)
+
+    def _path_loss_nlos(
+        self, d_3d_m: float, d_2d_m: float, f_ghz: float
+    ) -> float:
+        pl_nlos = (
+            38.3 * math.log10(d_3d_m) + 17.30 + 24.9 * math.log10(f_ghz)
+        )
+        pl_los = self._path_loss_los(d_3d_m, d_2d_m, f_ghz)
+        return max(pl_los, pl_nlos)
+
+    def _large_scale_params(
+        self, is_los: bool, f_ghz: float
+    ) -> tuple[float, float, float, float]:
+        # Table 7.5-6 Part 2 (Indoor Office)
+        if is_los:
+            mu_lgDS = -0.01 * math.log10(1.0 + f_ghz) - 7.692
+            sigma_lgDS = 0.18
+            sigma_sf = 3.0
+            asa_med = 10.0 ** (-0.19 * math.log10(1.0 + f_ghz) + 1.781)
+        else:
+            mu_lgDS = -0.28 * math.log10(1.0 + f_ghz) - 7.173
+            sigma_lgDS = 0.10 * math.log10(1.0 + f_ghz) + 0.055
+            sigma_sf = 8.03
+            asa_med = 10.0 ** (-0.11 * math.log10(1.0 + f_ghz) + 1.863)
+        return sigma_sf, mu_lgDS, sigma_lgDS, asa_med
+
+    def _k_factor_params(self, f_ghz: float) -> tuple[float, float]:
+        # Table 7.5-6 Part 2 (InH LOS)
+        return 7.0, 4.0

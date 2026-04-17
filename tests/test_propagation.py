@@ -7,6 +7,7 @@ from spectra.environment.propagation import (
     ITU_R_P525,
     COST231HataPL,
     FreeSpacePathLoss,
+    GPP38901InH,
     GPP38901RMa,
     GPP38901UMa,
     GPP38901UMi,
@@ -474,3 +475,44 @@ class TestGPP38901RMa:
         m(1000.0, 30e9, seed=0)  # OK
         with pytest.raises(ValueError):
             m(1000.0, 60e9)  # Above 30 GHz
+
+
+class TestGPP38901InH:
+    def test_is_propagation_model(self):
+        m = GPP38901InH(h_bs_m=3.0, h_ut_m=1.0)
+        assert isinstance(m, PropagationModel)
+
+    def test_los_less_than_nlos(self):
+        los = GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, los_mode="force_los")
+        nlos = GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, los_mode="force_nlos")
+        assert los(30.0, 3.5e9, seed=0).path_loss_db < nlos(30.0, 3.5e9, seed=0).path_loss_db
+
+    def test_mixed_office_variant(self):
+        m = GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, variant="mixed_office")
+        r = m(30.0, 3.5e9, seed=0)
+        assert isinstance(r, PathLossResult)
+
+    def test_open_office_variant(self):
+        m = GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, variant="open_office")
+        r = m(30.0, 3.5e9, seed=0)
+        assert isinstance(r, PathLossResult)
+
+    def test_variants_differ_in_nlos(self):
+        mixed = GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, variant="mixed_office", los_mode="force_nlos")
+        openp = GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, variant="open_office", los_mode="force_nlos")
+        # The LOS probability formulas differ but force_nlos bypasses that.
+        # NLOS PL formula is the same — check with stochastic mode and seeds that
+        # the LOS probabilities differ.
+        mix_los_p = mixed._los_probability(30.0)
+        open_los_p = openp._los_probability(30.0)
+        assert mix_los_p != open_los_p
+
+    def test_invalid_variant_raises(self):
+        with pytest.raises(ValueError, match="variant"):
+            GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, variant="industrial")
+
+    def test_distance_envelope_150m(self):
+        m = GPP38901InH(h_bs_m=3.0, h_ut_m=1.0)
+        m(140.0, 3.5e9, seed=0)  # OK
+        with pytest.raises(ValueError):
+            m(200.0, 3.5e9)  # Above 150 m
