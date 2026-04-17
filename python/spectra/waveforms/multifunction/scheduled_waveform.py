@@ -70,7 +70,11 @@ class ScheduledWaveform(Waveform):
         Args:
             num_samples: Total output sample count.
             sample_rate: Sample rate in Hz.
-            seed: Master seed. Same seed -> byte-identical output.
+            seed: Master seed. Same seed -> byte-identical output. If
+                ``None``, an entropy-derived seed is drawn via
+                ``np.random.default_rng().integers(...)`` (matching the
+                convention used by other SPECTRA waveforms when no seed is
+                provided — non-deterministic).
 
         Returns:
             ``(iq, segments)`` where ``iq`` is a complex64 array of exactly

@@ -23,9 +23,10 @@ _IMPAIRMENT_EXCLUDES = {
 }
 
 # Names exported from spectra.waveforms that are support infrastructure, not
-# selectable waveforms (ABCs, dataclasses, helper functions). Excluded from
-# the interactive signal-pool builder so users don't try to pick a Schedule
-# or a dataclass as a waveform type.
+# directly-selectable waveforms (ABCs, dataclasses, helper functions, and
+# generic classes that require non-YAML-expressible constructor args).
+# Excluded from the interactive signal-pool builder so users don't try to
+# pick them as a waveform type.
 _WAVEFORM_EXCLUDES = {
     "Schedule",
     "StaticSchedule",
@@ -34,6 +35,11 @@ _WAVEFORM_EXCLUDES = {
     "SegmentSpec",
     "ModeSpec",
     "segments_to_mode_mask",
+    # ScheduledWaveform needs a `schedule=` kwarg at construction that cannot
+    # be expressed in the flat YAML `params` dict. Users should select one of
+    # the four reference factories (multifunction_search_track_radar, etc.)
+    # instead.
+    "ScheduledWaveform",
 }
 
 
@@ -128,7 +134,6 @@ WAVEFORM_CATEGORIES: Dict[str, List[str]] = {
     ],
     "Other": ["Noise", "ZadoffChu"],
     "Multi-function Emitter": [
-        "ScheduledWaveform",
         "multifunction_search_track_radar",
         "multi_prf_pulse_doppler_radar",
         "frequency_agile_stepped_pri_radar",

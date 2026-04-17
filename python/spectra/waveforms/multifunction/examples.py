@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import numpy as np  # noqa: F401 — used in _agile_factory via rng (np.random.Generator)
+import numpy as np
 
 from spectra.waveforms.multifunction.schedule import StaticSchedule, StochasticSchedule
 from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
