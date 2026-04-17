@@ -5,6 +5,12 @@ from __future__ import annotations
 import numpy as np
 
 from spectra.scene.signal_desc import SignalDescription
+from spectra.waveforms.multifunction.examples import (
+    frequency_agile_stepped_pri_radar,
+    multi_prf_pulse_doppler_radar,
+    multifunction_search_track_radar,
+    radcom_emitter,
+)
 from spectra.waveforms.multifunction.schedule import (
     CognitiveSchedule,
     Schedule,
@@ -60,5 +66,9 @@ __all__ = [
     "SegmentSpec",
     "StaticSchedule",
     "StochasticSchedule",
+    "frequency_agile_stepped_pri_radar",
+    "multi_prf_pulse_doppler_radar",
+    "multifunction_search_track_radar",
+    "radcom_emitter",
     "segments_to_mode_mask",
 ]

@@ -127,7 +127,13 @@ WAVEFORM_CATEGORIES: Dict[str, List[str]] = {
         "ChirpSS",
     ],
     "Other": ["Noise", "ZadoffChu"],
-    "Multi-function Emitter": ["ScheduledWaveform"],
+    "Multi-function Emitter": [
+        "ScheduledWaveform",
+        "multifunction_search_track_radar",
+        "multi_prf_pulse_doppler_radar",
+        "frequency_agile_stepped_pri_radar",
+        "radcom_emitter",
+    ],
 }
 
 # ---------------------------------------------------------------------------

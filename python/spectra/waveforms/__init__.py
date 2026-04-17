@@ -31,6 +31,10 @@ from spectra.waveforms.multifunction import (
     SegmentSpec,
     StaticSchedule,
     StochasticSchedule,
+    frequency_agile_stepped_pri_radar,
+    multi_prf_pulse_doppler_radar,
+    multifunction_search_track_radar,
+    radcom_emitter,
     segments_to_mode_mask,
 )
 from spectra.waveforms.noise import Noise
@@ -165,5 +169,9 @@ __all__ = [
     "SegmentSpec",
     "StaticSchedule",
     "StochasticSchedule",
+    "frequency_agile_stepped_pri_radar",
+    "multi_prf_pulse_doppler_radar",
+    "multifunction_search_track_radar",
+    "radcom_emitter",
     "segments_to_mode_mask",
 ]
