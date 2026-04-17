@@ -222,3 +222,74 @@ class GPP38901UMa(_GPP38901Base):
     def _k_factor_params(self, f_ghz: float) -> tuple[float, float]:
         # Table 7.5-6 Part 1 (UMa LOS)
         return 9.0, 3.5
+
+
+# ---------------------------------------------------------------------
+# UMi — Urban Micro Street-Canyon (TR 38.901 Table 7.4.1-1, 7.4.2-1, 7.5-6)
+# ---------------------------------------------------------------------
+
+
+class GPP38901UMi(_GPP38901Base):
+    """3GPP 38.901 Urban Micro Street-Canyon (0.5-100 GHz, 10 m - 5 km)."""
+
+    MODEL_NAME = "GPP38901UMi"
+    FREQ_RANGE_HZ = (500e6, 100e9)
+    DISTANCE_RANGE_M = (10.0, 5000.0)
+
+    _H_E_M = 1.0
+
+    def _los_probability(self, d_2d_m: float) -> float:
+        # Table 7.4.2-1: no h_UT dependence for UMi
+        if d_2d_m <= 18.0:
+            return 1.0
+        return (18.0 / d_2d_m) + math.exp(-d_2d_m / 36.0) * (1.0 - 18.0 / d_2d_m)
+
+    def _breakpoint_m(self, f_ghz: float) -> float:
+        h_bs_prime = self.h_bs_m - self._H_E_M
+        h_ut_prime = self.h_ut_m - self._H_E_M
+        return 4.0 * h_bs_prime * h_ut_prime * (f_ghz * 1e9) / SPEED_OF_LIGHT
+
+    def _path_loss_los(
+        self, d_3d_m: float, d_2d_m: float, f_ghz: float
+    ) -> float:
+        d_bp = self._breakpoint_m(f_ghz)
+        if d_2d_m <= d_bp:
+            return 32.4 + 21.0 * math.log10(d_3d_m) + 20.0 * math.log10(f_ghz)
+        return (
+            32.4
+            + 40.0 * math.log10(d_3d_m)
+            + 20.0 * math.log10(f_ghz)
+            - 9.5 * math.log10(d_bp ** 2 + (self.h_bs_m - self.h_ut_m) ** 2)
+        )
+
+    def _path_loss_nlos(
+        self, d_3d_m: float, d_2d_m: float, f_ghz: float
+    ) -> float:
+        pl_nlos_prime = (
+            35.3 * math.log10(d_3d_m)
+            + 22.4
+            + 21.3 * math.log10(f_ghz)
+            - 0.3 * (self.h_ut_m - 1.5)
+        )
+        pl_los = self._path_loss_los(d_3d_m, d_2d_m, f_ghz)
+        return max(pl_los, pl_nlos_prime)
+
+    def _large_scale_params(
+        self, is_los: bool, f_ghz: float
+    ) -> tuple[float, float, float, float]:
+        # Table 7.5-6 Part 1 (UMi)
+        if is_los:
+            mu_lgDS = -0.24 * math.log10(1.0 + f_ghz) - 7.14
+            sigma_lgDS = 0.38
+            sigma_sf = 4.0
+            asa_med = 10.0 ** (-0.08 * math.log10(1.0 + f_ghz) + 1.73)
+        else:
+            mu_lgDS = -0.24 * math.log10(1.0 + f_ghz) - 6.83
+            sigma_lgDS = 0.16 * math.log10(1.0 + f_ghz) + 0.28
+            sigma_sf = 7.82
+            asa_med = 10.0 ** (-0.08 * math.log10(1.0 + f_ghz) + 1.81)
+        return sigma_sf, mu_lgDS, sigma_lgDS, asa_med
+
+    def _k_factor_params(self, f_ghz: float) -> tuple[float, float]:
+        # Table 7.5-6 Part 1 (UMi LOS)
+        return 9.0, 5.0

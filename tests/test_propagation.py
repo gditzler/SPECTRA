@@ -8,6 +8,7 @@ from spectra.environment.propagation import (
     COST231HataPL,
     FreeSpacePathLoss,
     GPP38901UMa,
+    GPP38901UMi,
     LogDistancePL,
     OkumuraHataPL,
     PathLossResult,
@@ -394,3 +395,39 @@ class TestGPP38901UMa:
         m = GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="bogus")
         with pytest.raises(ValueError, match="los_mode"):
             m(500.0, 3.5e9, seed=0)
+
+
+class TestGPP38901UMi:
+    def test_is_propagation_model(self):
+        assert isinstance(GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5), PropagationModel)
+
+    def test_los_less_than_nlos(self):
+        los = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5, los_mode="force_los")
+        nlos = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5, los_mode="force_nlos")
+        assert (
+            los(300.0, 28e9, seed=0).path_loss_db
+            < nlos(300.0, 28e9, seed=0).path_loss_db
+        )
+
+    def test_los_formula_short_distance(self):
+        """UMi LOS PL_1: PL = 32.4 + 21*log10(d_3D) + 20*log10(f_c_GHz)."""
+        m = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5, los_mode="force_los")
+        d_3d = math.sqrt(100.0 ** 2 + (10.0 - 1.5) ** 2)
+        expected = 32.4 + 21.0 * math.log10(d_3d) + 20.0 * math.log10(3.5)
+        r = m(100.0, 3.5e9, seed=0)
+        assert math.isclose(
+            r.path_loss_db - r.shadow_fading_db, expected, rel_tol=1e-3
+        )
+
+    def test_populates_multipath_fields(self):
+        m = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5, los_mode="force_los")
+        r = m(300.0, 28e9, seed=0)
+        assert r.rms_delay_spread_s is not None
+        assert r.k_factor_db is not None
+        assert r.angular_spread_deg is not None
+
+    def test_seed_reproducibility(self):
+        m = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5)
+        r1 = m(300.0, 28e9, seed=42)
+        r2 = m(300.0, 28e9, seed=42)
+        assert r1.path_loss_db == r2.path_loss_db
