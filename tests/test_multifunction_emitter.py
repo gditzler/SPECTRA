@@ -316,3 +316,207 @@ def test_scheduled_waveform_samples_per_symbol_is_one():
     # Composer uses `getattr(w, "samples_per_symbol", 8)`; for us this means
     # num_symbols == num_samples.
     assert sw.samples_per_symbol == 1
+
+
+# ── Task 5: StochasticSchedule ──────────────────────────────────────────────
+
+
+def test_stochastic_schedule_validates_unknown_mode():
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory(r):
+        return _small_radar()
+
+    modes = {"a": ModeSpec(waveform_factory=_factory, duration_samples=100)}
+    with pytest.raises(ValueError, match="unknown"):
+        StochasticSchedule(
+            modes=modes,
+            transitions={"a": {"a": 0.5, "b": 0.5}},  # 'b' not in modes
+            initial_mode="a",
+        )
+
+
+def test_stochastic_schedule_validates_row_sum():
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory(r):
+        return _small_radar()
+
+    modes = {
+        "a": ModeSpec(waveform_factory=_factory, duration_samples=100),
+        "b": ModeSpec(waveform_factory=_factory, duration_samples=100),
+    }
+    with pytest.raises(ValueError, match="sum"):
+        StochasticSchedule(
+            modes=modes,
+            transitions={"a": {"a": 0.5, "b": 0.2}, "b": {"a": 0.5, "b": 0.5}},
+            initial_mode="a",
+        )
+
+
+def test_stochastic_schedule_validates_non_positive_duration():
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory(r):
+        return _small_radar()
+
+    bad_scalar = {"a": ModeSpec(waveform_factory=_factory, duration_samples=0)}
+    with pytest.raises(ValueError, match="duration_samples"):
+        StochasticSchedule(modes=bad_scalar, transitions={"a": {"a": 1.0}}, initial_mode="a")
+
+    bad_tuple = {"a": ModeSpec(waveform_factory=_factory, duration_samples=(0, 100))}
+    with pytest.raises(ValueError, match="duration range"):
+        StochasticSchedule(modes=bad_tuple, transitions={"a": {"a": 1.0}}, initial_mode="a")
+
+
+def test_stochastic_schedule_validates_initial_mode_unknown():
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory(r):
+        return _small_radar()
+
+    modes = {"a": ModeSpec(waveform_factory=_factory, duration_samples=100)}
+    with pytest.raises(ValueError, match="initial_mode"):
+        StochasticSchedule(
+            modes=modes,
+            transitions={"a": {"a": 1.0}},
+            initial_mode="b",
+        )
+
+
+def test_stochastic_schedule_determinism():
+    """Same seed -> identical segment list."""
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory_a(r):
+        return _small_radar(pri=128)
+
+    def _factory_b(r):
+        return _small_radar(pri=256)
+
+    modes = {
+        "a": ModeSpec(waveform_factory=_factory_a, duration_samples=(100, 400)),
+        "b": ModeSpec(waveform_factory=_factory_b, duration_samples=(100, 400)),
+    }
+    sched = StochasticSchedule(
+        modes=modes,
+        transitions={"a": {"a": 0.5, "b": 0.5}, "b": {"a": 0.5, "b": 0.5}},
+        initial_mode="a",
+    )
+
+    run1 = [(s.mode, s.duration_samples) for s in sched.iter_segments(5000, 1e6, seed=123)]
+    run2 = [(s.mode, s.duration_samples) for s in sched.iter_segments(5000, 1e6, seed=123)]
+    assert run1 == run2
+    assert len(run1) >= 2  # enough segments in 5000 samples
+
+
+def test_stochastic_schedule_different_seeds_differ():
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory_a(r):
+        return _small_radar()
+
+    def _factory_b(r):
+        return _small_radar(pri=256)
+
+    modes = {
+        "a": ModeSpec(waveform_factory=_factory_a, duration_samples=(100, 400)),
+        "b": ModeSpec(waveform_factory=_factory_b, duration_samples=(100, 400)),
+    }
+    sched = StochasticSchedule(
+        modes=modes,
+        transitions={"a": {"a": 0.3, "b": 0.7}, "b": {"a": 0.7, "b": 0.3}},
+        initial_mode={"a": 0.5, "b": 0.5},
+    )
+
+    run1 = [(s.mode, s.duration_samples) for s in sched.iter_segments(10_000, 1e6, seed=1)]
+    run2 = [(s.mode, s.duration_samples) for s in sched.iter_segments(10_000, 1e6, seed=2)]
+    assert run1 != run2
+
+
+def test_stochastic_schedule_duration_callable():
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory(r):
+        return _small_radar()
+
+    def _dur(r):
+        return 250
+
+    modes = {
+        "fixed": ModeSpec(
+            waveform_factory=_factory,
+            duration_samples=_dur,
+        ),
+    }
+    sched = StochasticSchedule(
+        modes=modes,
+        transitions={"fixed": {"fixed": 1.0}},
+        initial_mode="fixed",
+    )
+    out = list(sched.iter_segments(1000, 1e6, seed=0))
+    assert all(s.duration_samples == 250 for s in out)
+
+
+def test_stochastic_schedule_freq_and_power_offsets_drawn_from_range():
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory(r):
+        return _small_radar()
+
+    modes = {
+        "m": ModeSpec(
+            waveform_factory=_factory,
+            duration_samples=200,
+            power_offset_db=(-2.0, 2.0),
+            freq_offset_hz=(-50e3, 50e3),
+        ),
+    }
+    sched = StochasticSchedule(
+        modes=modes,
+        transitions={"m": {"m": 1.0}},
+        initial_mode="m",
+    )
+    segs = list(sched.iter_segments(5000, 1e6, seed=0))
+    assert len(segs) > 1
+    for s in segs:
+        assert -2.0 <= s.power_offset_db <= 2.0
+        assert -50e3 <= s.freq_offset_hz <= 50e3
+
+
+def test_scheduled_waveform_with_stochastic_determinism(assert_valid_iq):
+    """ScheduledWaveform IQ is byte-identical with same seed using stochastic."""
+    from spectra.waveforms.multifunction.schedule import StochasticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import ModeSpec
+
+    def _factory_a(r):
+        return _small_radar(pri=128)
+
+    def _factory_b(r):
+        return _small_radar(pri=256)
+
+    modes = {
+        "a": ModeSpec(waveform_factory=_factory_a, duration_samples=(200, 400)),
+        "b": ModeSpec(waveform_factory=_factory_b, duration_samples=(200, 400)),
+    }
+    sw = ScheduledWaveform(
+        StochasticSchedule(
+            modes=modes,
+            transitions={"a": {"a": 0.3, "b": 0.7}, "b": {"a": 0.7, "b": 0.3}},
+            initial_mode="a",
+        )
+    )
+
+    iq1 = sw.generate(num_symbols=5000, sample_rate=1e6, seed=42)
+    iq2 = sw.generate(num_symbols=5000, sample_rate=1e6, seed=42)
+    assert_valid_iq(iq1, expected_length=5000)
+    assert np.array_equal(iq1, iq2)

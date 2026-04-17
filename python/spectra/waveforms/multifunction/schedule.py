@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterator
+from typing import Callable, Iterator, Union
 
-from spectra.waveforms.multifunction.segment import SegmentSpec
+import numpy as np
+
+from spectra.waveforms.multifunction.segment import ModeSpec, SegmentSpec
 
 
 class Schedule(ABC):
@@ -72,3 +74,128 @@ class StaticSchedule(Schedule):
                     idx = 0
                 else:
                     return
+
+
+_ROW_SUM_TOL = 1e-6
+
+
+def _draw_int_range(
+    val: Union[int, tuple[int, int], Callable[[np.random.Generator], int]],
+    rng: np.random.Generator,
+) -> int:
+    """Resolve an int-or-range-or-callable into a concrete int."""
+    if callable(val):
+        return int(val(rng))
+    if isinstance(val, tuple):
+        lo, hi = val
+        return int(rng.integers(int(lo), int(hi) + 1))
+    return int(val)
+
+
+def _draw_float_range(val: Union[float, tuple[float, float]], rng: np.random.Generator) -> float:
+    """Resolve a float-or-range into a concrete float."""
+    if isinstance(val, tuple):
+        lo, hi = val
+        return float(rng.uniform(float(lo), float(hi)))
+    return float(val)
+
+
+class StochasticSchedule(Schedule):
+    """Markov-modelled schedule with per-mode parameter distributions.
+
+    Args:
+        modes: Mapping of mode name to :class:`ModeSpec`.
+        transitions: Markov transition matrix as ``{from_mode: {to_mode: prob}}``.
+            Every row must sum to 1.0 (± 1e-6) and reference only known modes.
+        initial_mode: Either a single mode name (fixed initial state) or a
+            distribution ``{mode_name: prob}`` (drawn at ``iter_segments`` start).
+
+    Raises:
+        ValueError: If any mode name is unknown, any row doesn't sum to 1,
+            ``initial_mode`` references an unknown mode, or a known mode has
+            no transition row.
+    """
+
+    def __init__(
+        self,
+        modes: dict[str, ModeSpec],
+        transitions: dict[str, dict[str, float]],
+        initial_mode: Union[str, dict[str, float]],
+    ):
+        self._modes = dict(modes)
+        self._transitions = {k: dict(v) for k, v in transitions.items()}
+        self._initial_mode = initial_mode if isinstance(initial_mode, str) else dict(initial_mode)
+        self._validate()
+
+    def _validate(self):
+        names = set(self._modes)
+        for from_mode, row in self._transitions.items():
+            if from_mode not in names:
+                raise ValueError(f"transitions from unknown mode {from_mode!r}")
+            for to_mode in row:
+                if to_mode not in names:
+                    raise ValueError(f"transitions to unknown mode {to_mode!r}")
+            total = sum(row.values())
+            if abs(total - 1.0) > _ROW_SUM_TOL:
+                raise ValueError(f"transitions[{from_mode!r}] row sum is {total}, expected 1.0")
+        if isinstance(self._initial_mode, str):
+            if self._initial_mode not in names:
+                raise ValueError(f"initial_mode {self._initial_mode!r} is unknown")
+        else:
+            for name in self._initial_mode:
+                if name not in names:
+                    raise ValueError(f"initial_mode {name!r} is unknown")
+            total = sum(self._initial_mode.values())
+            if abs(total - 1.0) > _ROW_SUM_TOL:
+                raise ValueError(f"initial_mode distribution sum is {total}, expected 1.0")
+        for name in names:
+            if name not in self._transitions:
+                raise ValueError(f"mode {name!r} has no transition row")
+        # Match StaticSchedule's guard: reject non-positive duration_samples on
+        # scalar and tuple forms. (Callable durations are user-owned — we can't
+        # introspect them at construction time, so they rely on runtime trust.)
+        for mode_name, spec in self._modes.items():
+            dur = spec.duration_samples
+            if isinstance(dur, int):
+                if dur <= 0:
+                    raise ValueError(f"mode {mode_name!r} has non-positive duration_samples={dur}")
+            elif isinstance(dur, tuple):
+                lo, hi = dur
+                if lo <= 0 or hi < lo:
+                    raise ValueError(f"mode {mode_name!r} has invalid duration range ({lo}, {hi})")
+
+    def _draw_mode(self, distribution: dict[str, float], rng: np.random.Generator) -> str:
+        names = list(distribution.keys())
+        probs = np.array([distribution[n] for n in names], dtype=np.float64)
+        probs = probs / probs.sum()
+        idx = int(rng.choice(len(names), p=probs))
+        return names[idx]
+
+    def iter_segments(
+        self, total_samples: int, sample_rate: float, seed: int
+    ) -> Iterator[SegmentSpec]:
+        rng = np.random.default_rng(int(seed))
+
+        if isinstance(self._initial_mode, str):
+            current = self._initial_mode
+        else:
+            current = self._draw_mode(self._initial_mode, rng)
+
+        cumulative = 0
+        while cumulative < total_samples:
+            mode_spec = self._modes[current]
+            dur = _draw_int_range(mode_spec.duration_samples, rng)
+            power = _draw_float_range(mode_spec.power_offset_db, rng)
+            freq = _draw_float_range(mode_spec.freq_offset_hz, rng)
+            waveform = mode_spec.waveform_factory(rng)
+
+            yield SegmentSpec(
+                waveform=waveform,
+                duration_samples=dur,
+                mode=current,
+                power_offset_db=power,
+                freq_offset_hz=freq,
+                metadata=dict(mode_spec.metadata),
+            )
+            cumulative += dur
+            current = self._draw_mode(self._transitions[current], rng)
