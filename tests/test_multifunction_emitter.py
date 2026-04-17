@@ -817,3 +817,30 @@ def test_radcom_emitter_deterministic():
     iq1 = radcom_emitter().generate(num_symbols=30_000, sample_rate=20e6, seed=9)
     iq2 = radcom_emitter().generate(num_symbols=30_000, sample_rate=20e6, seed=9)
     assert np.array_equal(iq1, iq2)
+
+
+# ── Task 13: Composer integration ────────────────────────────────────────────
+
+
+def test_scheduled_waveform_in_composer(assert_valid_iq):
+    """A ScheduledWaveform plugs into SceneConfig.signal_pool unchanged."""
+    from spectra.scene.composer import Composer, SceneConfig
+    from spectra.waveforms import QPSK, multifunction_search_track_radar
+
+    config = SceneConfig(
+        capture_duration=0.005,  # 5 ms
+        capture_bandwidth=10e6,
+        sample_rate=20e6,
+        num_signals=2,
+        signal_pool=[multifunction_search_track_radar(), QPSK()],
+        snr_range=(10.0, 20.0),
+        allow_overlap=True,
+    )
+    composer = Composer(config)
+    iq, descriptions = composer.generate(seed=0)
+
+    assert_valid_iq(iq)
+    assert len(descriptions) == 2
+    labels = {d.label for d in descriptions}
+    # At least one of the two placed signals must carry a label from our pool.
+    assert "MFR_SearchTrack" in labels or "QPSK" in labels
