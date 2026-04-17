@@ -32,14 +32,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from plot_helpers import savefig
 from spectra.environment.propagation import (
+    ITU_R_P525,
+    ITU_R_P1411,
     COST231HataPL,
     FreeSpacePathLoss,
     GPP38901InH,
     GPP38901RMa,
     GPP38901UMa,
     GPP38901UMi,
-    ITU_R_P525,
-    ITU_R_P1411,
     LogDistancePL,
     OkumuraHataPL,
 )
@@ -138,7 +138,10 @@ N = 10_000
 scenarios = [
     ("38.901 UMa LOS (σ=4)", GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="force_los")),
     ("38.901 UMa NLOS (σ=6)", GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="force_nlos")),
-    ("38.901 InH LOS (σ=3)", GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, los_mode="force_los", strict_range=False)),
+    (
+        "38.901 InH LOS (σ=3)",
+        GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, los_mode="force_los", strict_range=False),
+    ),
     ("38.901 RMa LOS (σ=4)", GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5, los_mode="force_los")),
 ]
 
