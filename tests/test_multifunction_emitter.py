@@ -520,3 +520,56 @@ def test_scheduled_waveform_with_stochastic_determinism(assert_valid_iq):
     iq2 = sw.generate(num_symbols=5000, sample_rate=1e6, seed=42)
     assert_valid_iq(iq1, expected_length=5000)
     assert np.array_equal(iq1, iq2)
+
+
+# ── Task 6: CognitiveSchedule ABC ───────────────────────────────────────────
+
+
+def test_cognitive_schedule_cannot_instantiate_directly():
+    from spectra.waveforms.multifunction.schedule import CognitiveSchedule
+
+    with pytest.raises(TypeError):
+        CognitiveSchedule()
+
+
+def test_cognitive_schedule_subclass_works():
+    """A trivial deterministic subclass validates the seam."""
+    from spectra.waveforms.multifunction.schedule import CognitiveSchedule
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    class AlternatingCognitive(CognitiveSchedule):
+        def next_segment(self, history, state):
+            mode = "b" if history and history[-1].mode == "a" else "a"
+            return SegmentSpec(
+                waveform=_small_radar(),
+                duration_samples=100,
+                mode=mode,
+            )
+
+    sched = AlternatingCognitive()
+    modes = [s.mode for s in sched.iter_segments(400, 1e6, seed=0)]
+    assert modes == ["a", "b", "a", "b"]
+
+
+def test_cognitive_schedule_returning_none_ends_schedule():
+    from spectra.waveforms.multifunction.schedule import CognitiveSchedule
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    class FixedLength(CognitiveSchedule):
+        def __init__(self, n):
+            self._n = n
+            self._count = 0
+
+        def next_segment(self, history, state):
+            if self._count >= self._n:
+                return None
+            self._count += 1
+            return SegmentSpec(
+                waveform=_small_radar(),
+                duration_samples=100,
+                mode="m",
+            )
+
+    sched = FixedLength(3)
+    out = list(sched.iter_segments(10_000, 1e6, seed=0))
+    assert len(out) == 3

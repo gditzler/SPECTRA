@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Callable, Iterator, Union
+from typing import Any, Callable, Iterator, Optional, Union
 
 import numpy as np
 
@@ -199,3 +199,40 @@ class StochasticSchedule(Schedule):
             )
             cumulative += dur
             current = self._draw_mode(self._transitions[current], rng)
+
+
+class CognitiveSchedule(Schedule):
+    """Abstract base for closed-loop / event-driven schedules.
+
+    Subclasses implement :meth:`next_segment`, which is called repeatedly with
+    the history of emitted segments and an opaque ``state`` object. Returning
+    ``None`` ends the schedule (the caller zero-pads any remaining samples).
+
+    Actual wiring to scene/target state (the reason to have this ABC at all)
+    is deferred to a future spec. This version ships with no concrete
+    subclass; the abstract contract lets us validate the seam in tests and
+    commit to the interface shape.
+    """
+
+    @abstractmethod
+    def next_segment(
+        self,
+        history: list[SegmentSpec],
+        state: Any,
+    ) -> Optional[SegmentSpec]:
+        """Return the next segment, or ``None`` to end the schedule."""
+        ...
+
+    def iter_segments(
+        self, total_samples: int, sample_rate: float, seed: int
+    ) -> Iterator[SegmentSpec]:
+        history: list[SegmentSpec] = []
+        state: Any = None  # subclasses may use this; unused in v1
+        cumulative = 0
+        while cumulative < total_samples:
+            nxt = self.next_segment(history, state)
+            if nxt is None:
+                return
+            yield nxt
+            history.append(nxt)
+            cumulative += int(nxt.duration_samples)
