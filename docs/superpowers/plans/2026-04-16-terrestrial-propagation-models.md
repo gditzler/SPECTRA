@@ -3193,7 +3193,7 @@ When a propagation model populates `rms_delay_spread_s` and/or
 - `k_factor` alone → `RicianFading(k_factor=...)`.
 - Legacy `fading_suggestion` string → mapped as before (back-compat).
 
-See the [impairments guide](impairments.md#auto-impairment-chain)
+See the [impairments guide](../../user-guide/impairments.md#auto-impairment-chain-from-propagation)
 for the end-to-end chain.
 
 ## ITU-R P.525 and P.676
