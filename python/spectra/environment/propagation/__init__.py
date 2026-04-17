@@ -17,6 +17,7 @@ from spectra.environment.propagation.gpp_38_901 import (
     GPP38901UMa,
     GPP38901UMi,
 )
+from spectra.environment.propagation.itu_r_p1411 import ITU_R_P1411
 
 __all__ = [
     "COST231HataPL",
@@ -26,6 +27,7 @@ __all__ = [
     "GPP38901UMa",
     "GPP38901UMi",
     "ITU_R_P525",
+    "ITU_R_P1411",
     "LogDistancePL",
     "OkumuraHataPL",
     "PathLossResult",

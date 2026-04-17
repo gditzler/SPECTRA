@@ -5,6 +5,7 @@ import math
 import pytest
 from spectra.environment.propagation import (
     ITU_R_P525,
+    ITU_R_P1411,
     COST231HataPL,
     FreeSpacePathLoss,
     GPP38901InH,
@@ -516,3 +517,67 @@ class TestGPP38901InH:
         m(140.0, 3.5e9, seed=0)  # OK
         with pytest.raises(ValueError):
             m(200.0, 3.5e9)  # Above 150 m
+
+
+class TestITU_R_P1411:
+    def test_is_propagation_model(self):
+        m = ITU_R_P1411(environment="urban_high_rise")
+        assert isinstance(m, PropagationModel)
+
+    def test_los_less_than_nlos(self):
+        los = ITU_R_P1411(environment="urban_high_rise", los_mode="force_los")
+        nlos = ITU_R_P1411(environment="urban_high_rise", los_mode="force_nlos")
+        assert (
+            los(200.0, 2.4e9, seed=0).path_loss_db
+            < nlos(200.0, 2.4e9, seed=0).path_loss_db
+        )
+
+    def test_all_three_environments(self):
+        for env in ["urban_high_rise", "urban_low_rise_suburban", "residential"]:
+            m = ITU_R_P1411(environment=env)
+            r = m(200.0, 2.4e9, seed=0)
+            assert isinstance(r, PathLossResult)
+
+    def test_invalid_environment_raises(self):
+        with pytest.raises(ValueError, match="environment"):
+            ITU_R_P1411(environment="rural")
+
+    def test_farther_distance_more_loss(self):
+        m = ITU_R_P1411(environment="urban_high_rise", los_mode="force_los")
+        r1 = m(100.0, 2.4e9, seed=0)
+        r2 = m(1000.0, 2.4e9, seed=0)
+        assert (r2.path_loss_db - r2.shadow_fading_db) > (
+            r1.path_loss_db - r1.shadow_fading_db
+        )
+
+    def test_multipath_fields_none(self):
+        m = ITU_R_P1411(environment="urban_high_rise")
+        r = m(200.0, 2.4e9, seed=0)
+        assert r.rms_delay_spread_s is None
+        assert r.k_factor_db is None
+
+    def test_freq_envelope(self):
+        m = ITU_R_P1411(environment="urban_high_rise")
+        with pytest.raises(ValueError, match="freq"):
+            m(200.0, 100e6)  # below 300 MHz
+
+    def test_distance_envelope(self):
+        m = ITU_R_P1411(environment="urban_high_rise")
+        with pytest.raises(ValueError, match="distance"):
+            m(10.0, 2.4e9)  # below 50 m
+
+    def test_seed_reproducibility(self):
+        m = ITU_R_P1411(environment="urban_high_rise")
+        r1 = m(200.0, 2.4e9, seed=42)
+        r2 = m(200.0, 2.4e9, seed=42)
+        assert r1.path_loss_db == r2.path_loss_db
+        assert r1.shadow_fading_db == r2.shadow_fading_db
+
+    def test_shadow_fading_within_2_sigma(self):
+        """Repeated draws should have std dev close to the tabulated sigma."""
+        m = ITU_R_P1411(environment="urban_high_rise", los_mode="force_los")
+        shadows = [m(200.0, 2.4e9, seed=i).shadow_fading_db for i in range(200)]
+        import statistics
+        std = statistics.stdev(shadows)
+        # Urban high-rise LOS sigma should be in [2, 5] dB
+        assert 1.5 < std < 6.0
