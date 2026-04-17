@@ -23,6 +23,16 @@ from spectra.waveforms.fsk import (
     MSK8,
 )
 from spectra.waveforms.lfm import LFM
+from spectra.waveforms.multifunction import (
+    CognitiveSchedule,
+    ModeSpec,
+    Schedule,
+    ScheduledWaveform,
+    SegmentSpec,
+    StaticSchedule,
+    StochasticSchedule,
+    segments_to_mode_mask,
+)
 from spectra.waveforms.noise import Noise
 from spectra.waveforms.nr import NR_OFDM, NR_PDSCH, NR_PRACH, NR_PUSCH, NR_SSB
 from spectra.waveforms.ofdm import (
@@ -148,4 +158,12 @@ __all__ = [
     "THSS",
     "Tone",
     "ZadoffChu",
+    "CognitiveSchedule",
+    "ModeSpec",
+    "Schedule",
+    "ScheduledWaveform",
+    "SegmentSpec",
+    "StaticSchedule",
+    "StochasticSchedule",
+    "segments_to_mode_mask",
 ]

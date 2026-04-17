@@ -663,3 +663,23 @@ def test_segments_to_mode_mask_unknown_mode_raises():
             sample_rate=1e6,
             mode_to_index={"a": 0},
         )
+
+
+# ── Task 8: top-level re-exports ─────────────────────────────────────────────
+
+
+def test_public_names_reexported_from_spectra_waveforms():
+    import spectra.waveforms as wf
+
+    expected = [
+        "ScheduledWaveform",
+        "Schedule",
+        "StaticSchedule",
+        "StochasticSchedule",
+        "CognitiveSchedule",
+        "SegmentSpec",
+        "ModeSpec",
+        "segments_to_mode_mask",
+    ]
+    for name in expected:
+        assert hasattr(wf, name), f"spectra.waveforms is missing {name!r}"

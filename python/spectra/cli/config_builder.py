@@ -22,13 +22,29 @@ _IMPAIRMENT_EXCLUDES = {
     "steering_vector",
 }
 
+# Names exported from spectra.waveforms that are support infrastructure, not
+# selectable waveforms (ABCs, dataclasses, helper functions). Excluded from
+# the interactive signal-pool builder so users don't try to pick a Schedule
+# or a dataclass as a waveform type.
+_WAVEFORM_EXCLUDES = {
+    "Schedule",
+    "StaticSchedule",
+    "StochasticSchedule",
+    "CognitiveSchedule",
+    "SegmentSpec",
+    "ModeSpec",
+    "segments_to_mode_mask",
+}
+
 
 def get_waveform_registry() -> Dict[str, type]:
     global _WAVEFORM_REGISTRY
     if _WAVEFORM_REGISTRY is None:
         from spectra import waveforms as wmod
 
-        _WAVEFORM_REGISTRY = {name: getattr(wmod, name) for name in wmod.__all__}
+        _WAVEFORM_REGISTRY = {
+            name: getattr(wmod, name) for name in wmod.__all__ if name not in _WAVEFORM_EXCLUDES
+        }
     return _WAVEFORM_REGISTRY
 
 
@@ -38,9 +54,7 @@ def get_impairment_registry() -> Dict[str, type]:
         from spectra import impairments as imod
 
         _IMPAIRMENT_REGISTRY = {
-            name: getattr(imod, name)
-            for name in imod.__all__
-            if name not in _IMPAIRMENT_EXCLUDES
+            name: getattr(imod, name) for name in imod.__all__ if name not in _IMPAIRMENT_EXCLUDES
         }
     return _IMPAIRMENT_REGISTRY
 
@@ -53,29 +67,67 @@ WAVEFORM_CATEGORIES: Dict[str, List[str]] = {
     "PSK": ["BPSK", "QPSK", "PSK8", "PSK16", "PSK32", "PSK64"],
     "QAM": ["QAM16", "QAM32", "QAM64", "QAM128", "QAM256", "QAM512", "QAM1024"],
     "FSK": [
-        "FSK", "FSK4", "FSK8", "FSK16",
-        "GFSK", "GFSK4", "GFSK8", "GFSK16",
-        "GMSK", "GMSK4", "GMSK8",
-        "MSK", "MSK4", "MSK8",
+        "FSK",
+        "FSK4",
+        "FSK8",
+        "FSK16",
+        "GFSK",
+        "GFSK4",
+        "GFSK8",
+        "GFSK16",
+        "GMSK",
+        "GMSK4",
+        "GMSK8",
+        "MSK",
+        "MSK4",
+        "MSK8",
     ],
     "ASK": ["OOK", "ASK4", "ASK8", "ASK16", "ASK32", "ASK64"],
     "OFDM": [
-        "OFDM", "OFDM72", "OFDM128", "OFDM180", "OFDM256", "OFDM300",
-        "OFDM512", "OFDM600", "OFDM900", "OFDM1200", "OFDM2048", "SCFDMA",
+        "OFDM",
+        "OFDM72",
+        "OFDM128",
+        "OFDM180",
+        "OFDM256",
+        "OFDM300",
+        "OFDM512",
+        "OFDM600",
+        "OFDM900",
+        "OFDM1200",
+        "OFDM2048",
+        "SCFDMA",
     ],
     "Analog": ["AMDSB", "AMDSB_SC", "AMLSB", "AMUSB", "FM", "Tone"],
     "Radar": [
-        "LFM", "BarkerCode", "FrankCode", "P1Code", "P2Code", "P3Code", "P4Code",
-        "CostasCode", "PulsedRadar", "BarkerCodedPulse", "PolyphaseCodedPulse",
-        "FMCW", "NonlinearFM", "SteppedFrequency", "PulseDoppler",
+        "LFM",
+        "BarkerCode",
+        "FrankCode",
+        "P1Code",
+        "P2Code",
+        "P3Code",
+        "P4Code",
+        "CostasCode",
+        "PulsedRadar",
+        "BarkerCodedPulse",
+        "PolyphaseCodedPulse",
+        "FMCW",
+        "NonlinearFM",
+        "SteppedFrequency",
+        "PulseDoppler",
     ],
     "5G NR": ["NR_OFDM", "NR_PDSCH", "NR_PRACH", "NR_PUSCH", "NR_SSB"],
     "Protocol": ["ACARS", "ADSB", "AIS", "DME", "ILS_Localizer", "ModeS"],
     "Spread Spectrum": [
-        "DSSS_BPSK", "DSSS_QPSK", "FHSS", "THSS",
-        "CDMA_Forward", "CDMA_Reverse", "ChirpSS",
+        "DSSS_BPSK",
+        "DSSS_QPSK",
+        "FHSS",
+        "THSS",
+        "CDMA_Forward",
+        "CDMA_Reverse",
+        "ChirpSS",
     ],
     "Other": ["Noise", "ZadoffChu"],
+    "Multi-function Emitter": ["ScheduledWaveform"],
 }
 
 # ---------------------------------------------------------------------------

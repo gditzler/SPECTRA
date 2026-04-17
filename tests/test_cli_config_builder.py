@@ -1,6 +1,4 @@
-import pytest
 import yaml
-
 from spectra.cli.config_builder import (
     IMPAIRMENT_PRESETS,
     WAVEFORM_CATEGORIES,
@@ -25,9 +23,10 @@ class TestWaveformRegistry:
 
     def test_registry_matches_all(self):
         from spectra import waveforms as wmod
+        from spectra.cli.config_builder import _WAVEFORM_EXCLUDES
 
         reg = get_waveform_registry()
-        assert set(reg.keys()) == set(wmod.__all__)
+        assert set(reg.keys()) == set(wmod.__all__) - _WAVEFORM_EXCLUDES
 
 
 class TestImpairmentRegistry:
@@ -52,11 +51,12 @@ class TestImpairmentRegistry:
 class TestWaveformCategories:
     def test_categories_cover_all_waveforms(self):
         from spectra import waveforms as wmod
+        from spectra.cli.config_builder import _WAVEFORM_EXCLUDES
 
         all_categorized = set()
         for names in WAVEFORM_CATEGORIES.values():
             all_categorized.update(names)
-        assert all_categorized == set(wmod.__all__)
+        assert all_categorized == set(wmod.__all__) - _WAVEFORM_EXCLUDES
 
     def test_no_duplicates_across_categories(self):
         seen = set()
@@ -101,8 +101,16 @@ class TestBuildConfig:
             seed=default_seeds(),
         )
         for key in [
-            "name", "version", "task", "sample_rate", "num_iq_samples",
-            "num_samples", "seed", "waveform_pool", "snr_range", "impairments",
+            "name",
+            "version",
+            "task",
+            "sample_rate",
+            "num_iq_samples",
+            "num_samples",
+            "seed",
+            "waveform_pool",
+            "snr_range",
+            "impairments",
         ]:
             assert key in cfg
 
