@@ -715,9 +715,44 @@ def test_multifunction_search_track_radar_deterministic():
     from spectra.waveforms import multifunction_search_track_radar
 
     iq1 = multifunction_search_track_radar().generate(
-        num_symbols=50_000, sample_rate=20e6, seed=7,
+        num_symbols=50_000,
+        sample_rate=20e6,
+        seed=7,
     )
     iq2 = multifunction_search_track_radar().generate(
-        num_symbols=50_000, sample_rate=20e6, seed=7,
+        num_symbols=50_000,
+        sample_rate=20e6,
+        seed=7,
+    )
+    assert np.array_equal(iq1, iq2)
+
+
+# ── Task 10: Example 2 — multi-PRF pulse-Doppler ─────────────────────────────
+
+
+def test_multi_prf_pulse_doppler_produces_all_three_modes(assert_valid_iq):
+    from spectra.waveforms import multi_prf_pulse_doppler_radar
+
+    sw = multi_prf_pulse_doppler_radar()
+    iq, segs = sw.generate_with_segments(num_samples=100_000, sample_rate=20e6, seed=3)
+
+    assert_valid_iq(iq, expected_length=100_000)
+    modes = {s.mode for s in segs}
+    assert modes.issubset({"low_prf", "medium_prf", "high_prf"})
+    assert len(modes) >= 2
+
+
+def test_multi_prf_pulse_doppler_deterministic():
+    from spectra.waveforms import multi_prf_pulse_doppler_radar
+
+    iq1 = multi_prf_pulse_doppler_radar().generate(
+        num_symbols=50_000,
+        sample_rate=20e6,
+        seed=11,
+    )
+    iq2 = multi_prf_pulse_doppler_radar().generate(
+        num_symbols=50_000,
+        sample_rate=20e6,
+        seed=11,
     )
     assert np.array_equal(iq1, iq2)
