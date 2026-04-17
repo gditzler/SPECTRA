@@ -5,7 +5,11 @@ from spectra.environment.propagation._base import (
     PathLossResult,
     PropagationModel,
 )
-from spectra.environment.propagation.empirical import COST231HataPL, LogDistancePL
+from spectra.environment.propagation.empirical import (
+    COST231HataPL,
+    LogDistancePL,
+    OkumuraHataPL,
+)
 from spectra.environment.propagation.free_space import ITU_R_P525, FreeSpacePathLoss
 
 __all__ = [
@@ -13,6 +17,7 @@ __all__ = [
     "FreeSpacePathLoss",
     "ITU_R_P525",
     "LogDistancePL",
+    "OkumuraHataPL",
     "PathLossResult",
     "PropagationModel",
     "SPEED_OF_LIGHT",

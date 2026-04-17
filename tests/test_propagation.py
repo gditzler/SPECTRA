@@ -8,6 +8,7 @@ from spectra.environment.propagation import (
     COST231HataPL,
     FreeSpacePathLoss,
     LogDistancePL,
+    OkumuraHataPL,
     PathLossResult,
     PropagationModel,
 )
@@ -213,3 +214,83 @@ class TestITU_R_P525:
     def test_minimum_distance_clamp(self):
         with pytest.raises(ValueError, match="distance_m must be positive"):
             ITU_R_P525()(0.0, 2.4e9)
+
+
+class TestOkumuraHataPL:
+    def test_is_propagation_model(self):
+        assert isinstance(
+            OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium"),
+            PropagationModel,
+        )
+
+    def test_reasonable_range_1km_900mhz(self):
+        # Standard test case: Tokyo-like, 900 MHz, 1 km, h_bs=50m, h_ms=1.5m
+        # Canonical Hata for these inputs yields ~123 dB.
+        m = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium")
+        result = m(distance_m=1000.0, freq_hz=900e6)
+        assert 120.0 < result.path_loss_db < 135.0
+
+    def test_urban_large_higher_than_small(self):
+        large = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_large")
+        small = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium")
+        # Large-city correction differs from small-city
+        assert large(1000.0, 900e6).path_loss_db != small(1000.0, 900e6).path_loss_db
+
+    def test_urban_more_loss_than_suburban(self):
+        urban = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium")
+        suburban = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="suburban")
+        assert urban(1000.0, 900e6).path_loss_db > suburban(1000.0, 900e6).path_loss_db
+
+    def test_suburban_more_loss_than_rural(self):
+        suburban = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="suburban")
+        rural = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="rural")
+        assert suburban(1000.0, 900e6).path_loss_db > rural(1000.0, 900e6).path_loss_db
+
+    def test_farther_distance_more_loss(self):
+        m = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium")
+        assert m(5000.0, 900e6).path_loss_db > m(1000.0, 900e6).path_loss_db
+
+    def test_higher_frequency_more_loss(self):
+        m = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium")
+        assert m(1000.0, 1400e6).path_loss_db > m(1000.0, 300e6).path_loss_db
+
+    def test_above_1500mhz_raises_with_hint(self):
+        m = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium")
+        with pytest.raises(ValueError, match="freq"):
+            m(1000.0, 1800e6)
+
+    def test_invalid_environment_raises(self):
+        with pytest.raises(ValueError, match="environment"):
+            OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban")  # old COST231 name
+
+    def test_shadow_fading_deterministic_with_seed(self):
+        m = OkumuraHataPL(
+            h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium", sigma_db=8.0
+        )
+        r1 = m(1000.0, 900e6, seed=42)
+        r2 = m(1000.0, 900e6, seed=42)
+        assert r1.shadow_fading_db == r2.shadow_fading_db
+        assert r1.shadow_fading_db != 0.0
+
+    def test_zero_sigma_no_shadow(self):
+        m = OkumuraHataPL(
+            h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium", sigma_db=0.0
+        )
+        assert m(1000.0, 900e6).shadow_fading_db == 0.0
+
+    def test_non_strict_range_warns(self):
+        m = OkumuraHataPL(
+            h_bs_m=50.0,
+            h_ms_m=1.5,
+            environment="urban_small_medium",
+            strict_range=False,
+        )
+        with pytest.warns(UserWarning):
+            m(1000.0, 1800e6)
+
+    def test_multipath_fields_none(self):
+        m = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium")
+        result = m(1000.0, 900e6)
+        assert result.rms_delay_spread_s is None
+        assert result.k_factor_db is None
+        assert result.angular_spread_deg is None
