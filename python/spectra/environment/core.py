@@ -7,9 +7,16 @@ from dataclasses import dataclass
 
 from spectra.environment.position import Position
 from spectra.environment.propagation import (
+    ITU_R_P525,
+    ITU_R_P1411,
     COST231HataPL,
     FreeSpacePathLoss,
+    GPP38901InH,
+    GPP38901RMa,
+    GPP38901UMa,
+    GPP38901UMi,
     LogDistancePL,
+    OkumuraHataPL,
     PropagationModel,
 )
 from spectra.waveforms.base import Waveform
@@ -18,6 +25,13 @@ _PROPAGATION_REGISTRY: dict[str, type[PropagationModel]] = {
     "free_space": FreeSpacePathLoss,
     "log_distance": LogDistancePL,
     "cost231_hata": COST231HataPL,
+    "itu_r_p525": ITU_R_P525,
+    "okumura_hata": OkumuraHataPL,
+    "gpp_38_901_uma": GPP38901UMa,
+    "gpp_38_901_umi": GPP38901UMi,
+    "gpp_38_901_rma": GPP38901RMa,
+    "gpp_38_901_inh": GPP38901InH,
+    "itu_r_p1411": ITU_R_P1411,
 }
 
 
@@ -80,6 +94,11 @@ class LinkParams:
     doppler_hz: float
     distance_m: float
     fading_suggestion: str | None
+    # Populated from PathLossResult (optional; defaulted for back-compat)
+    shadow_fading_db: float = 0.0
+    rms_delay_spread_s: float | None = None
+    k_factor_db: float | None = None
+    angular_spread_deg: float | None = None
 
 
 class Environment:
@@ -150,6 +169,10 @@ class Environment:
                     doppler_hz=doppler,
                     distance_m=distance,
                     fading_suggestion=fading,
+                    shadow_fading_db=pl_result.shadow_fading_db,
+                    rms_delay_spread_s=pl_result.rms_delay_spread_s,
+                    k_factor_db=pl_result.k_factor_db,
+                    angular_spread_deg=pl_result.angular_spread_deg,
                 )
             )
         return results
@@ -159,23 +182,21 @@ class Environment:
         import yaml
 
         prop = self.propagation
-        prop_dict: dict = {}
-        if isinstance(prop, FreeSpacePathLoss):
-            prop_dict = {"type": "free_space"}
-        elif isinstance(prop, LogDistancePL):
-            prop_dict = {
-                "type": "log_distance",
-                "n": prop.n,
-                "sigma_db": prop.sigma_db,
-                "d0": prop.d0,
-            }
-        elif isinstance(prop, COST231HataPL):
-            prop_dict = {
-                "type": "cost231_hata",
-                "h_bs_m": prop.h_bs_m,
-                "h_ms_m": prop.h_ms_m,
-                "environment": prop.environment,
-            }
+        # Reverse-lookup registry key for this propagation instance
+        registry_key: str | None = None
+        for k, cls in _PROPAGATION_REGISTRY.items():
+            if type(prop) is cls:
+                registry_key = k
+                break
+        if registry_key is None:
+            raise ValueError(f"Unknown propagation type {type(prop).__name__}; not in registry")
+
+        # Collect constructor params from public attrs (matches __init__ signature)
+        prop_dict: dict = {"type": registry_key}
+        for name in vars(prop):
+            if name.startswith("_"):
+                continue
+            prop_dict[name] = getattr(prop, name)
 
         emitters_list = []
         for e in self.emitters:

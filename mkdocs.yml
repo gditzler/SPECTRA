@@ -107,6 +107,7 @@ nav:
   - User Guide:
     - Waveforms: user-guide/waveforms.md
     - Impairments: user-guide/impairments.md
+    - Propagation: user-guide/propagation.md
     - Scene Composition: user-guide/scene-composition.md
     - Datasets: user-guide/datasets.md
     - Transforms & CSP: user-guide/transforms.md

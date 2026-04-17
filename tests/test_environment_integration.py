@@ -5,7 +5,14 @@ from spectra.environment.core import Emitter, Environment, LinkParams, ReceiverC
 from spectra.environment.integration import link_params_to_impairments
 from spectra.environment.position import Position
 from spectra.environment.propagation import FreeSpacePathLoss
-from spectra.impairments import AWGN, Compose, DopplerShift, RayleighFading, RicianFading
+from spectra.impairments import (
+    AWGN,
+    Compose,
+    DopplerShift,
+    RayleighFading,
+    RicianFading,
+    TDLChannel,
+)
 from spectra.impairments.base import Transform
 from spectra.scene import SignalDescription
 from spectra.waveforms import QPSK
@@ -208,3 +215,88 @@ class TestEndToEnd:
         for t in impairments:
             iq, desc = t(iq, signal_description, sample_rate=1e6)
         assert_valid_iq(iq)
+
+
+class TestTDLAutoChain:
+    def _lp(self, **overrides):
+        defaults = dict(
+            emitter_index=0,
+            snr_db=15.0,
+            path_loss_db=100.0,
+            received_power_dbm=-70.0,
+            delay_s=1e-6,
+            doppler_hz=0.0,
+            distance_m=500.0,
+            fading_suggestion=None,
+        )
+        defaults.update(overrides)
+        return LinkParams(**defaults)
+
+    def test_delay_spread_with_k_factor_emits_tdl_d(self):
+        """38.901 LOS: delay_spread + k_factor → TDL-D-flavored channel."""
+        lp = self._lp(rms_delay_spread_s=1e-7, k_factor_db=9.0)
+        chain = link_params_to_impairments(lp)
+        tdls = [t for t in chain if isinstance(t, TDLChannel)]
+        assert len(tdls) == 1
+
+    def test_delay_spread_without_k_factor_emits_tdl_b(self):
+        """38.901 NLOS: delay_spread only → Rayleigh-flavored TDL-B."""
+        lp = self._lp(rms_delay_spread_s=5e-7)
+        chain = link_params_to_impairments(lp)
+        tdls = [t for t in chain if isinstance(t, TDLChannel)]
+        assert len(tdls) == 1
+
+    def test_k_factor_without_delay_spread_emits_rician(self):
+        """Rician-only (no delay spread) → RicianFading."""
+        lp = self._lp(k_factor_db=6.0)
+        chain = link_params_to_impairments(lp)
+        rician = [t for t in chain if isinstance(t, RicianFading)]
+        tdl = [t for t in chain if isinstance(t, TDLChannel)]
+        assert len(rician) == 1
+        assert len(tdl) == 0
+
+    def test_tdl_scaled_to_delay_spread(self):
+        """TDL delays should scale linearly with target delay spread."""
+        lp_small = self._lp(rms_delay_spread_s=1e-8)
+        lp_large = self._lp(rms_delay_spread_s=1e-6)
+        chain_small = link_params_to_impairments(lp_small)
+        chain_large = link_params_to_impairments(lp_large)
+        tdl_small = [t for t in chain_small if isinstance(t, TDLChannel)][0]
+        tdl_large = [t for t in chain_large if isinstance(t, TDLChannel)][0]
+        max_delay_small = max(tdl_small._profile["delays_ns"])
+        max_delay_large = max(tdl_large._profile["delays_ns"])
+        assert max_delay_large > max_delay_small
+
+    def test_fallback_to_string_suggestion_when_no_multipath(self):
+        lp = self._lp(fading_suggestion="rayleigh")
+        chain = link_params_to_impairments(lp)
+        rayleigh = [t for t in chain if isinstance(t, RayleighFading)]
+        tdl = [t for t in chain if isinstance(t, TDLChannel)]
+        assert len(rayleigh) == 1
+        assert len(tdl) == 0
+
+    def test_tdl_realized_rms_matches_target(self):
+        """After scaling, the realized RMS delay spread should closely match the target.
+
+        Computes the RMS of the scaled profile (weighted by normalized power) and
+        verifies it matches the requested `rms_delay_spread_s` within a few percent.
+        """
+        import numpy as np
+
+        target_rms_s = 300e-9  # 300 ns
+        lp = self._lp(rms_delay_spread_s=target_rms_s)
+        chain = link_params_to_impairments(lp)
+        tdl = next(t for t in chain if isinstance(t, TDLChannel))
+
+        delays_s = np.asarray(tdl._profile["delays_ns"]) * 1e-9
+        powers_lin = 10.0 ** (np.asarray(tdl._profile["powers_db"]) / 10.0)
+        powers_lin /= powers_lin.sum()
+        mean_d = (delays_s * powers_lin).sum()
+        realized_rms = np.sqrt(((delays_s - mean_d) ** 2 * powers_lin).sum())
+
+        # Allow 1% tolerance (floating-point round-trip)
+        rel_err = abs(realized_rms - target_rms_s) / target_rms_s
+        assert rel_err < 0.01, (
+            f"Realized RMS {realized_rms * 1e9:.2f} ns differs from target "
+            f"{target_rms_s * 1e9:.2f} ns by {rel_err * 100:.2f}%"
+        )

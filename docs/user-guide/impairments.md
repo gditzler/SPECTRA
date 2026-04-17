@@ -214,3 +214,20 @@ R = exponential_correlation(4, rho=0.9)
     The SNR set by `AWGN` or `SceneConfig.snr_range` is the per-signal SNR
     **before** multiple signals are summed in a wideband scene. After mixing,
     the effective SNR per signal depends on the number and power of other signals.
+
+## Auto-impairment Chain (from Propagation)
+
+When you use `Environment` + `link_params_to_impairments()`, the
+chain is selected based on what the propagation model populates on
+`PathLossResult`:
+
+| `rms_delay_spread_s` | `k_factor_db` | Emitted fading stage |
+|----------------------|---------------|----------------------|
+| set | set | `TDLChannel` (TDL-D base, scaled, Rician K embedded) |
+| set | None | `TDLChannel` (TDL-B base, scaled, Rayleigh) |
+| None | set | `RicianFading(k_factor=10^(k_db/10))` |
+| None | None | Falls back to `fading_suggestion` string if present |
+
+3GPP TR 38.901 models (UMa, UMi, RMa, InH) populate both fields;
+free-space, log-distance, Hata-family, and P.1411 models do not. See
+[propagation.md](propagation.md) for details.
