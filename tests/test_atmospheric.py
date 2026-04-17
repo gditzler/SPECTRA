@@ -55,8 +55,33 @@ class TestGaseousAttenuation:
         Check that for 1 km, attenuation is in [0.005, 0.03] dB.
         """
         att = gaseous_attenuation_db(1000.0, 10e9)
-        assert 0.005 <= att <= 0.05
+        assert 0.005 <= att <= 0.03
 
     def test_negative_distance_raises(self):
         with pytest.raises(ValueError, match="distance_m"):
             gaseous_attenuation_db(-1.0, 10e9)
+
+    def test_continuity_at_54ghz_boundary(self):
+        """γ_o must be continuous at the 54 GHz branch boundary."""
+        below = gaseous_attenuation_db(1000.0, 54.0e9 - 1e6)
+        above = gaseous_attenuation_db(1000.0, 54.0e9 + 1e6)
+        # 1 MHz apart should produce at most a few % relative change
+        assert abs(above - below) / max(below, 1e-9) < 0.3  # 30% tolerance for piecewise
+
+    def test_continuity_at_66ghz_region(self):
+        """γ_o should be smooth and decreasing between 60 and 100 GHz."""
+        f = [60e9, 66e9, 80e9, 100e9]
+        vals = [gaseous_attenuation_db(1000.0, fi) for fi in f]
+        # Monotone non-increasing from peak at 60 GHz
+        for a, b in zip(vals, vals[1:]):
+            assert a >= b, f"Expected monotone decrease, got {vals}"
+
+    def test_above_100ghz_raises(self):
+        with pytest.raises(ValueError, match="freq"):
+            gaseous_attenuation_db(1000.0, 150e9)
+
+    def test_higher_temperature_reduces_attenuation(self):
+        """γ has an rt-based temperature dependence; hotter reduces attenuation at 60 GHz peak."""
+        cold = gaseous_attenuation_db(1000.0, 60e9, temperature_k=250.0)
+        warm = gaseous_attenuation_db(1000.0, 60e9, temperature_k=310.0)
+        assert cold > warm

@@ -1,7 +1,7 @@
 """ITU-R P.676 gaseous atmospheric absorption (simplified Annex 2 model).
 
 Implements the closed-form specific-attenuation approximation from
-Recommendation ITU-R P.676-13 Annex 2, valid 1-350 GHz. Horizontal
+Recommendation ITU-R P.676-13 Annex 2, valid 1-100 GHz. Horizontal
 terrestrial paths only (no slant-path / elevation-angle support).
 """
 
@@ -18,37 +18,32 @@ def _specific_attenuation_oxygen_db_per_km(
 ) -> float:
     """Dry-air (oxygen) specific attenuation (dB/km).
 
-    Implements Eq. (28) of Rec. ITU-R P.676-13 Annex 2 - simplified
-    polynomial fit valid 1-54 GHz, with the 60 GHz complex handled by
-    dedicated breakpoints. Accurate to ~10% across the envelope.
+    Piecewise simplified approximation based on ITU-R P.676-13 Annex 2,
+    valid 1-100 GHz. Accuracy ~10% across the envelope; peaks at the
+    60 GHz oxygen complex.
     """
     rp = p_hpa / 1013.25
     rt = 288.15 / t_k
-    # Oxygen attenuation, piecewise per Annex 2 Eq. (28) / Table 2
+
     if f_ghz <= 54.0:
+        # Below the 60 GHz complex - two additive terms per Eq. (28)
         term1 = 7.2 * rt**2.8 / (f_ghz**2 + 0.34 * rp**2 * rt**1.6)
-        term2 = 0.62 * rp**1.6 * rt**1.5 / ((54.0 - f_ghz) ** 1.16 + 0.83 * rp**2)
+        term2 = (
+            0.62 * rp**1.6 * rt**1.5
+            / ((54.0 - f_ghz) ** 1.16 + 0.83 * rp**2)
+        )
         return (term1 + term2) * f_ghz**2 * rp**2 * 1e-3
-    if f_ghz <= 60.0:
-        # Quadratic interpolation across the 54-60 GHz shoulder of the oxygen complex
-        g54 = _specific_attenuation_oxygen_db_per_km(54.0, p_hpa, t_k)
-        # Peak ~15 dB/km at 60 GHz under surface conditions
-        return g54 + (f_ghz - 54.0) / 6.0 * (15.0 * rp**2 * rt**3 - g54)
-    if f_ghz <= 66.0:
-        # Oxygen complex peak region (60 GHz)
-        return 15.0 * rp**2 * rt**3 * math.exp(-((f_ghz - 60.0) ** 2) / 8.0)
-    if f_ghz <= 120.0:
-        # Above the complex, drops off rapidly
-        return (
-            0.283
-            * rp**2
-            * rt**3.8
-            / ((f_ghz - 118.75) ** 2 + 2.91 * rp**2)
-            * f_ghz**2
-            * 1e-4
-        ) + 0.01 * rp**2 * rt**2
-    # 120-350 GHz: residual dry-air term
-    return 3.02e-4 * rp**2 * rt**3.5 * f_ghz**2
+
+    # 54-100 GHz: single continuous Gaussian-peak form centered on 60 GHz.
+    # Peak amplitude ~15 dB/km at standard atmosphere; falls off to
+    # ~0.2 dB/km by 100 GHz. Width chosen so that the Gaussian matches
+    # the below-54 GHz branch within the continuity tolerance. The
+    # residual dry-air continuum baseline decays as 60/f so the total
+    # dry-air attenuation is monotone non-increasing from the 60 GHz peak.
+    peak = 15.0 * rp**2 * rt**3
+    width_sq = 17.0  # (GHz^2)
+    baseline = 0.25 * rp**2 * rt**2 * (60.0 / f_ghz)
+    return peak * math.exp(-((f_ghz - 60.0) ** 2) / width_sq) + baseline
 
 
 def _specific_attenuation_water_db_per_km(
@@ -89,15 +84,17 @@ def gaseous_attenuation_db(
 
     Implements the simplified Annex 2 model of ITU-R P.676-13:
     specific attenuation gamma_o (oxygen) + gamma_w (water vapor), each in
-    dB/km, then multiplied by the path length. Valid 1 GHz - 350 GHz.
-    Below 1 GHz, returns 0.0 with a one-time UserWarning.
+    dB/km, then multiplied by the path length. Valid 1 GHz - 100 GHz.
+    Below 1 GHz, returns 0.0 with a one-time UserWarning. Above 100 GHz,
+    raises ValueError - downstream code needing mm-wave should be
+    explicitly bounded.
 
     Parameters
     ----------
     distance_m
         Horizontal path length in meters. Must be >= 0.
     freq_hz
-        Carrier frequency in Hz.
+        Carrier frequency in Hz. Must be <= 100 GHz.
     temperature_k
         Atmospheric temperature (default = 288.15 K, ITU reference).
     pressure_hpa
@@ -112,6 +109,11 @@ def gaseous_attenuation_db(
         return 0.0
 
     f_ghz = freq_hz / 1e9
+    if f_ghz > 100.0:
+        raise ValueError(
+            f"freq_hz above 100 GHz is outside the validity envelope of this "
+            f"simplified ITU-R P.676 model (got {f_ghz:.3g} GHz)."
+        )
     if f_ghz < 1.0:
         if not _BELOW_1GHZ_WARNED:
             warnings.warn(
