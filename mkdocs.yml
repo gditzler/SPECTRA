@@ -106,6 +106,7 @@ nav:
     - Key Concepts: getting-started/concepts.md
   - User Guide:
     - Waveforms: user-guide/waveforms.md
+    - Multi-Function Emitters: user-guide/multifunction-emitters.md
     - Impairments: user-guide/impairments.md
     - Propagation: user-guide/propagation.md
     - Scene Composition: user-guide/scene-composition.md
