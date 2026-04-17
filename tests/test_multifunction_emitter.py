@@ -691,10 +691,12 @@ def test_public_names_reexported_from_spectra_waveforms():
 def test_multifunction_search_track_radar_produces_two_modes(assert_valid_iq):
     from spectra.waveforms import multifunction_search_track_radar
 
+    # Search CPI = 32_768 samples, Track CPI = 4_096 samples, so we need at
+    # least 36_864 samples for both modes to appear in a single pass.
     sw = multifunction_search_track_radar()
-    iq, segs = sw.generate_with_segments(num_samples=20_000, sample_rate=20e6, seed=0)
+    iq, segs = sw.generate_with_segments(num_samples=60_000, sample_rate=20e6, seed=0)
 
-    assert_valid_iq(iq, expected_length=20_000)
+    assert_valid_iq(iq, expected_length=60_000)
     modes = {s.mode for s in segs}
     assert "search" in modes
     assert "track" in modes
@@ -704,7 +706,7 @@ def test_multifunction_search_track_radar_track_is_louder():
     from spectra.waveforms import multifunction_search_track_radar
 
     sw = multifunction_search_track_radar()
-    _, segs = sw.generate_with_segments(num_samples=20_000, sample_rate=20e6, seed=0)
+    _, segs = sw.generate_with_segments(num_samples=60_000, sample_rate=20e6, seed=0)
 
     tracks = [s for s in segs if s.mode == "track"]
     assert tracks

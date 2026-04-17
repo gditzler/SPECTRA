@@ -30,7 +30,7 @@ def multifunction_search_track_radar() -> ScheduledWaveform:
             num_pulses=16,
             pulse_shape="hamming",
         ),
-        duration_samples=2048 * 4,  # 8_192 samples — one CPI for test / real use
+        duration_samples=2048 * 16,  # 32_768 samples = one full 16-pulse CPI
         mode="search",
     )
     track = SegmentSpec(
@@ -40,7 +40,7 @@ def multifunction_search_track_radar() -> ScheduledWaveform:
             num_pulses=8,
             pulse_shape="rect",
         ),
-        duration_samples=512 * 4,  # 2_048 samples
+        duration_samples=512 * 8,  # 4_096 samples = one full 8-pulse CPI
         mode="track",
         power_offset_db=3.0,
         freq_offset_hz=50e3,
