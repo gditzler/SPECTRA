@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 
 
 @dataclass
@@ -18,6 +18,9 @@ class SignalDescription:
         label: Modulation/waveform class string (e.g., ``"QPSK"``).
         snr: Signal-to-noise ratio in dB at the point this description was created.
         modulation_params: Reserved dict for waveform-specific metadata.
+        mode: Optional operating-mode label for emitter-internal timelines
+            (e.g., ``"search"``, ``"track"``, ``"comms"``). ``None`` for
+            single-mode signals.
     """
 
     t_start: float
@@ -27,6 +30,7 @@ class SignalDescription:
     label: str
     snr: float
     modulation_params: Dict = field(default_factory=dict)
+    mode: Optional[str] = None
 
     @property
     def f_center(self) -> float:

@@ -7,6 +7,7 @@ SPECTRA generates synthetic RF signals on-the-fly for training machine learning 
 ## Features
 
 - **85+ waveform generators** — PSK, QAM, FSK, OFDM, ASK, AM, FM, chirp, polyphase codes, Zadoff-Chu, Barker, radar (pulsed, FMCW, pulse-Doppler, NLFM, stepped-frequency), spread spectrum (DSSS, FHSS, CDMA, THSS), 5G NR (OFDM, SSB, PDSCH, PUSCH, PRACH), and aviation/maritime (ADS-B, Mode S, AIS, ACARS, DME, ILS)
+- **Multi-function emitters** (`ScheduledWaveform`) — single emitters that interleave multiple modes on a schedule (MFR search/track, multi-PRF pulse-Doppler, frequency-agile, RadCom); see [the user-guide page](docs/user-guide/multifunction-emitters.md).
 - **24 composable channel impairments** — AWGN, frequency offset, phase noise, IQ imbalance, fading, TDL, MIMO, PA nonlinearity, timing, spectral effects, and more (plus **RadarClutter** for 2-D radar matrices)
 - **MIMO multi-antenna support** — flat Rayleigh and TDL channels, spatial correlation (Kronecker model), ULA steering vectors, seamless `NarrowbandDataset` integration
 - **Geometry-driven propagation** — `Environment` + `Emitter` + `ReceiverConfig` compute per-link SNR, delay, Doppler, and delay spread; propagation models include free space, log-distance, COST231-Hata, Okumura-Hata, ITU-R P.525/P.676/P.1411, and 3GPP 38.901 (UMa/UMi/RMa/InH). `link_params_to_impairments()` auto-wires matching AWGN + Doppler + fading + TDL.
