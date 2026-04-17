@@ -756,3 +756,35 @@ def test_multi_prf_pulse_doppler_deterministic():
         seed=11,
     )
     assert np.array_equal(iq1, iq2)
+
+
+# ── Task 11: Example 3 — frequency-agile stepped-PRI ────────────────────────
+
+
+def test_frequency_agile_produces_varying_freq_offsets(assert_valid_iq):
+    from spectra.waveforms import frequency_agile_stepped_pri_radar
+
+    sw = frequency_agile_stepped_pri_radar()
+    iq, segs = sw.generate_with_segments(num_samples=60_000, sample_rate=20e6, seed=5)
+
+    assert_valid_iq(iq, expected_length=60_000)
+    assert len(segs) >= 3
+    offsets = [s.modulation_params["freq_offset_hz"] for s in segs]
+    assert len(set(offsets)) >= 2, "expected frequency agility across dwells"
+    assert all(-200e3 <= f <= 200e3 for f in offsets)
+
+
+def test_frequency_agile_deterministic():
+    from spectra.waveforms import frequency_agile_stepped_pri_radar
+
+    iq1 = frequency_agile_stepped_pri_radar().generate(
+        num_symbols=30_000,
+        sample_rate=20e6,
+        seed=12,
+    )
+    iq2 = frequency_agile_stepped_pri_radar().generate(
+        num_symbols=30_000,
+        sample_rate=20e6,
+        seed=12,
+    )
+    assert np.array_equal(iq1, iq2)
