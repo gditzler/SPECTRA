@@ -1,7 +1,9 @@
 """Tests for spectra.waveforms.multifunction — the multi-function emitter."""
 
+import numpy as np
 import pytest
-from spectra.waveforms import PulsedRadar
+from spectra.scene.signal_desc import SignalDescription
+from spectra.waveforms import QPSK, PulsedRadar
 
 # ── Task 2: SegmentSpec + ModeSpec ───────────────────────────────────────────
 
@@ -122,3 +124,195 @@ def test_static_schedule_rejects_zero_duration_segment():
     bad = SegmentSpec(waveform=PulsedRadar(), duration_samples=0, mode="x")
     with pytest.raises(ValueError, match="duration_samples"):
         StaticSchedule(segments=[bad], loop=True)
+
+
+# ── Task 4: ScheduledWaveform orchestration ─────────────────────────────────
+
+FS = 1e6
+
+
+def _small_radar(pri=128, num_pulses=4, pw=16):
+    return PulsedRadar(
+        pulse_width_samples=pw,
+        pri_samples=pri,
+        num_pulses=num_pulses,
+    )
+
+
+def test_scheduled_waveform_output_length_exact(assert_valid_iq):
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    seg = SegmentSpec(waveform=_small_radar(), duration_samples=512, mode="m")
+    sw = ScheduledWaveform(StaticSchedule([seg], loop=True), label="TestMFR")
+
+    for n in (300, 512, 1000, 2050):
+        iq = sw.generate(num_symbols=n, sample_rate=FS, seed=1)
+        assert_valid_iq(iq, expected_length=n)
+
+
+def test_scheduled_waveform_generate_matches_generate_with_segments():
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    seg = SegmentSpec(waveform=_small_radar(), duration_samples=256, mode="m")
+    sw = ScheduledWaveform(StaticSchedule([seg], loop=True))
+
+    iq_a = sw.generate(num_symbols=1024, sample_rate=FS, seed=7)
+    iq_b, segments = sw.generate_with_segments(num_samples=1024, sample_rate=FS, seed=7)
+    assert np.array_equal(iq_a, iq_b)
+    assert len(segments) >= 1
+    assert all(isinstance(s, SignalDescription) for s in segments)
+    assert all(s.mode == "m" for s in segments)
+
+
+def test_scheduled_waveform_segment_timeline_covers_output():
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    seg_a = SegmentSpec(waveform=_small_radar(), duration_samples=256, mode="a")
+    seg_b = SegmentSpec(waveform=_small_radar(), duration_samples=256, mode="b")
+    sw = ScheduledWaveform(StaticSchedule([seg_a, seg_b], loop=True))
+
+    _, segments = sw.generate_with_segments(num_samples=1024, sample_rate=FS, seed=0)
+
+    # Segments back-to-back, cover exactly 0..1024 samples (1024/fs seconds).
+    assert segments[0].t_start == 0.0
+    last_stop_samples = round(segments[-1].t_stop * FS)
+    assert last_stop_samples == 1024
+    for prev, nxt in zip(segments[:-1], segments[1:]):
+        assert prev.t_stop == pytest.approx(nxt.t_start)
+
+
+def test_scheduled_waveform_truncates_final_segment():
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    seg = SegmentSpec(waveform=_small_radar(), duration_samples=500, mode="m")
+    sw = ScheduledWaveform(StaticSchedule([seg], loop=True))
+
+    iq, segments = sw.generate_with_segments(num_samples=1200, sample_rate=FS, seed=0)
+    assert len(iq) == 1200
+    # 2 full segments (1000 samples) plus a final truncated segment of 200.
+    assert len(segments) == 3
+    durations = [round((s.t_stop - s.t_start) * FS) for s in segments]
+    assert durations == [500, 500, 200]
+
+
+def test_scheduled_waveform_power_offset_applied():
+    """+6 dB power offset ≈ 4× power vs baseline."""
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    wf = QPSK(samples_per_symbol=8)
+    base = SegmentSpec(waveform=wf, duration_samples=2048, mode="base")
+    boosted = SegmentSpec(
+        waveform=wf,
+        duration_samples=2048,
+        mode="boost",
+        power_offset_db=6.0,
+    )
+
+    sw_base = ScheduledWaveform(StaticSchedule([base], loop=False))
+    sw_boost = ScheduledWaveform(StaticSchedule([boosted], loop=False))
+
+    iq_base = sw_base.generate(num_symbols=2048, sample_rate=FS, seed=42)
+    iq_boost = sw_boost.generate(num_symbols=2048, sample_rate=FS, seed=42)
+    p_base = np.mean(np.abs(iq_base[500:1500]) ** 2)
+    p_boost = np.mean(np.abs(iq_boost[500:1500]) ** 2)
+    # 6 dB = 10^(6/10) ≈ 3.98. Allow ±10%.
+    ratio = p_boost / p_base
+    assert 3.6 < ratio < 4.4, f"expected ~4x, got {ratio:.2f}"
+
+
+def test_scheduled_waveform_freq_offset_applied():
+    """A segment with freq_offset_hz=+F puts most energy in the positive half-spectrum.
+
+    We compare total spectral energy above DC to total energy below DC. A pure
+    positive shift must make the positive half dominate — we don't rely on
+    argmax peak position, which is unstable for a finite random-symbol burst.
+    """
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    wf = QPSK(samples_per_symbol=8)
+    offset = 100e3  # 100 kHz at fs=1 MHz
+    seg = SegmentSpec(waveform=wf, duration_samples=8192, mode="m", freq_offset_hz=offset)
+    sw = ScheduledWaveform(StaticSchedule([seg], loop=False))
+
+    iq = sw.generate(num_symbols=8192, sample_rate=FS, seed=0)
+    spec_power = np.abs(np.fft.fftshift(np.fft.fft(iq))) ** 2
+    freqs = np.fft.fftshift(np.fft.fftfreq(len(iq), d=1.0 / FS))
+    pos_energy = spec_power[freqs > 0].sum()
+    neg_energy = spec_power[freqs < 0].sum()
+    # QPSK is symmetric around DC at baseband, so without the shift the two halves
+    # are equal. After +100 kHz shift (well below fs/2=500 kHz), the positive half
+    # must dominate by a large margin.
+    assert pos_energy > 5.0 * neg_energy, (
+        f"expected positive-half energy > 5x negative-half; got "
+        f"pos={pos_energy:.2e}, neg={neg_energy:.2e}"
+    )
+
+
+def test_scheduled_waveform_label_is_user_supplied():
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    seg = SegmentSpec(waveform=_small_radar(), duration_samples=100, mode="m")
+    sw = ScheduledWaveform(StaticSchedule([seg], loop=True), label="MyMFR")
+    assert sw.label == "MyMFR"
+
+
+def test_scheduled_waveform_bandwidth_with_default():
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    seg = SegmentSpec(waveform=_small_radar(), duration_samples=100, mode="m")
+    sw = ScheduledWaveform(
+        StaticSchedule([seg], loop=True),
+        default_bandwidth_hz=1e6,
+    )
+    assert sw.bandwidth(sample_rate=FS) == 1e6
+
+
+def test_scheduled_waveform_bandwidth_heuristic():
+    """Without default, bandwidth() reflects the widest child + its offset."""
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    narrow = SegmentSpec(
+        waveform=_small_radar(pw=32),
+        duration_samples=256,
+        mode="n",
+    )
+    wide = SegmentSpec(
+        waveform=_small_radar(pw=4),
+        duration_samples=256,
+        mode="w",
+        freq_offset_hz=50e3,
+    )
+    sw = ScheduledWaveform(StaticSchedule([narrow, wide], loop=True))
+    # Wide child: fs / pw = 1e6/4 = 250 kHz. Plus 2*|offset| = 100 kHz.
+    bw = sw.bandwidth(sample_rate=FS)
+    assert bw >= 250e3 + 100e3 - 1  # ≥ 350 kHz (allow 1 Hz float slop)
+
+
+def test_scheduled_waveform_samples_per_symbol_is_one():
+    from spectra.waveforms.multifunction.schedule import StaticSchedule
+    from spectra.waveforms.multifunction.scheduled_waveform import ScheduledWaveform
+    from spectra.waveforms.multifunction.segment import SegmentSpec
+
+    seg = SegmentSpec(waveform=_small_radar(), duration_samples=100, mode="m")
+    sw = ScheduledWaveform(StaticSchedule([seg], loop=True))
+    # Composer uses `getattr(w, "samples_per_symbol", 8)`; for us this means
+    # num_symbols == num_samples.
+    assert sw.samples_per_symbol == 1
