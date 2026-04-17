@@ -340,6 +340,7 @@ class TestEnvironmentYAML:
 
 def test_link_params_defaults_for_new_fields():
     from spectra.environment.core import LinkParams
+
     lp = LinkParams(
         emitter_index=0,
         snr_db=10.0,
@@ -382,6 +383,7 @@ def test_environment_compute_populates_multipath_from_uma():
 def _basic_env(propagation):
     from spectra.environment import Emitter, Environment, Position, ReceiverConfig
     from spectra.waveforms import QPSK
+
     return Environment(
         propagation=propagation,
         emitters=[
@@ -399,31 +401,32 @@ def _basic_env(propagation):
 @pytest.mark.parametrize(
     "prop_factory",
     [
-        lambda: __import__(
-            "spectra.environment.propagation", fromlist=["ITU_R_P525"]
-        ).ITU_R_P525(include_gaseous=True),
+        lambda: __import__("spectra.environment.propagation", fromlist=["ITU_R_P525"]).ITU_R_P525(
+            include_gaseous=True
+        ),
         lambda: __import__(
             "spectra.environment.propagation", fromlist=["OkumuraHataPL"]
         ).OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium"),
-        lambda: __import__(
-            "spectra.environment.propagation", fromlist=["GPP38901UMa"]
-        ).GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5),
-        lambda: __import__(
-            "spectra.environment.propagation", fromlist=["GPP38901UMi"]
-        ).GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5),
-        lambda: __import__(
-            "spectra.environment.propagation", fromlist=["GPP38901RMa"]
-        ).GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5),
-        lambda: __import__(
-            "spectra.environment.propagation", fromlist=["GPP38901InH"]
-        ).GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, variant="mixed_office"),
-        lambda: __import__(
-            "spectra.environment.propagation", fromlist=["ITU_R_P1411"]
-        ).ITU_R_P1411(environment="urban_high_rise"),
+        lambda: __import__("spectra.environment.propagation", fromlist=["GPP38901UMa"]).GPP38901UMa(
+            h_bs_m=25.0, h_ut_m=1.5
+        ),
+        lambda: __import__("spectra.environment.propagation", fromlist=["GPP38901UMi"]).GPP38901UMi(
+            h_bs_m=10.0, h_ut_m=1.5
+        ),
+        lambda: __import__("spectra.environment.propagation", fromlist=["GPP38901RMa"]).GPP38901RMa(
+            h_bs_m=35.0, h_ut_m=1.5
+        ),
+        lambda: __import__("spectra.environment.propagation", fromlist=["GPP38901InH"]).GPP38901InH(
+            h_bs_m=3.0, h_ut_m=1.0, variant="mixed_office"
+        ),
+        lambda: __import__("spectra.environment.propagation", fromlist=["ITU_R_P1411"]).ITU_R_P1411(
+            environment="urban_high_rise"
+        ),
     ],
 )
 def test_yaml_roundtrip_for_new_propagation_models(prop_factory):
     from spectra.environment import Environment
+
     env = _basic_env(prop_factory())
     with tempfile.TemporaryDirectory() as td:
         path = Path(td) / "env.yaml"

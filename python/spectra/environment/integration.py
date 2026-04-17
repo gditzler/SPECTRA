@@ -84,9 +84,7 @@ def link_params_to_impairments(params: LinkParams) -> list[Transform]:
     fading: Transform | None = None
     if params.rms_delay_spread_s is not None:
         base = "TDL-D" if params.k_factor_db is not None else "TDL-B"
-        fading = _scale_tdl_profile(
-            base, params.rms_delay_spread_s, params.k_factor_db
-        )
+        fading = _scale_tdl_profile(base, params.rms_delay_spread_s, params.k_factor_db)
     elif params.k_factor_db is not None:
         # Convert dB to linear
         k_lin = 10.0 ** (params.k_factor_db / 10.0)

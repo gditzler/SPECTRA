@@ -82,9 +82,7 @@ class COST231HataPL(PropagationModel):
         fc_mhz = freq_hz / 1e6
         d_km = distance_m / 1000.0
 
-        a_hms = (1.1 * math.log10(fc_mhz) - 0.7) * self.h_ms_m - (
-            1.56 * math.log10(fc_mhz) - 0.8
-        )
+        a_hms = (1.1 * math.log10(fc_mhz) - 0.7) * self.h_ms_m - (1.56 * math.log10(fc_mhz) - 0.8)
 
         c_m = 3.0 if self.environment == "urban" else 0.0
 
@@ -100,11 +98,7 @@ class COST231HataPL(PropagationModel):
         if self.environment == "suburban":
             pl_db -= 2 * (math.log10(fc_mhz / 28)) ** 2 + 5.4
         elif self.environment == "rural":
-            pl_db -= (
-                4.78 * (math.log10(fc_mhz)) ** 2
-                + 18.33 * math.log10(fc_mhz)
-                - 40.94
-            )
+            pl_db -= 4.78 * (math.log10(fc_mhz)) ** 2 + 18.33 * math.log10(fc_mhz) - 40.94
 
         return PathLossResult(path_loss_db=pl_db)
 
@@ -140,9 +134,7 @@ class OkumuraHataPL(PropagationModel):
         self,
         h_bs_m: float,
         h_ms_m: float,
-        environment: Literal[
-            "urban_large", "urban_small_medium", "suburban", "rural"
-        ],
+        environment: Literal["urban_large", "urban_small_medium", "suburban", "rural"],
         sigma_db: float = 0.0,
         strict_range: bool = True,
     ):
@@ -162,9 +154,7 @@ class OkumuraHataPL(PropagationModel):
             raise ValueError("distance_m must be positive")
 
         # Validity envelope
-        _check_freq_range(
-            freq_hz, 150e6, 1500e6, "OkumuraHataPL", strict=self.strict_range
-        )
+        _check_freq_range(freq_hz, 150e6, 1500e6, "OkumuraHataPL", strict=self.strict_range)
         _check_distance_range(
             distance_m, 1000.0, 20000.0, "OkumuraHataPL", strict=self.strict_range
         )
@@ -197,12 +187,7 @@ class OkumuraHataPL(PropagationModel):
         elif self.environment == "suburban":
             pl_db = pl_urban - 2 * (math.log10(fc_mhz / 28)) ** 2 - 5.4
         else:  # rural
-            pl_db = (
-                pl_urban
-                - 4.78 * (math.log10(fc_mhz)) ** 2
-                + 18.33 * math.log10(fc_mhz)
-                - 40.94
-            )
+            pl_db = pl_urban - 4.78 * (math.log10(fc_mhz)) ** 2 + 18.33 * math.log10(fc_mhz) - 40.94
 
         # Shadow fading
         shadow = 0.0

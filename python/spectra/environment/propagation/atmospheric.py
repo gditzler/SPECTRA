@@ -13,9 +13,7 @@ import warnings
 _BELOW_1GHZ_WARNED = False
 
 
-def _specific_attenuation_oxygen_db_per_km(
-    f_ghz: float, p_hpa: float, t_k: float
-) -> float:
+def _specific_attenuation_oxygen_db_per_km(f_ghz: float, p_hpa: float, t_k: float) -> float:
     """Dry-air (oxygen) specific attenuation (dB/km).
 
     Piecewise simplified approximation based on ITU-R P.676-13 Annex 2,
@@ -28,10 +26,7 @@ def _specific_attenuation_oxygen_db_per_km(
     if f_ghz <= 54.0:
         # Below the 60 GHz complex - two additive terms per Eq. (28)
         term1 = 7.2 * rt**2.8 / (f_ghz**2 + 0.34 * rp**2 * rt**1.6)
-        term2 = (
-            0.62 * rp**1.6 * rt**1.5
-            / ((54.0 - f_ghz) ** 1.16 + 0.83 * rp**2)
-        )
+        term2 = 0.62 * rp**1.6 * rt**1.5 / ((54.0 - f_ghz) ** 1.16 + 0.83 * rp**2)
         return (term1 + term2) * f_ghz**2 * rp**2 * 1e-3
 
     # 54-100 GHz: single continuous Gaussian-peak form centered on 60 GHz.
@@ -60,15 +55,9 @@ def _specific_attenuation_water_db_per_km(
     eta_2 = 0.735 * rp * rt**0.5 + 0.0353 * rt**4 * rho_g_m3
 
     # Dominant lines
-    g22 = (
-        3.98 * eta_1 * math.exp(2.23 * (1 - rt)) / ((f_ghz - 22.235) ** 2 + 9.42 * eta_1**2)
-    )
-    g183 = (
-        11.96 * eta_1 * math.exp(0.7 * (1 - rt)) / ((f_ghz - 183.31) ** 2 + 11.14 * eta_1**2)
-    )
-    g325 = (
-        10.48 * eta_2 * math.exp(1.09 * (1 - rt)) / ((f_ghz - 325.153) ** 2 + 6.29 * eta_2**2)
-    )
+    g22 = 3.98 * eta_1 * math.exp(2.23 * (1 - rt)) / ((f_ghz - 22.235) ** 2 + 9.42 * eta_1**2)
+    g183 = 11.96 * eta_1 * math.exp(0.7 * (1 - rt)) / ((f_ghz - 183.31) ** 2 + 11.14 * eta_1**2)
+    g325 = 10.48 * eta_2 * math.exp(1.09 * (1 - rt)) / ((f_ghz - 325.153) ** 2 + 6.29 * eta_2**2)
     continuum = 1.61e-8 * rho_g_m3 * rt**2 * f_ghz**2
     return (g22 + g183 + g325 + continuum) * f_ghz**2 * rho_g_m3 * 1e-4
 

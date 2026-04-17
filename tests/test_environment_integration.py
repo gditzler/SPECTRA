@@ -282,6 +282,7 @@ class TestTDLAutoChain:
         verifies it matches the requested `rms_delay_spread_s` within a few percent.
         """
         import numpy as np
+
         target_rms_s = 300e-9  # 300 ns
         lp = self._lp(rms_delay_spread_s=target_rms_s)
         chain = link_params_to_impairments(lp)
@@ -296,6 +297,6 @@ class TestTDLAutoChain:
         # Allow 1% tolerance (floating-point round-trip)
         rel_err = abs(realized_rms - target_rms_s) / target_rms_s
         assert rel_err < 0.01, (
-            f"Realized RMS {realized_rms*1e9:.2f} ns differs from target "
-            f"{target_rms_s*1e9:.2f} ns by {rel_err*100:.2f}%"
+            f"Realized RMS {realized_rms * 1e9:.2f} ns differs from target "
+            f"{target_rms_s * 1e9:.2f} ns by {rel_err * 100:.2f}%"
         )

@@ -189,9 +189,7 @@ class Environment:
                 registry_key = k
                 break
         if registry_key is None:
-            raise ValueError(
-                f"Unknown propagation type {type(prop).__name__}; not in registry"
-            )
+            raise ValueError(f"Unknown propagation type {type(prop).__name__}; not in registry")
 
         # Collect constructor params from public attrs (matches __init__ signature)
         prop_dict: dict = {"type": registry_key}

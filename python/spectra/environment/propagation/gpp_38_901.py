@@ -54,21 +54,15 @@ class _GPP38901Base(PropagationModel, abc.ABC):
         """LOS probability per TR 38.901 Table 7.4.2-1."""
 
     @abc.abstractmethod
-    def _path_loss_los(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_los(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         """Mean LOS path loss (dB) per TR 38.901 Table 7.4.1-1."""
 
     @abc.abstractmethod
-    def _path_loss_nlos(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_nlos(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         """Mean NLOS path loss (dB) per TR 38.901 Table 7.4.1-1."""
 
     @abc.abstractmethod
-    def _large_scale_params(
-        self, is_los: bool, f_ghz: float
-    ) -> tuple[float, float, float, float]:
+    def _large_scale_params(self, is_los: bool, f_ghz: float) -> tuple[float, float, float, float]:
         """Return (sigma_sf_db, mu_lgDS, sigma_lgDS, asa_deg_median).
 
         Per TR 38.901 Table 7.5-6. `mu_lgDS` is the lognormal mean
@@ -81,14 +75,10 @@ class _GPP38901Base(PropagationModel, abc.ABC):
 
     # --- Main entry point --------------------------------------------
 
-    def __call__(
-        self, distance_m: float, freq_hz: float, **kwargs
-    ) -> PathLossResult:
+    def __call__(self, distance_m: float, freq_hz: float, **kwargs) -> PathLossResult:
         if distance_m <= 0:
             raise ValueError("distance_m must be positive")
-        _check_freq_range(
-            freq_hz, *self.FREQ_RANGE_HZ, self.MODEL_NAME, strict=self.strict_range
-        )
+        _check_freq_range(freq_hz, *self.FREQ_RANGE_HZ, self.MODEL_NAME, strict=self.strict_range)
         _check_distance_range(
             distance_m,
             *self.DISTANCE_RANGE_M,
@@ -101,7 +91,7 @@ class _GPP38901Base(PropagationModel, abc.ABC):
 
         # 2D and 3D distances (h_bs, h_ut are heights above ground)
         d_2d = distance_m
-        d_3d = math.sqrt(d_2d ** 2 + (self.h_bs_m - self.h_ut_m) ** 2)
+        d_3d = math.sqrt(d_2d**2 + (self.h_bs_m - self.h_ut_m) ** 2)
         f_ghz = freq_hz / 1e9
 
         # LOS resolution
@@ -115,9 +105,7 @@ class _GPP38901Base(PropagationModel, abc.ABC):
             pl_mean_db = self._path_loss_nlos(d_3d, d_2d, f_ghz)
 
         # Large-scale parameters (Table 7.5-6)
-        sigma_sf, mu_lgDS, sigma_lgDS, asa_med = self._large_scale_params(
-            is_los, f_ghz
-        )
+        sigma_sf, mu_lgDS, sigma_lgDS, asa_med = self._large_scale_params(is_los, f_ghz)
 
         # Shadow fading ~ N(0, sigma_sf)
         sf_db = float(rng.normal(0.0, sigma_sf))
@@ -165,9 +153,7 @@ class GPP38901UMa(_GPP38901Base):
     def _los_probability(self, d_2d_m: float) -> float:
         if d_2d_m <= 18.0:
             return 1.0
-        base = (18.0 / d_2d_m) + math.exp(-d_2d_m / 63.0) * (
-            1.0 - 18.0 / d_2d_m
-        )
+        base = (18.0 / d_2d_m) + math.exp(-d_2d_m / 63.0) * (1.0 - 18.0 / d_2d_m)
         correction = 1.0 + _c_of_hut_uma(self.h_ut_m) * (5.0 / 4.0) * (
             d_2d_m / 100.0
         ) ** 3 * math.exp(-d_2d_m / 150.0)
@@ -178,9 +164,7 @@ class GPP38901UMa(_GPP38901Base):
         h_ut_prime = self.h_ut_m - self._H_E_M
         return 4.0 * h_bs_prime * h_ut_prime * (f_ghz * 1e9) / SPEED_OF_LIGHT
 
-    def _path_loss_los(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_los(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         d_bp = self._breakpoint_m(f_ghz)
         if d_2d_m <= d_bp:
             return 28.0 + 22.0 * math.log10(d_3d_m) + 20.0 * math.log10(f_ghz)
@@ -188,12 +172,10 @@ class GPP38901UMa(_GPP38901Base):
             28.0
             + 40.0 * math.log10(d_3d_m)
             + 20.0 * math.log10(f_ghz)
-            - 9.0 * math.log10(d_bp ** 2 + (self.h_bs_m - self.h_ut_m) ** 2)
+            - 9.0 * math.log10(d_bp**2 + (self.h_bs_m - self.h_ut_m) ** 2)
         )
 
-    def _path_loss_nlos(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_nlos(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         pl_nlos_prime = (
             13.54
             + 39.08 * math.log10(d_3d_m)
@@ -203,20 +185,18 @@ class GPP38901UMa(_GPP38901Base):
         pl_los = self._path_loss_los(d_3d_m, d_2d_m, f_ghz)
         return max(pl_los, pl_nlos_prime)
 
-    def _large_scale_params(
-        self, is_los: bool, f_ghz: float
-    ) -> tuple[float, float, float, float]:
+    def _large_scale_params(self, is_los: bool, f_ghz: float) -> tuple[float, float, float, float]:
         # Table 7.5-6 Part 1 (UMa)
         if is_los:
             mu_lgDS = -6.955 - 0.0963 * math.log10(f_ghz)
             sigma_lgDS = 0.66
             sigma_sf = 4.0
-            asa_med = 10.0 ** 1.81  # ~64.6°
+            asa_med = 10.0**1.81  # ~64.6°
         else:
             mu_lgDS = -6.28 - 0.204 * math.log10(f_ghz)
             sigma_lgDS = 0.39
             sigma_sf = 6.0
-            asa_med = 10.0 ** 2.08  # ~120°
+            asa_med = 10.0**2.08  # ~120°
         return sigma_sf, mu_lgDS, sigma_lgDS, asa_med
 
     def _k_factor_params(self, f_ghz: float) -> tuple[float, float]:
@@ -249,9 +229,7 @@ class GPP38901UMi(_GPP38901Base):
         h_ut_prime = self.h_ut_m - self._H_E_M
         return 4.0 * h_bs_prime * h_ut_prime * (f_ghz * 1e9) / SPEED_OF_LIGHT
 
-    def _path_loss_los(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_los(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         d_bp = self._breakpoint_m(f_ghz)
         if d_2d_m <= d_bp:
             return 32.4 + 21.0 * math.log10(d_3d_m) + 20.0 * math.log10(f_ghz)
@@ -259,24 +237,17 @@ class GPP38901UMi(_GPP38901Base):
             32.4
             + 40.0 * math.log10(d_3d_m)
             + 20.0 * math.log10(f_ghz)
-            - 9.5 * math.log10(d_bp ** 2 + (self.h_bs_m - self.h_ut_m) ** 2)
+            - 9.5 * math.log10(d_bp**2 + (self.h_bs_m - self.h_ut_m) ** 2)
         )
 
-    def _path_loss_nlos(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_nlos(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         pl_nlos_prime = (
-            35.3 * math.log10(d_3d_m)
-            + 22.4
-            + 21.3 * math.log10(f_ghz)
-            - 0.3 * (self.h_ut_m - 1.5)
+            35.3 * math.log10(d_3d_m) + 22.4 + 21.3 * math.log10(f_ghz) - 0.3 * (self.h_ut_m - 1.5)
         )
         pl_los = self._path_loss_los(d_3d_m, d_2d_m, f_ghz)
         return max(pl_los, pl_nlos_prime)
 
-    def _large_scale_params(
-        self, is_los: bool, f_ghz: float
-    ) -> tuple[float, float, float, float]:
+    def _large_scale_params(self, is_los: bool, f_ghz: float) -> tuple[float, float, float, float]:
         # Table 7.5-6 Part 1 (UMi)
         if is_los:
             mu_lgDS = -0.24 * math.log10(1.0 + f_ghz) - 7.14
@@ -340,14 +311,12 @@ class GPP38901RMa(_GPP38901Base):
         # d_BP = 2*pi*h_BS*h_UT*f_c/c   (note: 2*pi, not 4)
         return 2.0 * math.pi * self.h_bs_m * self.h_ut_m * (f_ghz * 1e9) / SPEED_OF_LIGHT
 
-    def _path_loss_los(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_los(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         h_b = self.h_building_m
         pl_1 = (
             20.0 * math.log10(40.0 * math.pi * d_3d_m * f_ghz / 3.0)
-            + min(0.03 * h_b ** 1.72, 10.0) * math.log10(d_3d_m)
-            - min(0.044 * h_b ** 1.72, 14.77)
+            + min(0.03 * h_b**1.72, 10.0) * math.log10(d_3d_m)
+            - min(0.044 * h_b**1.72, 14.77)
             + 0.002 * math.log10(h_b) * d_3d_m
         )
         d_bp = self._breakpoint_m(f_ghz)
@@ -355,15 +324,13 @@ class GPP38901RMa(_GPP38901Base):
             return pl_1
         pl_at_bp = (
             20.0 * math.log10(40.0 * math.pi * d_bp * f_ghz / 3.0)
-            + min(0.03 * h_b ** 1.72, 10.0) * math.log10(d_bp)
-            - min(0.044 * h_b ** 1.72, 14.77)
+            + min(0.03 * h_b**1.72, 10.0) * math.log10(d_bp)
+            - min(0.044 * h_b**1.72, 14.77)
             + 0.002 * math.log10(h_b) * d_bp
         )
         return pl_at_bp + 40.0 * math.log10(d_3d_m / d_bp)
 
-    def _path_loss_nlos(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_nlos(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         h_b = self.h_building_m
         w = self.w_street_m
         pl_nlos_prime = (
@@ -378,13 +345,11 @@ class GPP38901RMa(_GPP38901Base):
         pl_los = self._path_loss_los(d_3d_m, d_2d_m, f_ghz)
         return max(pl_los, pl_nlos_prime)
 
-    def _large_scale_params(
-        self, is_los: bool, f_ghz: float
-    ) -> tuple[float, float, float, float]:
+    def _large_scale_params(self, is_los: bool, f_ghz: float) -> tuple[float, float, float, float]:
         # Table 7.5-6 Part 2 (RMa) — RMa values are frequency-independent
         if is_los:
-            return 4.0, -7.49, 0.55, 10.0 ** 1.52
-        return 8.0, -7.43, 0.48, 10.0 ** 1.52
+            return 4.0, -7.49, 0.55, 10.0**1.52
+        return 8.0, -7.43, 0.48, 10.0**1.52
 
     def _k_factor_params(self, f_ghz: float) -> tuple[float, float]:
         # Table 7.5-6 Part 2 (RMa LOS)
@@ -419,9 +384,7 @@ class GPP38901InH(_GPP38901Base):
         strict_range: bool = True,
     ):
         if variant not in self._VALID_VARIANTS:
-            raise ValueError(
-                f"variant must be one of {self._VALID_VARIANTS}, got '{variant}'"
-            )
+            raise ValueError(f"variant must be one of {self._VALID_VARIANTS}, got '{variant}'")
         super().__init__(
             h_bs_m=h_bs_m,
             h_ut_m=h_ut_m,
@@ -445,24 +408,16 @@ class GPP38901InH(_GPP38901Base):
             return math.exp(-(d_2d_m - 5.0) / 70.8)
         return math.exp(-(d_2d_m - 49.0) / 211.7) * 0.54
 
-    def _path_loss_los(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
+    def _path_loss_los(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
         # Table 7.4.1-1 InH LOS (single-slope)
         return 32.4 + 17.3 * math.log10(d_3d_m) + 20.0 * math.log10(f_ghz)
 
-    def _path_loss_nlos(
-        self, d_3d_m: float, d_2d_m: float, f_ghz: float
-    ) -> float:
-        pl_nlos = (
-            38.3 * math.log10(d_3d_m) + 17.30 + 24.9 * math.log10(f_ghz)
-        )
+    def _path_loss_nlos(self, d_3d_m: float, d_2d_m: float, f_ghz: float) -> float:
+        pl_nlos = 38.3 * math.log10(d_3d_m) + 17.30 + 24.9 * math.log10(f_ghz)
         pl_los = self._path_loss_los(d_3d_m, d_2d_m, f_ghz)
         return max(pl_los, pl_nlos)
 
-    def _large_scale_params(
-        self, is_los: bool, f_ghz: float
-    ) -> tuple[float, float, float, float]:
+    def _large_scale_params(self, is_los: bool, f_ghz: float) -> tuple[float, float, float, float]:
         # Table 7.5-6 Part 2 (Indoor Office)
         if is_los:
             mu_lgDS = -0.01 * math.log10(1.0 + f_ghz) - 7.692

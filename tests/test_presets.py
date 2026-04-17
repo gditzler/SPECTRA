@@ -37,6 +37,7 @@ class TestPresets:
 
 def test_new_5g_presets_present():
     from spectra.environment.presets import propagation_presets
+
     expected = {
         "urban_macro_5g",
         "urban_micro_mmwave",
@@ -51,10 +52,12 @@ def test_new_5g_presets_present():
 def test_urban_macro_5g_is_uma():
     from spectra.environment.presets import propagation_presets
     from spectra.environment.propagation import GPP38901UMa
+
     assert isinstance(propagation_presets["urban_macro_5g"], GPP38901UMa)
 
 
 def test_short_range_urban_is_p1411():
     from spectra.environment.presets import propagation_presets
     from spectra.environment.propagation import ITU_R_P1411
+
     assert isinstance(propagation_presets["short_range_urban"], ITU_R_P1411)

@@ -191,9 +191,7 @@ class TestITU_R_P525:
         p525 = ITU_R_P525()
         fspl = FreeSpacePathLoss()
         for d, f in [(1000.0, 2.4e9), (10.0, 28e9), (5000.0, 900e6)]:
-            assert math.isclose(
-                p525(d, f).path_loss_db, fspl(d, f).path_loss_db, rel_tol=1e-9
-            )
+            assert math.isclose(p525(d, f).path_loss_db, fspl(d, f).path_loss_db, rel_tol=1e-9)
 
     def test_gaseous_adds_attenuation_at_mmwave(self):
         p525_clean = ITU_R_P525(include_gaseous=False)
@@ -269,18 +267,14 @@ class TestOkumuraHataPL:
             OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban")  # old COST231 name
 
     def test_shadow_fading_deterministic_with_seed(self):
-        m = OkumuraHataPL(
-            h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium", sigma_db=8.0
-        )
+        m = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium", sigma_db=8.0)
         r1 = m(1000.0, 900e6, seed=42)
         r2 = m(1000.0, 900e6, seed=42)
         assert r1.shadow_fading_db == r2.shadow_fading_db
         assert r1.shadow_fading_db != 0.0
 
     def test_zero_sigma_no_shadow(self):
-        m = OkumuraHataPL(
-            h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium", sigma_db=0.0
-        )
+        m = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium", sigma_db=0.0)
         assert m(1000.0, 900e6).shadow_fading_db == 0.0
 
     def test_non_strict_range_warns(self):
@@ -317,7 +311,7 @@ class TestGPP38901UMa:
         d_3D ≈ sqrt(100² + (25-1.5)²) ≈ 102.72 m
         """
         model = GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="force_los")
-        d_3d = math.sqrt(100.0 ** 2 + (25.0 - 1.5) ** 2)
+        d_3d = math.sqrt(100.0**2 + (25.0 - 1.5) ** 2)
         expected = 28.0 + 22 * math.log10(d_3d) + 20 * math.log10(3.5)
         # Path loss includes shadow fading. Separate it:
         result_seeded = model(100.0, 3.5e9, seed=0)
@@ -337,9 +331,7 @@ class TestGPP38901UMa:
         # Separate shadow fading (same seed → same realization)
         r1 = m(500.0, 2e9, seed=0)
         r2 = m(500.0, 28e9, seed=0)
-        assert (r2.path_loss_db - r2.shadow_fading_db) > (
-            r1.path_loss_db - r1.shadow_fading_db
-        )
+        assert (r2.path_loss_db - r2.shadow_fading_db) > (r1.path_loss_db - r1.shadow_fading_db)
 
     def test_los_populates_k_factor(self):
         m = GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="force_los")
@@ -407,20 +399,15 @@ class TestGPP38901UMi:
     def test_los_less_than_nlos(self):
         los = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5, los_mode="force_los")
         nlos = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5, los_mode="force_nlos")
-        assert (
-            los(300.0, 28e9, seed=0).path_loss_db
-            < nlos(300.0, 28e9, seed=0).path_loss_db
-        )
+        assert los(300.0, 28e9, seed=0).path_loss_db < nlos(300.0, 28e9, seed=0).path_loss_db
 
     def test_los_formula_short_distance(self):
         """UMi LOS PL_1: PL = 32.4 + 21*log10(d_3D) + 20*log10(f_c_GHz)."""
         m = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5, los_mode="force_los")
-        d_3d = math.sqrt(100.0 ** 2 + (10.0 - 1.5) ** 2)
+        d_3d = math.sqrt(100.0**2 + (10.0 - 1.5) ** 2)
         expected = 32.4 + 21.0 * math.log10(d_3d) + 20.0 * math.log10(3.5)
         r = m(100.0, 3.5e9, seed=0)
-        assert math.isclose(
-            r.path_loss_db - r.shadow_fading_db, expected, rel_tol=1e-3
-        )
+        assert math.isclose(r.path_loss_db - r.shadow_fading_db, expected, rel_tol=1e-3)
 
     def test_populates_multipath_fields(self):
         m = GPP38901UMi(h_bs_m=10.0, h_ut_m=1.5, los_mode="force_los")
@@ -444,15 +431,10 @@ class TestGPP38901RMa:
     def test_los_less_than_nlos(self):
         los = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5, los_mode="force_los")
         nlos = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5, los_mode="force_nlos")
-        assert (
-            los(1000.0, 700e6, seed=0).path_loss_db
-            < nlos(1000.0, 700e6, seed=0).path_loss_db
-        )
+        assert los(1000.0, 700e6, seed=0).path_loss_db < nlos(1000.0, 700e6, seed=0).path_loss_db
 
     def test_accepts_building_and_street_params(self):
-        m = GPP38901RMa(
-            h_bs_m=35.0, h_ut_m=1.5, h_building_m=10.0, w_street_m=30.0
-        )
+        m = GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5, h_building_m=10.0, w_street_m=30.0)
         r = m(1000.0, 700e6, seed=0)
         assert isinstance(r, PathLossResult)
 
@@ -527,10 +509,7 @@ class TestITU_R_P1411:
     def test_los_less_than_nlos(self):
         los = ITU_R_P1411(environment="urban_high_rise", los_mode="force_los")
         nlos = ITU_R_P1411(environment="urban_high_rise", los_mode="force_nlos")
-        assert (
-            los(200.0, 2.4e9, seed=0).path_loss_db
-            < nlos(200.0, 2.4e9, seed=0).path_loss_db
-        )
+        assert los(200.0, 2.4e9, seed=0).path_loss_db < nlos(200.0, 2.4e9, seed=0).path_loss_db
 
     def test_all_three_environments(self):
         for env in ["urban_high_rise", "urban_low_rise_suburban", "residential"]:
@@ -546,9 +525,7 @@ class TestITU_R_P1411:
         m = ITU_R_P1411(environment="urban_high_rise", los_mode="force_los")
         r1 = m(100.0, 2.4e9, seed=0)
         r2 = m(1000.0, 2.4e9, seed=0)
-        assert (r2.path_loss_db - r2.shadow_fading_db) > (
-            r1.path_loss_db - r1.shadow_fading_db
-        )
+        assert (r2.path_loss_db - r2.shadow_fading_db) > (r1.path_loss_db - r1.shadow_fading_db)
 
     def test_multipath_fields_none(self):
         m = ITU_R_P1411(environment="urban_high_rise")
@@ -578,6 +555,7 @@ class TestITU_R_P1411:
         m = ITU_R_P1411(environment="urban_high_rise", los_mode="force_los")
         shadows = [m(200.0, 2.4e9, seed=i).shadow_fading_db for i in range(200)]
         import statistics
+
         std = statistics.stdev(shadows)
         # Urban high-rise LOS sigma should be in [2, 5] dB
         assert 1.5 < std < 6.0

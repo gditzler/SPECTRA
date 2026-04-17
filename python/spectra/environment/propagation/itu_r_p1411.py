@@ -51,16 +51,12 @@ class ITU_R_P1411(PropagationModel):
 
     def __init__(
         self,
-        environment: Literal[
-            "urban_high_rise", "urban_low_rise_suburban", "residential"
-        ],
+        environment: Literal["urban_high_rise", "urban_low_rise_suburban", "residential"],
         los_mode: LOSMode = "stochastic",
         strict_range: bool = True,
     ):
         if environment not in _VALID_P1411_ENVS:
-            raise ValueError(
-                f"environment must be one of {_VALID_P1411_ENVS}, got '{environment}'"
-            )
+            raise ValueError(f"environment must be one of {_VALID_P1411_ENVS}, got '{environment}'")
         self.environment = environment
         self.los_mode = los_mode
         self.strict_range = strict_range
@@ -80,14 +76,10 @@ class ITU_R_P1411(PropagationModel):
             char_d = 300.0
         return float(math.exp(-d_2d_m / char_d))
 
-    def __call__(
-        self, distance_m: float, freq_hz: float, **kwargs
-    ) -> PathLossResult:
+    def __call__(self, distance_m: float, freq_hz: float, **kwargs) -> PathLossResult:
         if distance_m <= 0:
             raise ValueError("distance_m must be positive")
-        _check_freq_range(
-            freq_hz, *self.FREQ_RANGE_HZ, self.MODEL_NAME, strict=self.strict_range
-        )
+        _check_freq_range(freq_hz, *self.FREQ_RANGE_HZ, self.MODEL_NAME, strict=self.strict_range)
         _check_distance_range(
             distance_m,
             *self.DISTANCE_RANGE_M,
@@ -98,17 +90,11 @@ class ITU_R_P1411(PropagationModel):
         seed = kwargs.get("seed")
         rng = np.random.default_rng(seed)
 
-        is_los = _resolve_los(
-            self.los_mode, self._los_probability(distance_m), rng
-        )
+        is_los = _resolve_los(self.los_mode, self._los_probability(distance_m), rng)
         alpha, beta, gamma, sigma = _P1411_COEFFS[(self.environment, is_los)]
 
         f_ghz = freq_hz / 1e9
-        pl_mean = (
-            alpha * 10.0 * math.log10(distance_m)
-            + beta
-            + gamma * 10.0 * math.log10(f_ghz)
-        )
+        pl_mean = alpha * 10.0 * math.log10(distance_m) + beta + gamma * 10.0 * math.log10(f_ghz)
         sf = float(rng.normal(0.0, sigma))
 
         return PathLossResult(

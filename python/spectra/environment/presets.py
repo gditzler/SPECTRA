@@ -26,9 +26,7 @@ propagation_presets: dict[str, PropagationModel] = {
     "rural_macro_5g": GPP38901RMa(h_bs_m=35.0, h_ut_m=1.5),
     "indoor_office_5g": GPP38901InH(h_bs_m=3.0, h_ut_m=1.0, variant="mixed_office"),
     # New Hata-family preset
-    "urban_hata_4g": OkumuraHataPL(
-        h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium"
-    ),
+    "urban_hata_4g": OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium"),
     # New ITU-R preset
     "short_range_urban": ITU_R_P1411(environment="urban_high_rise"),
 }

@@ -51,11 +51,15 @@ distances = np.logspace(1.5, 3.7, 200)  # 30 m to 5 km
 models = [
     ("Free Space", FreeSpacePathLoss()),
     ("Log-Distance n=3.5", LogDistancePL(n=3.5)),
-    ("Okumura-Hata Urban", OkumuraHataPL(
-        h_bs_m=50.0, h_ms_m=1.5,
-        environment="urban_small_medium",
-        strict_range=False,  # 2.1 GHz is outside Hata's envelope
-    )),
+    (
+        "Okumura-Hata Urban",
+        OkumuraHataPL(
+            h_bs_m=50.0,
+            h_ms_m=1.5,
+            environment="urban_small_medium",
+            strict_range=False,  # 2.1 GHz is outside Hata's envelope
+        ),
+    ),
     ("COST-231 Hata Urban", COST231HataPL(environment="urban")),
     ("38.901 UMa (LOS)", GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="force_los")),
     ("38.901 UMa (NLOS)", GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="force_nlos")),
