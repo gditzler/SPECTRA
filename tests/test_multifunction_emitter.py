@@ -1,5 +1,7 @@
 """Tests for spectra.waveforms.multifunction — the multi-function emitter."""
 
+import hashlib
+
 import numpy as np
 import pytest
 from spectra.scene.signal_desc import SignalDescription
@@ -844,3 +846,42 @@ def test_scheduled_waveform_in_composer(assert_valid_iq):
     labels = {d.label for d in descriptions}
     # At least one of the two placed signals must carry a label from our pool.
     assert "MFR_SearchTrack" in labels or "QPSK" in labels
+
+
+# ── Task 14: Reproducibility hashes ──────────────────────────────────────────
+
+
+def _iq_hash(iq: np.ndarray) -> str:
+    return hashlib.sha256(iq.tobytes()).hexdigest()[:16]
+
+
+@pytest.mark.parametrize(
+    "factory_name,seed",
+    [
+        ("multifunction_search_track_radar", 0),
+        ("multi_prf_pulse_doppler_radar", 0),
+        ("frequency_agile_stepped_pri_radar", 0),
+        ("radcom_emitter", 0),
+    ],
+)
+def test_example_reproducibility_hash(factory_name, seed):
+    """Hash the IQ output of each example; if this changes, behavior drifted."""
+    import spectra.waveforms as wf
+
+    factory = getattr(wf, factory_name)
+    sw = factory()
+    iq = sw.generate(num_symbols=20_000, sample_rate=20e6, seed=seed)
+    h = _iq_hash(iq)
+
+    # First-run workflow: running the test the first time skips and prints h,
+    # after which the caller pastes the real hash into EXPECTED_HASHES below.
+    EXPECTED_HASHES = {
+        "multifunction_search_track_radar": "b0b3b6153b28e770",
+        "multi_prf_pulse_doppler_radar": "7daba14aba38c22e",
+        "frequency_agile_stepped_pri_radar": "9167efb0194bd4c0",
+        "radcom_emitter": "6736b41ea1c5957a",
+    }
+    expected = EXPECTED_HASHES[factory_name]
+    if expected == "REPLACE_ON_FIRST_RUN":
+        pytest.skip(f"first-run: add {factory_name!r} -> {h!r} to EXPECTED_HASHES")
+    assert h == expected, f"IQ output drifted for {factory_name!r}: expected {expected}, got {h}"
