@@ -1,48 +1,13 @@
-"""Propagation models for path loss computation."""
+"""Empirical path-loss models: log-distance, Hata-family."""
 
 from __future__ import annotations
 
 import math
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
 
 import numpy as np
 
-SPEED_OF_LIGHT = 299_792_458.0
-
-
-@dataclass
-class PathLossResult:
-    """Result of a propagation model computation."""
-
-    path_loss_db: float
-    shadow_fading_db: float = 0.0
-    rms_delay_spread_s: float | None = None
-    k_factor_db: float | None = None
-    angular_spread_deg: float | None = None
-
-
-class PropagationModel(ABC):
-    """Abstract base class for propagation models."""
-
-    @abstractmethod
-    def __call__(self, distance_m: float, freq_hz: float, **kwargs) -> PathLossResult:
-        """Compute path loss for given distance and frequency."""
-        ...
-
-
-class FreeSpacePathLoss(PropagationModel):
-    """Friis free-space path loss model."""
-
-    def __call__(self, distance_m: float, freq_hz: float, **kwargs) -> PathLossResult:
-        if distance_m <= 0:
-            raise ValueError("distance_m must be positive")
-        pl_db = (
-            20 * math.log10(distance_m)
-            + 20 * math.log10(freq_hz)
-            + 20 * math.log10(4 * math.pi / SPEED_OF_LIGHT)
-        )
-        return PathLossResult(path_loss_db=pl_db)
+from spectra.environment.propagation._base import PathLossResult, PropagationModel
+from spectra.environment.propagation.free_space import FreeSpacePathLoss
 
 
 class LogDistancePL(PropagationModel):
@@ -81,7 +46,7 @@ class LogDistancePL(PropagationModel):
         )
 
 
-_VALID_ENVIRONMENTS = {"urban", "suburban", "rural"}
+_VALID_ENVIRONMENTS_COST231 = {"urban", "suburban", "rural"}
 
 
 class COST231HataPL(PropagationModel):
@@ -96,9 +61,9 @@ class COST231HataPL(PropagationModel):
         h_ms_m: float = 1.5,
         environment: str = "urban",
     ):
-        if environment not in _VALID_ENVIRONMENTS:
+        if environment not in _VALID_ENVIRONMENTS_COST231:
             raise ValueError(
-                f"environment must be one of {_VALID_ENVIRONMENTS}, got '{environment}'"
+                f"environment must be one of {_VALID_ENVIRONMENTS_COST231}, got '{environment}'"
             )
         self.h_bs_m = h_bs_m
         self.h_ms_m = h_ms_m
@@ -111,7 +76,9 @@ class COST231HataPL(PropagationModel):
         fc_mhz = freq_hz / 1e6
         d_km = distance_m / 1000.0
 
-        a_hms = (1.1 * math.log10(fc_mhz) - 0.7) * self.h_ms_m - (1.56 * math.log10(fc_mhz) - 0.8)
+        a_hms = (1.1 * math.log10(fc_mhz) - 0.7) * self.h_ms_m - (
+            1.56 * math.log10(fc_mhz) - 0.8
+        )
 
         c_m = 3.0 if self.environment == "urban" else 0.0
 
@@ -127,6 +94,10 @@ class COST231HataPL(PropagationModel):
         if self.environment == "suburban":
             pl_db -= 2 * (math.log10(fc_mhz / 28)) ** 2 + 5.4
         elif self.environment == "rural":
-            pl_db -= 4.78 * (math.log10(fc_mhz)) ** 2 + 18.33 * math.log10(fc_mhz) - 40.94
+            pl_db -= (
+                4.78 * (math.log10(fc_mhz)) ** 2
+                + 18.33 * math.log10(fc_mhz)
+                - 40.94
+            )
 
         return PathLossResult(path_loss_db=pl_db)
