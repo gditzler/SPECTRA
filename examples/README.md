@@ -58,7 +58,8 @@ examples/
 │   ├── snr_sweep_evaluation.py              # Advanced
 │   ├── augmentation_wrappers.py             # Intermediate
 │   ├── dataset_io.py                        # Intermediate
-│   └── streaming_curriculum.py              # Advanced
+│   ├── streaming_curriculum.py              # Advanced
+│   └── lightning_datamodule.py              # Advanced
 │
 ├── classification/                          # AMC training & evaluation
 │   ├── full_pipeline.py                     # Pro
@@ -136,6 +137,7 @@ examples/
 | `augmentation_wrappers.py` | Intermediate | MixUpDataset, CutMixDataset cross-sample augmentation |
 | `dataset_io.py` | Intermediate | DatasetWriter, export_dataset_to_folder, NumpyWriter |
 | `streaming_curriculum.py` | Advanced | StreamingDataLoader, CurriculumSchedule, progressive difficulty |
+| `lightning_datamodule.py` | Advanced | `LightningDataModule` wrappers for narrowband (AMC) and wideband (detection) datasets |
 
 ### Classification
 
