@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Dict, Generic, List, TypeVar
+
+T_in = TypeVar("T_in")
+T_out = TypeVar("T_out")
 
 FAMILY_MAP = {
     "BPSK": "psk",
@@ -63,12 +66,12 @@ FAMILY_MAP = {
 }
 
 
-class TargetTransform(ABC):
+class TargetTransform(ABC, Generic[T_in, T_out]):
     @abstractmethod
-    def __call__(self, target: Any) -> Any: ...
+    def __call__(self, target: T_in, /) -> T_out: ...
 
 
-class ClassIndex(TargetTransform):
+class ClassIndex(TargetTransform[str, int]):
     """Map label string to integer index."""
 
     def __init__(self, class_list: List[str]):
@@ -78,14 +81,14 @@ class ClassIndex(TargetTransform):
         return self._class_map[label]
 
 
-class FamilyName(TargetTransform):
+class FamilyName(TargetTransform[str, str]):
     """Map waveform label to family name."""
 
     def __call__(self, label: str) -> str:
         return FAMILY_MAP.get(label, "unknown")
 
 
-class FamilyIndex(TargetTransform):
+class FamilyIndex(TargetTransform[str, int]):
     """Map waveform label to family integer index."""
 
     def __init__(self):
@@ -97,7 +100,7 @@ class FamilyIndex(TargetTransform):
         return self._family_map.get(family, -1)
 
 
-class YOLOLabel(TargetTransform):
+class YOLOLabel(TargetTransform[List[Dict], List[List[float]]]):
     """Convert COCO targets to YOLO format [class_id, cx, cy, w, h]."""
 
     def __init__(self, image_width: int, image_height: int):
@@ -117,7 +120,7 @@ class YOLOLabel(TargetTransform):
         return yolo_labels
 
 
-class BoxesNormalize(TargetTransform):
+class BoxesNormalize(TargetTransform[List[Dict], List[Dict]]):
     """Normalize bounding boxes to [0, 1] range."""
 
     def __init__(self, image_width: int, image_height: int):
