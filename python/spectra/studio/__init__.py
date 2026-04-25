@@ -1,5 +1,7 @@
 """SPECTRA Studio — interactive RF dataset generation and visualization."""
 
+from typing import Any
+
 
 def launch(port: int = 7860, share: bool = False, dark: bool = False) -> None:
     """Launch the SPECTRA Studio Gradio app.
@@ -19,7 +21,7 @@ def launch(port: int = 7860, share: bool = False, dark: bool = False) -> None:
     from spectra.studio.app import create_app
 
     app = create_app(dark=dark)
-    launch_kwargs = {"server_port": port, "share": share}
+    launch_kwargs: dict[str, Any] = {"server_port": port, "share": share}
     # Gradio 6.0+ accepts theme/css in launch() instead of Blocks()
     if hasattr(app, "_spectra_theme"):
         launch_kwargs["theme"] = app._spectra_theme

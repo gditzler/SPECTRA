@@ -13,16 +13,18 @@ Learn how to:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import torch
-from torch.utils.data import DataLoader
 import spectra as sp
+import torch
 from plot_helpers import savefig
+from torch.utils.data import DataLoader
 
 sample_rate = 1e6
 
@@ -112,9 +114,11 @@ while len(seen) < len(class_names) and idx < len(raw_dataset):
                 np.array([np.fft.fft(iq[i:i+256], n=256) for i in range(0, len(iq)-256, 64)]).T
             ))
         else:
-            spec = np.abs(np.fft.fftshift(
-                np.array([np.fft.fft((iq[0, i:i+256] + 1j * iq[1, i:i+256]), n=256) for i in range(0, iq.shape[1]-256, 64)]).T
-            ))
+            frames = [
+                np.fft.fft(iq[0, i:i+256] + 1j * iq[1, i:i+256], n=256)
+                for i in range(0, iq.shape[1] - 256, 64)
+            ]
+            spec = np.abs(np.fft.fftshift(np.array(frames).T))
         spec_db = 10 * np.log10(spec + 1e-12)
         ax.imshow(spec_db, aspect="auto", origin="lower", cmap="viridis")
         ax.set_title(class_names[label])

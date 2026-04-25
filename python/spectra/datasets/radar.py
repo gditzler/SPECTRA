@@ -88,8 +88,9 @@ class RadarDataset(BaseIQDataset):
 
         # Generate template pulse (enough symbols for a single pulse)
         sig_seed = int(rng.integers(0, 2**32))
+        sps = max(1, getattr(waveform, "samples_per_symbol", 64))
         pulse = waveform.generate(
-            num_symbols=max(1, self.num_range_bins // max(1, getattr(waveform, "samples_per_symbol", 64))),
+            num_symbols=max(1, self.num_range_bins // sps),
             sample_rate=self.sample_rate,
             seed=sig_seed,
         )

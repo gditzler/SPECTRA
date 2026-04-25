@@ -50,7 +50,7 @@ def _cmd_viz(args: argparse.Namespace) -> None:
     iq, metadata = reader.read(args.file)
     sr = metadata.sample_rate or 1e6
 
-    from spectra.studio.plotting import plot_fft, plot_iq, plot_waterfall, plot_constellation
+    from spectra.studio.plotting import plot_constellation, plot_fft, plot_iq, plot_waterfall
 
     plot_funcs = {
         "fft": lambda: plot_fft(iq, sample_rate=sr, dark=False),
@@ -98,7 +98,10 @@ def main() -> None:
     # viz (requires spectra[ui] for plotting functions)
     sp_viz = subparsers.add_parser("viz", help="Quick IQ file visualization")
     sp_viz.add_argument("file", help="Path to IQ file (.sigmf-meta, .cf32, .npy)")
-    sp_viz.add_argument("--plot", default="fft", choices=["fft", "iq", "waterfall", "constellation"])
+    sp_viz.add_argument(
+        "--plot", default="fft",
+        choices=["fft", "iq", "waterfall", "constellation"],
+    )
     sp_viz.add_argument("--save", default=None, help="Save plot to file instead of showing")
 
     # build

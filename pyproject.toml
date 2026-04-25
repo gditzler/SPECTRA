@@ -83,3 +83,16 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
+
+[tool.ty.src]
+include = ["python", "tests"]
+exclude = [".venv", "examples", "benchmarks", "docs", "site"]
+
+[tool.ty.environment]
+python = ".venv"
+
+[tool.ty.rules]
+# `spectra._rust` is a maturin-built PyO3 extension (.so) without stubs;
+# ty cannot introspect it. Optional deps (torchsig, torchvision, etc.)
+# and example sys.path tricks (plot_helpers) trigger the same rule.
+unresolved-import = "ignore"

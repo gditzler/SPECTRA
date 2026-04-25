@@ -14,18 +14,17 @@ Run:
 """
 
 import sys
+from collections import Counter
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib.pyplot as plt
-import torch
-
-from spectra.datasets.radar import RadarDataset, RadarTarget
-from spectra.algorithms import matched_filter, ca_cfar, os_cfar
+import numpy as np
+from plot_helpers import OUTPUT_DIR, savefig
+from spectra.algorithms import ca_cfar, matched_filter, os_cfar
+from spectra.datasets.radar import RadarDataset
 from spectra.waveforms import LFM, BarkerCodedPulse, PolyphaseCodedPulse
-
-from plot_helpers import savefig, OUTPUT_DIR
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
@@ -79,7 +78,9 @@ savefig("15_range_profile.png")
 rng = np.random.default_rng((SEED, 0))
 wf = LFM()
 pulse = wf.generate(num_symbols=4, sample_rate=SAMPLE_RATE, seed=0)[:NUM_RANGE_BINS // 4]
-noise = np.sqrt(0.5) * (rng.standard_normal(NUM_RANGE_BINS) + 1j * rng.standard_normal(NUM_RANGE_BINS))
+_noise_re = rng.standard_normal(NUM_RANGE_BINS)
+_noise_im = rng.standard_normal(NUM_RANGE_BINS)
+noise = np.sqrt(0.5) * (_noise_re + 1j * _noise_im)
 for rb in target.range_bins:
     snr_lin = 10 ** (target.snrs[0] / 10)
     amp = np.sqrt(snr_lin / (np.mean(np.abs(pulse)**2) + 1e-30))
@@ -99,13 +100,19 @@ axes[0].set_title("Matched Filter Output")
 
 det_ca_bins = np.where(det_ca)[0]
 if len(det_ca_bins) > 0:
-    axes[1].stem(det_ca_bins, np.ones(len(det_ca_bins)), linefmt="C1-", markerfmt="C1o", basefmt="k")
+    axes[1].stem(
+        det_ca_bins, np.ones(len(det_ca_bins)),
+        linefmt="C1-", markerfmt="C1o", basefmt="k",
+    )
 axes[1].set_ylabel("CA-CFAR")
 axes[1].set_ylim(-0.1, 1.5)
 
 det_os_bins = np.where(det_os)[0]
 if len(det_os_bins) > 0:
-    axes[2].stem(det_os_bins, np.ones(len(det_os_bins)), linefmt="C2-", markerfmt="C2o", basefmt="k")
+    axes[2].stem(
+        det_os_bins, np.ones(len(det_os_bins)),
+        linefmt="C2-", markerfmt="C2o", basefmt="k",
+    )
 axes[2].set_ylabel("OS-CFAR")
 axes[2].set_ylim(-0.1, 1.5)
 axes[2].set_xlabel("Range bin")
@@ -117,7 +124,6 @@ print(f"True target bins:   {target.range_bins}\n")
 
 # ── 4. Dataset Overview: Waveform Mix ─────────────────────────────────────────
 
-from collections import Counter
 labels_seen = [ds[i][1].waveform_label for i in range(min(100, len(ds)))]
 counts = Counter(labels_seen)
 fig, ax = plt.subplots(figsize=(6, 3))

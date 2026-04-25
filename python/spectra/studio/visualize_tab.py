@@ -3,12 +3,16 @@
 
 from __future__ import annotations
 
-import numpy as np
 import gradio as gr
 
 from spectra.studio.plotting import (
-    plot_iq, plot_fft, plot_waterfall, plot_constellation,
-    plot_scd, plot_ambiguity, plot_eye,
+    plot_ambiguity,
+    plot_constellation,
+    plot_eye,
+    plot_fft,
+    plot_iq,
+    plot_scd,
+    plot_waterfall,
 )
 
 
@@ -16,7 +20,7 @@ def _load_file(file_obj):
     """Load IQ from uploaded file, return (iq, sample_rate)."""
     if file_obj is None:
         return None, 1e6
-    from spectra.utils.file_handlers import get_reader, SigMFReader
+    from spectra.utils.file_handlers import SigMFReader, get_reader
     path = file_obj.name
     if path.endswith(".sigmf-meta"):
         reader = SigMFReader()
@@ -29,11 +33,23 @@ def _load_file(file_obj):
 
 def build_visualize_tab(iq_state, meta_state):
     """Build the Visualize tab UI."""
-    source = gr.Radio(["Use generated signal", "Load file"], value="Use generated signal", label="Data Source")
-    file_upload = gr.File(label="Upload IQ file", file_types=[".sigmf-meta", ".cf32", ".npy", ".raw"], visible=False)
+    source = gr.Radio(
+        ["Use generated signal", "Load file"],
+        value="Use generated signal",
+        label="Data Source",
+    )
+    file_upload = gr.File(
+        label="Upload IQ file",
+        file_types=[".sigmf-meta", ".cf32", ".npy", ".raw"],
+        visible=False,
+    )
     sr_input = gr.Number(value=1e6, label="Sample Rate (Hz)")
 
-    source.change(lambda s: gr.update(visible=(s == "Load file")), inputs=[source], outputs=[file_upload])
+    source.change(
+        lambda s: gr.update(visible=(s == "Load file")),
+        inputs=[source],
+        outputs=[file_upload],
+    )
 
     with gr.Tabs():
         for name, plot_fn, extra_inputs in [
@@ -47,7 +63,11 @@ def build_visualize_tab(iq_state, meta_state):
         ]:
             with gr.Tab(name):
                 plot_output = gr.Plot(label=name)
-                sps_input = gr.Number(value=8, label="Samples per Symbol", visible=(name == "Eye Diagram"))
+                sps_input = gr.Number(
+                    value=8,
+                    label="Samples per Symbol",
+                    visible=(name == "Eye Diagram"),
+                )
                 plot_btn = gr.Button(f"Plot {name}")
 
                 def make_callback(fn, tab_name):

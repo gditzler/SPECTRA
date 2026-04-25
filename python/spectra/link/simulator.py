@@ -8,19 +8,19 @@ import numpy as np
 
 from spectra._rust import (
     apply_rrc_filter_with_taps,
+    generate_ask_symbols_with_indices,
     generate_bpsk_symbols_with_indices,
-    generate_qpsk_symbols_with_indices,
     generate_psk_symbols_with_indices,
     generate_qam_symbols_with_indices,
-    generate_ask_symbols_with_indices,
+    generate_qpsk_symbols_with_indices,
 )
 from spectra.link.results import LinkResults
 from spectra.metrics import bit_error_rate, packet_error_rate, symbol_error_rate
 from spectra.receivers.base import Decoder, PassthroughDecoder
 from spectra.receivers.coherent import CoherentReceiver, constellation_to_bits
 from spectra.scene.signal_desc import SignalDescription
-from spectra.waveforms.base import Waveform
 from spectra.utils.rrc_cache import cached_rrc_taps
+from spectra.waveforms.base import Waveform
 
 
 def _generate_with_indices(waveform: Waveform, num_symbols: int, seed: int):
@@ -95,7 +95,6 @@ class LinkSimulator:
         )
         symbols = np.asarray(symbols, dtype=np.complex64)
         tx_indices = np.asarray(tx_indices, dtype=np.uint32)
-        tx_bits = constellation_to_bits(tx_indices, constellation_size)
 
         # RRC pulse shaping
         taps = cached_rrc_taps(rolloff, filter_span, sps)

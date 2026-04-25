@@ -9,7 +9,7 @@ label information for dynamic parameter rendering.
 from __future__ import annotations
 
 import inspect
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from spectra.cli.config_builder import WAVEFORM_CATEGORIES, get_waveform_registry
 
@@ -56,10 +56,10 @@ def get_waveform_params(waveform_name: str) -> List[Dict[str, Any]]:
         if name in _CHOICE_OVERRIDES:
             p_type = "choice"
             choices = _CHOICE_OVERRIDES[name]
-        elif annotation == int or isinstance(default, int):
+        elif annotation is int or isinstance(default, int):
             p_type = "int"
             choices = None
-        elif annotation == float or isinstance(default, (float, int)):
+        elif annotation is float or isinstance(default, (float, int)):
             p_type = "float"
             choices = None
         elif isinstance(default, str):

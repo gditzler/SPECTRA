@@ -124,7 +124,8 @@ def lcmv(
     """
     if len(constraints) != len(responses):
         raise ValueError(
-            f"constraints ({len(constraints)}) and responses ({len(responses)}) must have the same length"
+            f"constraints ({len(constraints)}) and responses ({len(responses)}) "
+            "must have the same length"
         )
 
     N, T = X.shape

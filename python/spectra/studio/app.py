@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import gradio as gr
-import numpy as np
 
 from spectra.studio.theme import spectra_theme
 
@@ -18,7 +17,10 @@ def create_app(dark: bool = False) -> gr.Blocks:
     with gr.Blocks(title="SPECTRA Studio") as app:
         app._spectra_theme = theme
         app._spectra_css = css
-        gr.Markdown("# SPECTRA Studio\nInteractive RF waveform generation, visualization, and export.")
+        gr.Markdown(
+            "# SPECTRA Studio\n"
+            "Interactive RF waveform generation, visualization, and export."
+        )
 
         # Shared state
         iq_state = gr.State(value=None)
