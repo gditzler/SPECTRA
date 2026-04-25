@@ -50,16 +50,6 @@ class NarrowbandMetadata(DatasetMetadata):
     snr_range: Tuple[float, float] = (0.0, 20.0)
     impairment_config: Dict = field(default_factory=dict)
 
-    def build_dataset(self):
-        from spectra.datasets import NarrowbandDataset
-
-        return NarrowbandDataset(
-            waveform_labels=self.waveform_labels,
-            num_iq_samples=self.num_iq_samples,
-            num_samples=self.num_samples,
-            seed=self.seed,
-        )
-
     @classmethod
     def from_dict(cls, d: Dict) -> "NarrowbandMetadata":
         # Convert snr_range from list to tuple if needed
@@ -76,14 +66,6 @@ class WidebandMetadata(DatasetMetadata):
     capture_bandwidth: float = 1e6
     capture_duration: float = 1e-3
     num_signals_range: Tuple[int, int] = (1, 5)
-
-    def build_dataset(self):
-        from spectra.datasets import WidebandDataset
-
-        return WidebandDataset(
-            num_samples=self.num_samples,
-            seed=self.seed,
-        )
 
     @classmethod
     def from_dict(cls, d: Dict) -> "WidebandMetadata":
