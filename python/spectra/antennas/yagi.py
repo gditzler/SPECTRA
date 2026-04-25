@@ -1,6 +1,7 @@
 """Yagi-Uda directional antenna element pattern."""
 
 import numpy as np
+
 from spectra.antennas.base import AntennaElement
 
 

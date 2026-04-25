@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
@@ -46,7 +46,7 @@ class HDF5Writer(FileWriter):
 
     @staticmethod
     def write_from_dataset(
-        dataset,
+        dataset: Any,
         output_dir: str,
         class_list: Optional[List[str]] = None,
         max_samples: Optional[int] = None,

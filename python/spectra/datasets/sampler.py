@@ -1,13 +1,13 @@
 """Balanced sampling utilities for classification datasets."""
 
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 from torch.utils.data import WeightedRandomSampler
 
 
 def balanced_sampler(
-    dataset,
+    dataset: Any,
     num_classes: int,
     num_samples: Optional[int] = None,
 ) -> WeightedRandomSampler:

@@ -43,9 +43,6 @@ class EnergyDetector:
         overlap: Number of overlapping samples between adjacent segments.
         threshold_db: Detection threshold in dB.  Bins with PSD above
             this value (relative to the median noise floor) are flagged.
-
-    Returns:
-        ``torch.Tensor`` of shape ``[1, nfft]`` (``float32``), values in {0, 1}.
     """
 
     def __init__(self, nfft: int = 256, overlap: int = 128, threshold_db: float = 6.0):
@@ -54,6 +51,14 @@ class EnergyDetector:
         self.threshold_db = threshold_db
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Run energy detection on the input IQ signal.
+
+        Args:
+            iq: 1-D complex64 IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[1, nfft]`` (``float32``), values in {0, 1}.
+        """
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
         psd = np.asarray(_compute_psd_welch(iq, self.nfft, self.overlap))
         psd_db = 10.0 * np.log10(psd + 1e-12)

@@ -18,9 +18,6 @@ class CAF:
         max_lag: Maximum lag in samples (columns).
         output_format: ``"magnitude"`` (C=1), ``"mag_phase"`` (C=2),
             or ``"real_imag"`` (C=2).
-
-    Returns:
-        ``torch.Tensor`` of shape ``[C, n_alpha, max_lag]``.
     """
 
     def __init__(
@@ -39,6 +36,14 @@ class CAF:
         self.output_format = output_format
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Compute the CAF of the input IQ signal.
+
+        Args:
+            iq: 1-D complex64 IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[C, n_alpha, max_lag]``.
+        """
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
         caf_complex = np.asarray(_compute_caf(iq, self.n_alpha, self.max_lag))
         return format_csp_output(caf_complex, self.output_format)

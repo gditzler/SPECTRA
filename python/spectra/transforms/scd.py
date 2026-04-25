@@ -25,9 +25,6 @@ class SCD:
             ``method="s3ca"``. Default: 8.
         seed: Random seed for S3CA deterministic randomization.
             Only used when ``method="s3ca"``. Default: 0.
-
-    Returns:
-        ``torch.Tensor`` of shape ``[C, nfft, n_alpha]``.
     """
 
     def __init__(
@@ -58,6 +55,14 @@ class SCD:
         self.seed = seed
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Compute the SCD of the input IQ signal.
+
+        Args:
+            iq: 1-D complex64 IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[C, nfft, n_alpha]``.
+        """
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
         if self.method == "s3ca":
             scd_complex = np.asarray(

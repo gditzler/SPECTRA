@@ -29,9 +29,6 @@ class CWD:
             or ``"real_imag"`` (C=2). Default ``"magnitude"``.
         db_scale: Apply ``10 * log10`` to the magnitude (only for
             ``"magnitude"`` and ``"mag_phase"`` formats). Default ``False``.
-
-    Returns:
-        ``torch.Tensor`` of shape ``[C, n_time, nfft]``.
     """
 
     def __init__(
@@ -58,6 +55,14 @@ class CWD:
         self.db_scale = db_scale
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Compute the CWD of the input IQ signal.
+
+        Args:
+            iq: 1-D complex64 IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[C, n_time, nfft]``.
+        """
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
         n_time_arg = self.n_time if self.n_time is not None else 0
         cwd_complex = np.asarray(_compute_cwd(iq, self.nfft, n_time_arg, self.sigma))

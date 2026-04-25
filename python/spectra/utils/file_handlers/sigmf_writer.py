@@ -74,7 +74,7 @@ class SigMFWriter:
 
     @staticmethod
     def write_from_dataset(
-        dataset,
+        dataset: Any,
         output_dir: str,
         sample_rate: float,
         class_list: Optional[List[str]] = None,

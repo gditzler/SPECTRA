@@ -24,9 +24,6 @@ class SCF:
         output_format: ``"magnitude"`` (C=1), ``"mag_phase"`` (C=2),
             or ``"real_imag"`` (C=2).
         eps: Small constant to avoid division by zero.
-
-    Returns:
-        ``torch.Tensor`` of shape ``[C, nfft, n_alpha]``.
     """
 
     def __init__(
@@ -49,6 +46,14 @@ class SCF:
         self.eps = eps
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Compute the SCF of the input IQ signal.
+
+        Args:
+            iq: 1-D complex64 IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[C, nfft, n_alpha]``.
+        """
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
 
         # Compute SCD (complex, DC-centred)
