@@ -93,15 +93,24 @@ Generates signals at fixed SNR levels for evaluation curves. Used by
 
 ```python
 from spectra.datasets.snr_sweep import SNRSweepDataset
+from spectra.impairments import AWGN, Compose
+from spectra.waveforms import BPSK, QPSK
+
+def impairments_fn(snr_db: float) -> Compose:
+    """Build the impairment chain for a given SNR."""
+    return Compose([AWGN(snr=snr_db)])
 
 dataset = SNRSweepDataset(
     waveform_pool=[QPSK(), BPSK()],
-    num_samples_per_snr=500,
-    snr_values=[-10, -5, 0, 5, 10, 15, 20],
+    snr_levels=[-10, -5, 0, 5, 10, 15, 20],
+    samples_per_cell=500,
     num_iq_samples=1024,
     sample_rate=1e6,
+    impairments_fn=impairments_fn,
     seed=42,
 )
+
+iq, class_idx, snr_db = dataset[0]   # __getitem__ returns (Tensor, int, float)
 ```
 
 ---
