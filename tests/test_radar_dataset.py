@@ -1,14 +1,14 @@
 # tests/test_radar_dataset.py
 """Tests for RadarDataset."""
 import numpy as np
-import pytest
 import torch
+from typing import Any
 from spectra.waveforms import LFM, BarkerCodedPulse
 
 
 def _make_ds(**kwargs):
     from spectra.datasets.radar import RadarDataset
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         waveform_pool=[LFM(), BarkerCodedPulse()],
         num_range_bins=256,
         sample_rate=1e6,
@@ -36,7 +36,6 @@ def test_radar_dataset_output_shape():
 
 
 def test_radar_target_fields():
-    from spectra.datasets.radar import RadarTarget
     ds = _make_ds(num_targets_range=(1, 1))
     _, target = ds[0]
     assert target.num_targets >= 0
