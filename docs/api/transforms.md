@@ -44,3 +44,26 @@ Spectral, CSP, and augmentation transforms compatible with PyTorch DataLoaders.
 ::: spectra.transforms.target_transforms.FamilyName
 ::: spectra.transforms.target_transforms.BoxesNormalize
 ::: spectra.transforms.target_transforms.YOLOLabel
+
+## Alignment & Domain Adaptation
+
+::: spectra.transforms.alignment.DCRemove
+::: spectra.transforms.alignment.Resample
+::: spectra.transforms.alignment.PowerNormalize
+::: spectra.transforms.alignment.AGCNormalize
+::: spectra.transforms.alignment.ClipNormalize
+::: spectra.transforms.alignment.BandpassAlign
+::: spectra.transforms.alignment.NoiseFloorMatch
+::: spectra.transforms.alignment.NoiseProfileTransfer
+::: spectra.transforms.alignment.SpectralWhitening
+::: spectra.transforms.alignment.ReceiverEQ
+
+## Time-Frequency (Additional)
+
+::: spectra.transforms.cwd.CWD
+::: spectra.transforms.reassigned_gabor.ReassignedGabor
+::: spectra.transforms.instantaneous_frequency.InstantaneousFrequency
+
+## Other Representations
+
+::: spectra.transforms.snapshot.ToSnapshotMatrix
