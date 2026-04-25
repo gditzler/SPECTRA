@@ -115,6 +115,7 @@ nav:
     - File I/O: user-guide/file-io.md
     - Benchmarks: user-guide/benchmarks.md
     - Curriculum & Streaming: user-guide/curriculum-streaming.md
+    - Link Simulation: user-guide/link-simulation.md
   - API Reference:
     - spectra.waveforms: api/waveforms.md
     - spectra.impairments: api/impairments.md
