@@ -19,4 +19,6 @@ def resolve_param(fixed: Optional[float], max_val: Optional[float]) -> float:
     """Return the fixed value or sample uniformly from [-max_val, max_val]."""
     if max_val is not None:
         return float(np.random.uniform(-max_val, max_val))
+    if fixed is None:
+        raise ValueError("Either fixed or max_val must be provided")
     return float(fixed)

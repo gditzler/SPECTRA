@@ -13,7 +13,11 @@ class DCOffset(Transform):
         offset: Optional[complex] = None,
         max_offset: Optional[float] = None,
     ):
-        validate_fixed_or_random(offset, max_offset, "offset")
+        # validate_fixed_or_random takes Optional[float]; ``offset`` is ``complex``
+        # here but only its ``None``-ness matters for that check.
+        validate_fixed_or_random(
+            None if offset is None else 0.0, max_offset, "offset"
+        )
         self.offset = offset
         self.max_offset = max_offset
 

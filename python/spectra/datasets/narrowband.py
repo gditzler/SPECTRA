@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -39,7 +39,7 @@ class NarrowbandDataset(BaseIQDataset[Tuple[torch.Tensor, int]]):
 
     def __init__(
         self,
-        waveform_pool: List[Waveform],
+        waveform_pool: Sequence[Waveform],
         num_samples: int,
         num_iq_samples: int,
         sample_rate: float,
@@ -51,7 +51,7 @@ class NarrowbandDataset(BaseIQDataset[Tuple[torch.Tensor, int]]):
         mimo_config: Optional[Dict] = None,
     ):
         super().__init__(num_samples=num_samples, seed=seed)
-        self.waveform_pool = waveform_pool
+        self.waveform_pool = list(waveform_pool)
         self.num_iq_samples = num_iq_samples
         self.sample_rate = sample_rate
         self.impairments = impairments

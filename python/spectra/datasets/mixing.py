@@ -1,6 +1,6 @@
 """Dataset wrappers for cross-sample MixUp and CutMix augmentations."""
 
-from typing import Tuple
+from typing import Sized, Tuple, cast
 
 import numpy as np
 import torch
@@ -23,12 +23,12 @@ class MixUpDataset(Dataset[Tuple[torch.Tensor, Tuple[int, int, float]]]):
         self._alpha = alpha
 
     def __len__(self) -> int:
-        return len(self._dataset)
+        return len(cast(Sized, self._dataset))
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Tuple[int, int, float]]:
         rng = np.random.default_rng(seed=(45, index))
         x1, y1 = self._dataset[index]
-        idx2 = int(rng.integers(0, len(self._dataset)))
+        idx2 = int(rng.integers(0, len(cast(Sized, self._dataset))))
         x2, y2 = self._dataset[idx2]
         lam = float(rng.beta(self._alpha, self._alpha))
         mixed = lam * x1 + (1 - lam) * x2
@@ -51,12 +51,12 @@ class CutMixDataset(Dataset[Tuple[torch.Tensor, Tuple[int, int, float]]]):
         self._alpha = alpha
 
     def __len__(self) -> int:
-        return len(self._dataset)
+        return len(cast(Sized, self._dataset))
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, Tuple[int, int, float]]:
         rng = np.random.default_rng(seed=(45, index))
         x1, y1 = self._dataset[index]
-        idx2 = int(rng.integers(0, len(self._dataset)))
+        idx2 = int(rng.integers(0, len(cast(Sized, self._dataset))))
         x2, y2 = self._dataset[idx2]
         lam = float(rng.beta(self._alpha, self._alpha))
         # CutMix: replace a segment

@@ -29,4 +29,6 @@ def balanced_sampler(
     # Uniform weight per sample — each class gets equal total weight
     weight_per_sample = 1.0 / num_classes
     weights = torch.full((n,), weight_per_sample, dtype=torch.double)
-    return WeightedRandomSampler(weights, num_samples=num_samples, replacement=True)
+    # WeightedRandomSampler accepts a tensor at runtime; its annotation says
+    # Sequence[float], so cast through a list to satisfy the type checker.
+    return WeightedRandomSampler(weights.tolist(), num_samples=num_samples, replacement=True)

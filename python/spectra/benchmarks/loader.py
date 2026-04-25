@@ -1,6 +1,6 @@
 import importlib.resources
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
 
 import numpy as np
 import yaml
@@ -113,6 +113,7 @@ def _build_narrowband(config: Dict[str, Any], split: str) -> NarrowbandDataset:
     )
     if has_awgn:
         # Replace AWGN with one using the config's snr_range
+        assert impairments is not None  # has_awgn implies impairments is non-empty
         new_transforms = []
         for t in impairments.transforms:
             if isinstance(t, AWGN):
@@ -341,5 +342,10 @@ def load_benchmark(
         )
 
     if split == "all":
-        return builder(config, "train"), builder(config, "val"), builder(config, "test")
+        # Builder is the same callable across the three calls, so the runtime
+        # tuple is homogeneous (all-narrowband, all-wideband, or all-DF).
+        return cast(
+            _AnyBenchmarkTriple,
+            (builder(config, "train"), builder(config, "val"), builder(config, "test")),
+        )
     return builder(config, split)

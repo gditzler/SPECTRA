@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Iterator, Optional, Union
+from typing import Any, Callable, Iterator, Optional, Union, cast
 
 import numpy as np
 
@@ -84,12 +84,13 @@ def _draw_int_range(
     rng: np.random.Generator,
 ) -> int:
     """Resolve an int-or-range-or-callable into a concrete int."""
-    if callable(val):
-        return int(val(rng))
+    if isinstance(val, int):
+        return int(val)
     if isinstance(val, tuple):
-        lo, hi = val
-        return int(rng.integers(int(lo), int(hi) + 1))
-    return int(val)
+        lo, hi = cast(tuple[int, int], val)
+        return int(rng.integers(lo, hi + 1))
+    # Callable form
+    return int(val(rng))
 
 
 def _draw_float_range(val: Union[float, tuple[float, float]], rng: np.random.Generator) -> float:
@@ -160,9 +161,12 @@ class StochasticSchedule(Schedule):
                 if dur <= 0:
                     raise ValueError(f"mode {mode_name!r} has non-positive duration_samples={dur}")
             elif isinstance(dur, tuple):
-                lo, hi = dur
-                if lo <= 0 or hi < lo:
-                    raise ValueError(f"mode {mode_name!r} has invalid duration range ({lo}, {hi})")
+                dur_tuple = cast(tuple[int, int], dur)
+                lo_i, hi_i = dur_tuple
+                if lo_i <= 0 or hi_i < lo_i:
+                    raise ValueError(
+                        f"mode {mode_name!r} has invalid duration range ({lo_i}, {hi_i})"
+                    )
 
     def _draw_mode(self, distribution: dict[str, float], rng: np.random.Generator) -> str:
         names = list(distribution.keys())

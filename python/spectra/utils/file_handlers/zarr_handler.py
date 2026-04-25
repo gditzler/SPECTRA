@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 
@@ -11,9 +11,11 @@ class ZarrHandler:
 
     def __init__(self, path: str):
         self._path = path
-        self._root = None
+        # Loosely typed because the zarr v2/v3 group object types differ;
+        # we duck-type at runtime via ``hasattr`` / ``getattr``.
+        self._root: Any = None
 
-    def open(self):
+    def open(self) -> None:
         import zarr
 
         # zarr v3 uses open_group, v2 uses open with mode
@@ -30,23 +32,25 @@ class ZarrHandler:
             self.open()
         if chunks is None:
             chunks = (min(64, shape[0]),) + shape[1:] if len(shape) > 0 else shape
+        root: Any = self._root
         # Try v3 API (create_array), fall back to v2 (create_dataset)
-        if hasattr(self._root, "create_array"):
-            return self._root.create_array(name, shape=shape, dtype=dtype, chunks=chunks)
-        else:
-            return self._root.create_dataset(name, shape=shape, dtype=dtype, chunks=chunks)
+        if hasattr(root, "create_array"):
+            return root.create_array(name, shape=shape, dtype=dtype, chunks=chunks)
+        return root.create_dataset(name, shape=shape, dtype=dtype, chunks=chunks)
 
-    def write_metadata(self, metadata: dict):
+    def write_metadata(self, metadata: dict) -> None:
         if self._root is None:
             self.open()
-        self._root.attrs.update(metadata)
+        root: Any = self._root
+        root.attrs.update(metadata)
 
-    def close(self):
+    def close(self) -> None:
         self._root = None
 
     def read(self, name: Optional[str] = None):
         import zarr
 
+        root: Any
         if hasattr(zarr, "open_group"):
             try:
                 root = zarr.open_group(self._path, mode="r")

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from typing import Sized, cast
 
 
 def _cmd_studio(args: argparse.Namespace) -> None:
@@ -25,7 +26,8 @@ def _cmd_generate(args: argparse.Namespace) -> None:
         # "all" split returns a 3-tuple
         for split_name, ds in zip(["train", "val", "test"], dataset):
             output_dir = f"{args.output}/{split_name}"
-            print(f"Exporting {split_name} split ({len(ds)} samples) to {output_dir}...")
+            n_samples = len(cast(Sized, ds))
+            print(f"Exporting {split_name} split ({n_samples} samples) to {output_dir}...")
             SigMFWriter.write_from_dataset(
                 ds, output_dir, sample_rate=args.sample_rate or 1e6
             )

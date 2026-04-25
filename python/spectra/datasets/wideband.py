@@ -53,15 +53,16 @@ class WidebandDataset(BaseIQDataset[Tuple[torch.Tensor, Dict]]):
         # Apply transform (e.g., STFT)
         if self.transform is not None:
             data = self.transform(iq)
-            # Build STFT params for label conversion
+            # Build STFT params for label conversion. The transform is expected
+            # to expose ``nfft`` and ``hop_length`` attributes (e.g. STFT).
             stft = self.transform
             stft_params = STFTParams(
-                nfft=stft.nfft,
-                hop_length=stft.hop_length,
+                nfft=getattr(stft, "nfft"),
+                hop_length=getattr(stft, "hop_length"),
                 sample_rate=self.scene_config.sample_rate,
                 num_samples=len(iq),
             )
-            targets = to_coco(signal_descs, stft_params, self.class_list)
+            targets: Dict = to_coco(signal_descs, stft_params, self.class_list)
         else:
             data = torch.tensor(np.stack([iq.real, iq.imag]), dtype=torch.float32)
             targets = {

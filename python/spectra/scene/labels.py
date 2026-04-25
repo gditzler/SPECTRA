@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import torch
 
@@ -34,7 +34,7 @@ def to_coco(
     signal_descs: List[SignalDescription],
     stft_params: STFTParams,
     class_list: List[str],
-) -> Dict[str, torch.Tensor]:
+) -> Dict[str, Any]:
     if len(signal_descs) == 0:
         return {
             "boxes": torch.zeros((0, 4), dtype=torch.float32),

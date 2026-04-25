@@ -230,6 +230,7 @@ class DirectionFindingDataset(BaseIQDataset[Tuple[torch.Tensor, DirectionFinding
         self, azimuths: np.ndarray, elevations: np.ndarray
     ) -> bool:
         """Check that all pairs of angles have at least min_angular_separation."""
+        assert self.min_angular_separation is not None
         n = len(azimuths)
         for i in range(n):
             for j in range(i + 1, n):

@@ -41,9 +41,10 @@ class AWGN(Transform):
         self, iq: np.ndarray, desc: SignalDescription, **kwargs
     ) -> Tuple[np.ndarray, SignalDescription]:
         if self.snr_range is not None:
-            snr_db = np.random.uniform(*self.snr_range)
+            snr_db = float(np.random.uniform(*self.snr_range))
         else:
-            snr_db = self.snr
+            assert self.snr is not None  # enforced in __init__
+            snr_db = float(self.snr)
 
         signal_power = np.mean(np.abs(iq) ** 2)
         snr_linear = 10.0 ** (snr_db / 10.0)

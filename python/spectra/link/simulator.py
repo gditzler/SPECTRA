@@ -83,7 +83,7 @@ class LinkSimulator:
         ser_arr = np.zeros(n_points)
         per_arr = np.zeros(n_points)
 
-        sps = self.waveform.samples_per_symbol
+        sps = getattr(self.waveform, "samples_per_symbol")
         rolloff = getattr(self.waveform, "rolloff", 0.35)
         filter_span = getattr(self.waveform, "filter_span", 10)
         constellation_size = self.receiver.constellation_size

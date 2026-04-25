@@ -1,7 +1,11 @@
 import os
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Protocol
 
 import numpy as np
+
+
+class _SupportsWrite(Protocol):
+    def write(self, iq: np.ndarray) -> object: ...
 
 
 def _tensor_to_complex64(data) -> np.ndarray:
@@ -36,7 +40,7 @@ def _tensor_to_complex64(data) -> np.ndarray:
 def export_dataset_to_folder(
     dataset,
     output_dir: str,
-    writer_factory: Callable[[str], object],
+    writer_factory: Callable[[str], _SupportsWrite],
     file_extension: str,
     class_list: Optional[List[str]] = None,
     max_samples: Optional[int] = None,
