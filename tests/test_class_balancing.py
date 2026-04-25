@@ -4,6 +4,7 @@ import torch
 from spectra.datasets.narrowband import NarrowbandDataset
 from spectra.datasets.sampler import balanced_sampler
 from spectra.waveforms import BPSK, FM, QPSK
+from spectra.waveforms.base import Waveform
 
 
 class TestClassWeights:
@@ -11,7 +12,7 @@ class TestClassWeights:
 
     def test_weighted_selection_single_class(self):
         """class_weights=[1, 0, 0] should produce only class 0."""
-        pool = [BPSK(), QPSK(), FM()]
+        pool: list[Waveform] = [BPSK(), QPSK(), FM()]
         ds = NarrowbandDataset(
             waveform_pool=pool,
             num_samples=100,
@@ -25,7 +26,7 @@ class TestClassWeights:
 
     def test_uniform_when_none(self):
         """class_weights=None should match default uniform behavior."""
-        pool = [BPSK(), QPSK(), FM()]
+        pool: list[Waveform] = [BPSK(), QPSK(), FM()]
         ds_default = NarrowbandDataset(
             waveform_pool=pool,
             num_samples=50,
@@ -46,7 +47,7 @@ class TestClassWeights:
 
     def test_weighted_produces_multiple_classes(self):
         """Balanced weights should produce multiple classes over many samples."""
-        pool = [BPSK(), QPSK(), FM()]
+        pool: list[Waveform] = [BPSK(), QPSK(), FM()]
         ds = NarrowbandDataset(
             waveform_pool=pool,
             num_samples=200,
@@ -63,7 +64,7 @@ class TestBalancedSampler:
     """balanced_sampler utility function."""
 
     def test_returns_weighted_sampler(self):
-        pool = [BPSK(), QPSK()]
+        pool: list[Waveform] = [BPSK(), QPSK()]
         ds = NarrowbandDataset(
             waveform_pool=pool,
             num_samples=100,
@@ -76,7 +77,7 @@ class TestBalancedSampler:
         assert sampler.num_samples == 100
 
     def test_custom_num_samples(self):
-        pool = [BPSK(), QPSK()]
+        pool: list[Waveform] = [BPSK(), QPSK()]
         ds = NarrowbandDataset(
             waveform_pool=pool,
             num_samples=100,
