@@ -218,3 +218,80 @@ Preconfigured variants:
 |-------|-------|-------------|
 | `Tone` | `"Tone"` | Complex sinusoid at a fixed frequency. Constructor: `freq_hz`. |
 | `Noise` | `"Noise"` | Gaussian noise (baseline / no-signal class). |
+
+---
+
+## Radar — FMCW, Pulsed, and Coded
+
+These classes model full radar emission modes. Each generates a time-domain IQ
+sequence that includes pulse trains, sweep ramps, or coded bursts ready for
+downstream matched filtering and Doppler processing.
+
+| Class | Label | Key kwargs | Description |
+|-------|-------|------------|-------------|
+| `PulsedRadar` | `"PulsedRadar"` | `pulse_width_samples`, `pri_samples`, `num_pulses`, `pulse_shape`, `pri_stagger`, `pri_jitter_fraction` | Simple pulsed radar waveform with configurable pulse shape and PRI. |
+| `PulseDoppler` | `"PulseDoppler"` | `prf_mode`, `num_pulses_per_cpi`, `pulse_width_samples`, `num_cpis` | Pulse-Doppler radar waveform. |
+| `FMCW` | `"FMCW"` | `sweep_bandwidth_fraction`, `sweep_samples`, `idle_samples`, `num_sweeps`, `sweep_type` | Frequency-Modulated Continuous Wave radar waveform. |
+| `SteppedFrequency` | `"SteppedFrequency"` | `num_steps`, `samples_per_step`, `freq_step_fraction`, `num_bursts` | Stepped-frequency radar waveform. |
+| `NonlinearFM` | `"NonlinearFM"` | `sweep_type`, `bandwidth_fraction`, `num_samples` | Nonlinear frequency modulation radar waveform. |
+| `BarkerCodedPulse` | `"BarkerCodedPulse"` | `barker_length`, `samples_per_chip`, `pri_samples`, `num_pulses` | Barker-coded pulsed radar waveform. |
+| `PolyphaseCodedPulse` | `"PolyphaseCodedPulse"` | `code_type`, `code_order`, `samples_per_chip`, `pri_samples`, `num_pulses` | Polyphase-coded pulsed radar waveform. |
+
+```python
+from spectra.waveforms.radar import FMCW, PulsedRadar, PolyphaseCodedPulse
+
+# FMCW with default sawtooth sweep
+wf = FMCW(sweep_bandwidth_fraction=0.5, num_sweeps=16)
+iq = wf.generate(num_symbols=1, sample_rate=50e6, seed=0)
+print(wf.label, iq.shape)  # FMCW (5120,)
+
+# Pulsed radar with Gaussian pulse shape and two-PRI stagger
+pr = PulsedRadar(pulse_shape="gaussian", pri_stagger=[512, 576])
+iq = pr.generate(num_symbols=1, sample_rate=10e6, seed=0)
+print(pr.label, iq.shape)  # PulsedRadar (varies)
+
+# Frank polyphase coded pulse
+pcp = PolyphaseCodedPulse(code_type="frank", code_order=4)
+iq = pcp.generate(num_symbols=1, sample_rate=10e6, seed=0)
+print(pcp.label, iq.shape)  # PolyphaseCodedPulse (16384,)
+```
+
+**See also:** [Radar Datasets](datasets.md#radar-datasets) for dataset
+wrappers that combine these waveforms with target injection, clutter, and
+matched-filter post-processing.
+
+---
+
+## Spread Spectrum — DSSS, FHSS, THSS, CDMA
+
+These classes extend the basic `DSSS_BPSK` / `LFM` / `ChirpSS` entries in the
+table above with richer modulation models, multi-user CDMA, and time-hopping.
+
+| Class | Label | Key kwargs | Description |
+|-------|-------|------------|-------------|
+| `DSSS_BPSK` | `"DSSS-BPSK"` | `code_type`, `code_order`, `samples_per_chip`, `code_index` | Direct-Sequence Spread Spectrum with BPSK modulation. |
+| `DSSS_QPSK` | `"DSSS-QPSK"` | `code_type`, `code_order`, `samples_per_chip`, `code_index` | Direct-Sequence Spread Spectrum with QPSK modulation. |
+| `FHSS` | `"FHSS"` | `num_channels`, `hop_pattern`, `dwell_samples`, `modulation` | Frequency Hopping Spread Spectrum. |
+| `THSS` | `"THSS"` | `num_frames`, `slots_per_frame`, `pulse_samples`, `pulse_shape` | Time Hopping Spread Spectrum. |
+| `CDMA_Forward` | `"CDMA-Forward"` | `num_users`, `spreading_factor`, `user_powers` | CDMA Forward Link (downlink) waveform. |
+| `CDMA_Reverse` | `"CDMA-Reverse"` | `num_users`, `spreading_factor`, `user_powers` | CDMA Reverse Link (uplink) waveform. |
+| `ChirpSS` | `"ChirpSS"` | `spreading_factor` | LoRa-like Chirp Spread Spectrum waveform. |
+
+```python
+from spectra.waveforms.spread_spectrum import DSSS_QPSK, FHSS, CDMA_Forward
+
+# DSSS with Gold codes
+wf = DSSS_QPSK(code_type="gold", code_order=5, samples_per_chip=4)
+iq = wf.generate(num_symbols=128, sample_rate=10e6, seed=0)
+print(wf.label, iq.shape)  # DSSS-QPSK (varies)
+
+# Frequency hopping across 8 channels with BPSK data
+fhss = FHSS(num_channels=8, hop_pattern="random", dwell_samples=64)
+iq = fhss.generate(num_symbols=64, sample_rate=10e6, seed=0)
+print(fhss.label, iq.shape)  # FHSS (4096,)
+
+# 4-user CDMA forward link
+cdma = CDMA_Forward(num_users=4, spreading_factor=64)
+iq = cdma.generate(num_symbols=128, sample_rate=10e6, seed=0)
+print(cdma.label, iq.shape)  # CDMA-Forward (8192,)
+```
