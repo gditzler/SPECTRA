@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 
@@ -23,7 +25,7 @@ class ZarrHandler:
         else:
             self._root = zarr.open(self._path, mode="w")
 
-    def create_array(self, name: str, shape: tuple, dtype, chunks: tuple = None):
+    def create_array(self, name: str, shape: tuple, dtype, chunks: Optional[tuple] = None):
         if self._root is None:
             self.open()
         if chunks is None:
@@ -42,7 +44,7 @@ class ZarrHandler:
     def close(self):
         self._root = None
 
-    def read(self, name: str = None):
+    def read(self, name: Optional[str] = None):
         import zarr
 
         if hasattr(zarr, "open_group"):
