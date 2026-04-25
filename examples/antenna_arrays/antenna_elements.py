@@ -16,17 +16,22 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.antennas import (
-    IsotropicElement, ShortDipoleElement, HalfWaveDipoleElement,
-    CosinePowerElement, YagiElement,
-)
 from plot_helpers import savefig
+from spectra.antennas import (
+    CosinePowerElement,
+    HalfWaveDipoleElement,
+    IsotropicElement,
+    ShortDipoleElement,
+    YagiElement,
+)
 
 freq = 1e9  # 1 GHz
 

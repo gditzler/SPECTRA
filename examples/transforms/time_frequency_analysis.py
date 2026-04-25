@@ -14,17 +14,24 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms.lfm import LFM
-from spectra.waveforms import QPSK
-from spectra.transforms import ReassignedGabor, InstantaneousFrequency, AmbiguityFunction, Spectrogram
-from spectra.scene import SignalDescription
 from plot_helpers import savefig
+from spectra.scene import SignalDescription
+from spectra.transforms import (
+    AmbiguityFunction,
+    InstantaneousFrequency,
+    ReassignedGabor,
+    Spectrogram,
+)
+from spectra.waveforms import QPSK
+from spectra.waveforms.lfm import LFM
 
 sample_rate = 1e6
 seed = 42

@@ -16,17 +16,20 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import json
 import tempfile
-import numpy as np
+
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import BPSK, QPSK, QAM16
-from spectra.datasets import SignalFolderDataset, ManifestDataset
 from plot_helpers import savefig
+from spectra.datasets import ManifestDataset, SignalFolderDataset
+from spectra.waveforms import BPSK, QAM16, QPSK
 
 sample_rate = 1e6
 num_iq = 1024

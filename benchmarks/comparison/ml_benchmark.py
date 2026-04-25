@@ -9,18 +9,19 @@ import time
 from pathlib import Path
 
 import numpy as np
+import spectra as sp
 import torch
 import torch.nn as nn
 import yaml
 from torch.utils.data import DataLoader, TensorDataset
 
-import spectra as sp
 from benchmarks.comparison.dataset_builders import (
     build_spectra_dataset as _build_spectra,
+)
+from benchmarks.comparison.dataset_builders import (
     build_torchsig_dataset as _build_torchsig,
 )
 from benchmarks.comparison.models import ResNetAMC
-
 
 # ---------------------------------------------------------------------------
 # Dataset builders

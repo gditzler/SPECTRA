@@ -1,7 +1,6 @@
 # tests/test_radar_algorithms.py
 """Tests for matched filter and CFAR detectors."""
 import numpy as np
-import pytest
 
 
 def _make_pulse_signal(delay_samples: int, amplitude: float = 1.0,

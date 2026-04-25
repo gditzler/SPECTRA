@@ -1,6 +1,5 @@
 # tests/test_studio_params.py
 """Tests for waveform parameter registry."""
-import pytest
 
 
 def test_get_waveform_params_bpsk():

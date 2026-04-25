@@ -1,8 +1,8 @@
 # tests/test_studio_plotting.py
 """Tests for SPECTRA Studio plotting functions."""
-import numpy as np
-import pytest
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")  # non-interactive backend for CI
 
 

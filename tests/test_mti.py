@@ -1,6 +1,5 @@
 """Tests for MTI pulse cancellers and Doppler filter bank."""
 import numpy as np
-import pytest
 
 
 def _make_clutter_plus_target(num_pulses=32, num_range_bins=64, target_bin=30,

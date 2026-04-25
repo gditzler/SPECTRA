@@ -1,6 +1,5 @@
 """Tests for LinkSimulator."""
 import numpy as np
-import pytest
 
 
 def test_link_results_fields():

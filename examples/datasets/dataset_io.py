@@ -14,19 +14,22 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import tempfile
-import numpy as np
+
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import BPSK, QPSK, QAM16
-from spectra.impairments import AWGN
+from plot_helpers import savefig
 from spectra.datasets import NarrowbandDataset
+from spectra.impairments import AWGN
 from spectra.utils.file_handlers import NumpyWriter
 from spectra.utils.file_handlers.dataset_export import export_dataset_to_folder
-from plot_helpers import savefig
+from spectra.waveforms import BPSK, QAM16, QPSK
 
 sample_rate = 1e6
 

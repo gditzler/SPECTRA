@@ -1,6 +1,5 @@
 # tests/test_df_snr_sweep.py
 import numpy as np
-import pytest
 import torch
 from spectra.arrays.array import ula
 from spectra.waveforms import BPSK, QPSK

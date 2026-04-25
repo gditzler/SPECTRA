@@ -17,14 +17,16 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import ADSB, ModeS, AIS, ACARS, DME, ILS_Localizer
-from plot_helpers import savefig, plot_psd
+from plot_helpers import savefig
+from spectra.waveforms import ACARS, ADSB, AIS, DME, ILS_Localizer, ModeS
 
 sample_rate = 2e6
 seed = 42

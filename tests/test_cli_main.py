@@ -2,7 +2,6 @@
 """Tests for unified CLI entry point."""
 import subprocess
 import sys
-import pytest
 
 
 def test_spectra_help():

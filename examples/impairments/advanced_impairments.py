@@ -24,21 +24,35 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import QPSK
+from plot_helpers import savefig
 from spectra.impairments import (
-    ColoredNoise, DopplerShift, FrequencyDrift, IQImbalance, DCOffset,
-    Quantization, SampleRateOffset, FractionalDelay, SamplingJitter,
-    TDLChannel, PassbandRipple, SpectralInversion,
-    RappPA, SalehPA, AdjacentChannelInterference, IntermodulationProducts,
+    AdjacentChannelInterference,
+    ColoredNoise,
+    DCOffset,
+    DopplerShift,
+    FractionalDelay,
+    FrequencyDrift,
+    IntermodulationProducts,
+    IQImbalance,
+    PassbandRipple,
+    Quantization,
+    RappPA,
+    SalehPA,
+    SampleRateOffset,
+    SamplingJitter,
+    SpectralInversion,
+    TDLChannel,
 )
 from spectra.scene import SignalDescription
-from plot_helpers import savefig
+from spectra.waveforms import QPSK
 
 sample_rate = 1e6
 waveform = QPSK(samples_per_symbol=8, rolloff=0.35)

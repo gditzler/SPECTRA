@@ -1,7 +1,8 @@
 """Tests for RadarPipelineDataset."""
+from typing import Any
+
 import numpy as np
 import torch
-from typing import Any
 
 
 def _make_pipeline_ds(**kwargs):

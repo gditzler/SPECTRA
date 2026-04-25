@@ -1,5 +1,6 @@
 """Shared dataset builder functions for benchmarks."""
 import spectra as sp
+
 from benchmarks.torchsig_compat.label_map import (
     CANONICAL_CLASSES,
     spectra_waveform_pool,

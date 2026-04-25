@@ -13,17 +13,19 @@ Learn how to:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import spectra as sp
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
-import spectra as sp
 from plot_helpers import savefig
+from torch.utils.data import DataLoader, random_split
 
 # ── 1. Dataset configuration ────────────────────────────────────────────────
 

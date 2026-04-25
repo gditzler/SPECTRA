@@ -1,8 +1,9 @@
 # tests/test_wideband_df.py
 """Tests for WidebandDirectionFindingDataset."""
+from typing import Any
+
 import numpy as np
 import torch
-from typing import Any
 from spectra.arrays.array import ula
 from spectra.waveforms import BPSK, QPSK
 

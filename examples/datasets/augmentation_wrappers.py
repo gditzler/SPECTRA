@@ -13,16 +13,17 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import BPSK, QPSK, QAM16, FSK
-from spectra.impairments import AWGN
-from spectra.datasets import NarrowbandDataset, MixUpDataset, CutMixDataset
 from plot_helpers import savefig
+from spectra.datasets import CutMixDataset, MixUpDataset, NarrowbandDataset
+from spectra.impairments import AWGN
+from spectra.waveforms import BPSK, FSK, QAM16, QPSK
 
 sample_rate = 1e6
 

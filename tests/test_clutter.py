@@ -1,6 +1,5 @@
 """Tests for RadarClutter impairment."""
 import numpy as np
-import pytest
 
 
 def _make_pulse_matrix(num_pulses=32, num_range_bins=128, rng=None):

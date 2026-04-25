@@ -108,7 +108,7 @@ def test_cv_kf_tracks_linear_target():
 
 
 def test_range_doppler_kf_factory():
-    from spectra.tracking.kalman import RangeDopplerKF, KalmanFilter
+    from spectra.tracking.kalman import KalmanFilter, RangeDopplerKF
     kf = RangeDopplerKF(
         dt=0.016, wavelength=0.03, pri=1e-3, pulses_per_cpi=16,
         process_noise_std=1.0, range_noise_std=5.0, doppler_noise_std=2.0,

@@ -17,20 +17,26 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import QPSK
-from spectra.impairments import DCOffset, AWGN, Compose
+from plot_helpers import savefig
+from spectra.impairments import AWGN, Compose, DCOffset
 from spectra.scene import SignalDescription
 from spectra.transforms.alignment import (
-    DCRemove, PowerNormalize, AGCNormalize, ClipNormalize,
-    SpectralWhitening, NoiseFloorMatch,
+    AGCNormalize,
+    ClipNormalize,
+    DCRemove,
+    NoiseFloorMatch,
+    PowerNormalize,
+    SpectralWhitening,
 )
-from plot_helpers import savefig
+from spectra.waveforms import QPSK
 
 sample_rate = 1e6
 waveform = QPSK(samples_per_symbol=8, rolloff=0.35)

@@ -46,7 +46,6 @@ except ImportError:  # pragma: no cover - fallback for older installs
 
 import spectra as sp
 
-
 # ── 1. Narrowband DataModule ────────────────────────────────────────────────
 # NarrowbandDataset.__getitem__ returns (iq_tensor, class_index). The integer
 # label is already what a classification head expects, so no target_transform

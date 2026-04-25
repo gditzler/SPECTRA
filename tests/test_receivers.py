@@ -27,10 +27,10 @@ def test_ldpc_stub_raises():
 
 def test_coherent_receiver_bpsk_noiseless():
     """Noiseless BPSK should demodulate perfectly."""
+    from spectra._rust import apply_rrc_filter_with_taps, generate_bpsk_symbols_with_indices
     from spectra.receivers.coherent import CoherentReceiver
-    from spectra.waveforms import BPSK
-    from spectra._rust import generate_bpsk_symbols_with_indices, apply_rrc_filter_with_taps
     from spectra.utils.rrc_cache import cached_rrc_taps
+    from spectra.waveforms import BPSK
 
     wf = BPSK(samples_per_symbol=8)
     num_sym = 200
@@ -50,10 +50,10 @@ def test_coherent_receiver_bpsk_noiseless():
 
 
 def test_coherent_receiver_qpsk_noiseless():
+    from spectra._rust import apply_rrc_filter_with_taps, generate_qpsk_symbols_with_indices
     from spectra.receivers.coherent import CoherentReceiver
-    from spectra.waveforms import QPSK
-    from spectra._rust import generate_qpsk_symbols_with_indices, apply_rrc_filter_with_taps
     from spectra.utils.rrc_cache import cached_rrc_taps
+    from spectra.waveforms import QPSK
 
     wf = QPSK(samples_per_symbol=8)
     num_sym = 200
@@ -73,10 +73,10 @@ def test_coherent_receiver_qpsk_noiseless():
 
 
 def test_coherent_receiver_output_shapes():
+    from spectra._rust import apply_rrc_filter_with_taps, generate_qpsk_symbols_with_indices
     from spectra.receivers.coherent import CoherentReceiver
-    from spectra.waveforms import QPSK
-    from spectra._rust import generate_qpsk_symbols_with_indices, apply_rrc_filter_with_taps
     from spectra.utils.rrc_cache import cached_rrc_taps
+    from spectra.waveforms import QPSK
 
     wf = QPSK(samples_per_symbol=8)
     symbols, tx_indices = generate_qpsk_symbols_with_indices(100, 42)

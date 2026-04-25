@@ -13,18 +13,20 @@ Learn how to:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import torch
+import matplotlib.pyplot as plt
 import spectra as sp
+import torch
+from plot_helpers import savefig
 from spectra.scene import STFTParams
 from spectra.utils import dsp
-from plot_helpers import savefig
 
 # -- 1. Configure wideband scene --------------------------------------------------
 

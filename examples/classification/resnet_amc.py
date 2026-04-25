@@ -16,24 +16,24 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-
-from spectra.waveforms import BPSK, QPSK, QAM16, FSK
-from spectra.impairments import AWGN
-from spectra.datasets import NarrowbandDataset
-from spectra.transforms import Spectrogram
-from spectra.models import ResNetAMC
-from spectra.metrics import confusion_matrix, accuracy
 from plot_helpers import savefig
+from spectra.datasets import NarrowbandDataset
+from spectra.impairments import AWGN
+from spectra.metrics import accuracy, confusion_matrix
+from spectra.models import ResNetAMC
+from spectra.transforms import Spectrogram
+from spectra.waveforms import BPSK, FSK, QAM16, QPSK
+from torch.utils.data import DataLoader
 
 sample_rate = 1e6
 num_classes = 4

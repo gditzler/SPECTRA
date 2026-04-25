@@ -22,14 +22,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
-
+from plot_helpers import OUTPUT_DIR, savefig
 from spectra.algorithms import esprit, find_peaks_doa, music
 from spectra.arrays import ula
 from spectra.datasets import DirectionFindingDataset
 from spectra.waveforms import BPSK, QAM16, QPSK
-
-from plot_helpers import OUTPUT_DIR, savefig
+from torch.utils.data import DataLoader
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -186,7 +184,7 @@ for i, (batch_data, batch_targets) in enumerate(loader):
 
 rmse_music = np.rad2deg(np.sqrt(np.mean(np.array(music_errors) ** 2)))
 rmse_esprit = np.rad2deg(np.sqrt(np.mean(np.array(esprit_errors) ** 2)))
-print(f"RMSE over 100 samples:")
+print("RMSE over 100 samples:")
 print(f"  MUSIC:  {rmse_music:.2f}°")
 print(f"  ESPRIT: {rmse_esprit:.2f}°")
 

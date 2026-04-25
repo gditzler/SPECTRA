@@ -2,9 +2,8 @@
 
 import numpy as np
 import pytest
-from spectra.impairments.mimo_channel import MIMOChannel
-
 from conftest import make_signal_description
+from spectra.impairments.mimo_channel import MIMOChannel
 
 
 def _make_desc():

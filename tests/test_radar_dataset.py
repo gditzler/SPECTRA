@@ -1,8 +1,9 @@
 # tests/test_radar_dataset.py
 """Tests for RadarDataset."""
+from typing import Any
+
 import numpy as np
 import torch
-from typing import Any
 from spectra.waveforms import LFM, BarkerCodedPulse
 
 

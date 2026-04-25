@@ -17,25 +17,21 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib.pyplot as plt
-import torch
-
-from spectra.targets import ConstantVelocity, ConstantTurnRate
-from spectra.targets import NonFluctuatingRCS, SwerlingRCS
-from spectra.impairments import RadarClutter
+import numpy as np
+from plot_helpers import OUTPUT_DIR, savefig
 from spectra.algorithms import (
-    single_pulse_canceller,
-    double_pulse_canceller,
     doppler_filter_bank,
+    single_pulse_canceller,
 )
-from spectra.tracking import ConstantVelocityKF, RangeDopplerKF
 from spectra.datasets import RadarPipelineDataset
+from spectra.impairments import RadarClutter
+from spectra.targets import ConstantTurnRate, ConstantVelocity, SwerlingRCS
+from spectra.tracking import ConstantVelocityKF
 from spectra.waveforms import LFM, BarkerCodedPulse
-
-from plot_helpers import savefig, OUTPUT_DIR
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 

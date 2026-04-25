@@ -1,8 +1,9 @@
 """Tests for CyclostationaryDataset."""
 
+from typing import Any
+
 import pytest
 import torch
-from typing import Any
 from spectra.datasets.cyclo import CyclostationaryDataset
 from spectra.transforms import PSD, SCD, Cumulants
 from spectra.waveforms import BPSK, QPSK

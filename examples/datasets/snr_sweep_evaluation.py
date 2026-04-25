@@ -14,17 +14,19 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import BPSK, QPSK, QAM16, FSK
-from spectra.impairments import AWGN
-from spectra.datasets import SNRSweepDataset
-from spectra.transforms import Spectrogram
 from plot_helpers import savefig
+from spectra.datasets import SNRSweepDataset
+from spectra.impairments import AWGN
+from spectra.transforms import Spectrogram
+from spectra.waveforms import BPSK, FSK, QAM16, QPSK
 
 sample_rate = 1e6
 
@@ -45,7 +47,7 @@ dataset = SNRSweepDataset(
 print(f"SNRSweepDataset: {len(dataset)} total samples")
 print(f"  SNR levels: {snr_levels}")
 print(f"  Classes: {len(waveform_pool)}")
-print(f"  Samples per cell: 5")
+print("  Samples per cell: 5")
 print(f"  Grid: {len(snr_levels)} x {len(waveform_pool)} x 5 = {len(dataset)}")
 
 # ── 2. Visualize samples across SNR levels ───────────────────────────────────

@@ -1,6 +1,5 @@
 import pytest
-import numpy as np
-from spectra.impairments._param_utils import validate_fixed_or_random, resolve_param
+from spectra.impairments._param_utils import resolve_param, validate_fixed_or_random
 
 
 class TestValidateFixedOrRandom:

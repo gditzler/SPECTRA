@@ -16,16 +16,24 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from plot_helpers import plot_psd, savefig
 from spectra.waveforms import (
-    DSSS_BPSK, DSSS_QPSK, FHSS, THSS, CDMA_Forward, CDMA_Reverse, ChirpSS,
+    DSSS_BPSK,
+    DSSS_QPSK,
+    FHSS,
+    THSS,
+    CDMA_Forward,
+    CDMA_Reverse,
+    ChirpSS,
 )
-from plot_helpers import savefig, plot_psd
 
 sample_rate = 1e6
 num_symbols = 256

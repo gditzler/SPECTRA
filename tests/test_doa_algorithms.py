@@ -1,6 +1,5 @@
 """Tests for MUSIC and ESPRIT direction-of-arrival estimators."""
 import numpy as np
-import pytest
 from spectra.arrays.array import ula
 
 
@@ -100,7 +99,7 @@ def test_capon_peak_at_true_angle():
 
 def test_capon_higher_resolution_than_music():
     """Capon generally resolves closely-spaced sources better than MUSIC at moderate SNR."""
-    from spectra.algorithms.doa import capon, music
+    from spectra.algorithms.doa import capon
     arr = ula(num_elements=8, spacing=0.5, frequency=1e9)
     az1, az2 = np.deg2rad(45.0), np.deg2rad(60.0)
     X1 = _synthetic_snapshot(az1, num_elements=8, snr_db=15.0, seed=10)

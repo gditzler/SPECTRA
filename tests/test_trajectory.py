@@ -64,7 +64,7 @@ def test_ct_states_shape():
 
 
 def test_trajectory_protocol():
-    from spectra.targets.trajectory import ConstantVelocity, ConstantTurnRate, Trajectory
+    from spectra.targets.trajectory import ConstantTurnRate, ConstantVelocity, Trajectory
     cv = ConstantVelocity(initial_range=100.0, velocity=10.0, dt=1.0)
     ct = ConstantTurnRate(initial_range=100.0, velocity=10.0, turn_rate=0.1, dt=1.0)
     assert isinstance(cv, Trajectory)

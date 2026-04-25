@@ -13,16 +13,16 @@ Learn how to:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
 import spectra as sp
 from plot_helpers import savefig
-
 
 # ── 1. Generate Test Signals ─────────────────────────────────────────────────
 

@@ -21,14 +21,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-
-from spectra.models import CNNAMC
-from spectra.metrics import accuracy, classification_report, confusion_matrix
 from spectra.benchmarks import load_benchmark
+from spectra.metrics import accuracy, classification_report, confusion_matrix
+from spectra.models import CNNAMC
+from torch.utils.data import DataLoader
 
 
 def train_one_epoch(model, loader, optimizer, criterion, device):

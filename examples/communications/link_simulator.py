@@ -16,27 +16,25 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib.pyplot as plt
-
-from spectra.waveforms import BPSK, QPSK, QAM16
-from spectra.receivers import CoherentReceiver
-from spectra.link import LinkSimulator, LinkResults
-from spectra.metrics import bit_error_rate, symbol_error_rate, packet_error_rate
+import numpy as np
+from plot_helpers import OUTPUT_DIR, savefig
 from spectra._rust import (
-    generate_bpsk_symbols_with_indices,
-    generate_qpsk_symbols_with_indices,
     apply_rrc_filter_with_taps,
+    generate_bpsk_symbols_with_indices,
     get_bpsk_constellation,
-    get_qpsk_constellation,
     get_qam_constellation,
+    get_qpsk_constellation,
 )
+from spectra.link import LinkSimulator
+from spectra.metrics import bit_error_rate
+from spectra.receivers import CoherentReceiver
 from spectra.receivers.coherent import constellation_to_bits
 from spectra.utils.rrc_cache import cached_rrc_taps
-
-from plot_helpers import savefig, OUTPUT_DIR
+from spectra.waveforms import BPSK, QAM16, QPSK
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 
@@ -98,7 +96,7 @@ sim = LinkSimulator(waveform=BPSK(samples_per_symbol=8),
                     num_symbols=5000, packet_length=PACKET_LEN, seed=SEED)
 result_single = sim.run(np.array([4.0]))
 
-print(f"3. BPSK at Eb/N0 = 4 dB:")
+print("3. BPSK at Eb/N0 = 4 dB:")
 print(f"   BER = {result_single.ber[0]:.4e}")
 print(f"   SER = {result_single.ser[0]:.4e}")
 print(f"   PER = {result_single.per[0]:.4e} (packet_length={PACKET_LEN})")

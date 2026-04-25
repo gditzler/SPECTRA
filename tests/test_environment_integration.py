@@ -1,7 +1,8 @@
 """Tests for environment-to-impairment integration."""
 
-import pytest
 from typing import Any
+
+import pytest
 from spectra.environment.core import Emitter, Environment, LinkParams, ReceiverConfig
 from spectra.environment.integration import link_params_to_impairments
 from spectra.environment.position import Position
