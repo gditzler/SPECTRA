@@ -1,16 +1,16 @@
 # tests/test_wideband_df.py
 """Tests for WidebandDirectionFindingDataset."""
 import numpy as np
-import pytest
 import torch
+from typing import Any
 from spectra.arrays.array import ula
-from spectra.waveforms import BPSK, QPSK, QAM16
+from spectra.waveforms import BPSK, QPSK
 
 
 def _make_ds(**kwargs):
     from spectra.datasets.wideband_df import WidebandDirectionFindingDataset
     arr = ula(num_elements=4, spacing=0.5, frequency=2.4e9)
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         array=arr,
         signal_pool=[BPSK(samples_per_symbol=4), QPSK(samples_per_symbol=4)],
         num_signals=2,
@@ -44,7 +44,6 @@ def test_wbdf_output_shape():
 
 
 def test_wbdf_target_fields():
-    from spectra.datasets.wideband_df import WidebandDFTarget
     ds = _make_ds(num_signals=2)
     _, target = ds[0]
     assert target.num_signals == 2
