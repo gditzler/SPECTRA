@@ -1,6 +1,6 @@
 import importlib.resources
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, overload
 
 import numpy as np
 import yaml
@@ -283,20 +283,26 @@ def load_snr_sweep(name: str, split: str = "test") -> SNRSweepDataset:
     return _build_snr_sweep(config, split)
 
 
-def load_benchmark(
-    name: str, split: str = "train"
-) -> Union[
-    NarrowbandDataset,
-    WidebandDataset,
-    DirectionFindingDataset,
+_SplitName = Literal["train", "val", "test"]
+_AnyBenchmarkDataset = Union[NarrowbandDataset, WidebandDataset, DirectionFindingDataset]
+_AnyBenchmarkTriple = Union[
     Tuple[NarrowbandDataset, NarrowbandDataset, NarrowbandDataset],
     Tuple[WidebandDataset, WidebandDataset, WidebandDataset],
-    Tuple[
-        DirectionFindingDataset,
-        DirectionFindingDataset,
-        DirectionFindingDataset,
-    ],
-]:
+    Tuple[DirectionFindingDataset, DirectionFindingDataset, DirectionFindingDataset],
+]
+
+
+@overload
+def load_benchmark(name: str, split: _SplitName = ...) -> _AnyBenchmarkDataset: ...
+
+
+@overload
+def load_benchmark(name: str, split: Literal["all"]) -> _AnyBenchmarkTriple: ...
+
+
+def load_benchmark(
+    name: str, split: str = "train"
+) -> Union[_AnyBenchmarkDataset, _AnyBenchmarkTriple]:
     """Load a benchmark dataset from a YAML config.
 
     Parameters
