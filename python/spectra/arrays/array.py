@@ -1,7 +1,7 @@
 # python/spectra/arrays/array.py
 """AntennaArray: geometry and steering vector computation."""
 
-from typing import List, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 import numpy as np
 
