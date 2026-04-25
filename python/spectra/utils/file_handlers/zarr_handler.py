@@ -59,5 +59,7 @@ class ZarrHandler:
         else:
             root = zarr.open(self._path, mode="r")
         if name is not None:
-            return np.array(root[name])
+            # zarr group/array access is duck-typed; key may be a name (group
+            # subscript) or an index (array subscript).
+            return np.array(root[name])  # ty: ignore[invalid-argument-type] # zarr v2/v3 compat
         return root

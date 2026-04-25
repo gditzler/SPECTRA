@@ -58,6 +58,14 @@ class NarrowbandMetadata(DatasetMetadata):
             d["snr_range"] = tuple(d["snr_range"])
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
 
+    @classmethod
+    def from_yaml(cls, path: str) -> "NarrowbandMetadata":
+        import yaml
+
+        with open(path, "r") as f:
+            d = yaml.safe_load(f)
+        return cls.from_dict(d)
+
 
 @dataclass
 class WidebandMetadata(DatasetMetadata):
@@ -73,3 +81,11 @@ class WidebandMetadata(DatasetMetadata):
             d = dict(d)
             d["num_signals_range"] = tuple(d["num_signals_range"])
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
+
+    @classmethod
+    def from_yaml(cls, path: str) -> "WidebandMetadata":
+        import yaml
+
+        with open(path, "r") as f:
+            d = yaml.safe_load(f)
+        return cls.from_dict(d)

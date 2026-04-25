@@ -1,7 +1,7 @@
 # python/spectra/arrays/array.py
 """AntennaArray: geometry and steering vector computation."""
 
-from typing import List, Optional, Union
+from typing import List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -33,7 +33,7 @@ class AntennaArray:
     def __init__(
         self,
         positions: np.ndarray,
-        elements: Union[AntennaElement, List[AntennaElement]],
+        elements: Union[AntennaElement, Sequence[AntennaElement]],
         reference_frequency: float,
     ):
         _positions = np.asarray(positions, dtype=float)

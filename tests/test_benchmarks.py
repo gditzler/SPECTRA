@@ -190,4 +190,4 @@ impairments: []
         config_file.write_text(config_content)
 
         with pytest.raises(ValueError, match="split"):
-            load_benchmark(str(config_file), split="invalid")
+            load_benchmark(str(config_file), split="invalid")  # ty: ignore[no-matching-overload] # intentional invalid Literal

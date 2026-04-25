@@ -57,7 +57,9 @@ class TestPositionAngle:
     def test_elevation_angle_with_z(self):
         a = Position(0.0, 0.0, z=0.0)
         b = Position(100.0, 0.0, z=100.0)
-        assert math.isclose(a.elevation_to(b), math.pi / 4)
+        elev = a.elevation_to(b)
+        assert elev is not None
+        assert math.isclose(elev, math.pi / 4)
 
     def test_elevation_returns_none_without_z(self):
         a = Position(0.0, 0.0)

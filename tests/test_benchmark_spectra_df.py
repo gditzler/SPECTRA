@@ -18,11 +18,13 @@ class TestSpectraDf:
 
     def test_sample_shape(self):
         from spectra.benchmarks import load_benchmark
+        from spectra.datasets import DirectionFindingTarget
 
         ds = load_benchmark("spectra-df", split="train")
         data, target = ds[0]
         assert data.shape == (8, 2, 256)
         assert data.dtype == torch.float32
+        assert isinstance(target, DirectionFindingTarget)
         assert target.num_sources == 2
 
     def test_all_split(self):

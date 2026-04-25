@@ -34,5 +34,7 @@ class TestSpectra18WidebandBenchmark:
         ds2 = load_benchmark("spectra-18-wideband", split="train")
         _, t1 = ds1[5]
         _, t2 = ds2[5]
+        # Wideband targets are dicts; narrow the union returned by load_benchmark.
+        assert isinstance(t1, dict) and isinstance(t2, dict)
         # Same number of signals detected (seeded composer)
-        assert len(t1["labels"]) == len(t2["labels"])
+        assert len(t1["labels"]) == len(t2["labels"])  # ty: ignore[invalid-argument-type] # dict[Unknown,Unknown] erases value type

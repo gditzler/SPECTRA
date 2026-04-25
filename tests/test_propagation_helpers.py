@@ -36,7 +36,7 @@ class TestResolveLOS:
     def test_invalid_mode_raises(self):
         rng = np.random.default_rng(0)
         with pytest.raises(ValueError, match="los_mode"):
-            _resolve_los("bogus", 0.5, rng)
+            _resolve_los("bogus", 0.5, rng)  # ty: ignore[invalid-argument-type] # intentional invalid Literal
 
 
 class TestCheckFreqRange:
