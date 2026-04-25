@@ -43,6 +43,10 @@ theme:
 
 plugins:
   - search
+  - exclude:
+      glob:
+        - superpowers/**
+        - plans/**
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -106,22 +110,32 @@ nav:
     - Key Concepts: getting-started/concepts.md
   - User Guide:
     - Waveforms: user-guide/waveforms.md
+    - 5G NR: user-guide/5g-nr.md
+    - Aviation & Maritime Protocols: user-guide/protocols.md
     - Multi-Function Emitters: user-guide/multifunction-emitters.md
     - Impairments: user-guide/impairments.md
     - Propagation: user-guide/propagation.md
     - Scene Composition: user-guide/scene-composition.md
     - Datasets: user-guide/datasets.md
+    - Direction Finding: user-guide/direction-finding.md
+    - Link Simulation: user-guide/link-simulation.md
     - Transforms & CSP: user-guide/transforms.md
     - File I/O: user-guide/file-io.md
     - Benchmarks: user-guide/benchmarks.md
     - Curriculum & Streaming: user-guide/curriculum-streaming.md
-    - Link Simulation: user-guide/link-simulation.md
+    - Studio: user-guide/studio.md
   - API Reference:
     - spectra.waveforms: api/waveforms.md
     - spectra.impairments: api/impairments.md
     - spectra.scene: api/scene.md
+    - spectra.environment: api/environment.md
+    - spectra.antennas: api/antennas.md
+    - spectra.arrays: api/arrays.md
+    - spectra.algorithms: api/algorithms.md
     - spectra.datasets: api/datasets.md
     - spectra.transforms: api/transforms.md
+    - spectra.receivers: api/receivers.md
+    - spectra.link: api/link.md
     - spectra.classifiers: api/classifiers.md
     - spectra.benchmarks: api/benchmarks.md
     - spectra.curriculum: api/curriculum.md
