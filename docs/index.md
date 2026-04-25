@@ -17,7 +17,12 @@ composition, impairments, and PyTorch DataLoader integration.
 - **Wideband scene composition** — mix multiple signals with COCO-format bounding-box labels
 - **Cyclostationary processing** — SCD (SSCA/FAM/S3CA), SCF, CAF, cumulants, PSD via Rust
 - **Time-frequency analysis** — Wigner-Ville Distribution, Ambiguity Function
+- **Multi-function emitters** — `ScheduledWaveform` with `StaticSchedule`, `StochasticSchedule`, and `CognitiveSchedule` for time-multiplexed radar/comms modes
+- **Radar pipelines** — `RadarDataset` and `RadarPipelineDataset` with end-to-end matched filter → MTI → CFAR → Kalman tracker
+- **Direction finding** — antenna arrays (ULA/UCA/rectangular), MUSIC/ESPRIT/Capon/Root-MUSIC, narrowband and wideband DF datasets
+- **Link-level simulation** — `LinkSimulator` for BER/SER/PER vs. Eb/N0 curves with `LinkResults`
 - **Data augmentations** — CutOut, MixUp, CutMix, PatchShuffle, TimeReversal, and more
+- **Domain-adaptation transforms** — `DCRemove`, `BandpassAlign`, `NoiseFloorMatch`, `SpectralWhitening`, `NoiseProfileTransfer`, `ReceiverEQ` for cross-domain alignment
 - **Class balancing** — built-in `class_weights` and `balanced_sampler` for imbalanced datasets
 - **Reproducible benchmarks** — 13 built-in YAML configs (AMC, wideband scenes, 5G, radar, spread spectrum, direction finding, channel robustness, SNR sweeps); load with `load_benchmark()`, `load_channel_benchmark()`, or `load_snr_sweep()`
 - **Curriculum learning** — progressive difficulty ramps with `CurriculumSchedule`
