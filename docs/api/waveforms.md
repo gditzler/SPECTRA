@@ -139,3 +139,105 @@ Preconfigured variants with fixed subcarrier counts:
 ::: spectra.waveforms.noise.Noise
     options:
       show_source: false
+
+## 5G NR
+
+::: spectra.waveforms.nr.NR_OFDM
+    options:
+      show_source: false
+::: spectra.waveforms.nr.NR_SSB
+    options:
+      show_source: false
+::: spectra.waveforms.nr.NR_PDSCH
+    options:
+      show_source: false
+::: spectra.waveforms.nr.NR_PUSCH
+    options:
+      show_source: false
+::: spectra.waveforms.nr.NR_PRACH
+    options:
+      show_source: false
+
+## Aviation & Maritime Protocols
+
+::: spectra.waveforms.aviation_maritime.ADSB
+    options:
+      show_source: false
+::: spectra.waveforms.aviation_maritime.ModeS
+    options:
+      show_source: false
+::: spectra.waveforms.aviation_maritime.AIS
+    options:
+      show_source: false
+::: spectra.waveforms.aviation_maritime.ACARS
+    options:
+      show_source: false
+::: spectra.waveforms.aviation_maritime.DME
+    options:
+      show_source: false
+::: spectra.waveforms.aviation_maritime.ILS_Localizer
+    options:
+      show_source: false
+
+## Radar (Additional)
+
+::: spectra.waveforms.radar.PulsedRadar
+    options:
+      show_source: false
+::: spectra.waveforms.radar.PulseDoppler
+    options:
+      show_source: false
+::: spectra.waveforms.radar.FMCW
+    options:
+      show_source: false
+::: spectra.waveforms.radar.SteppedFrequency
+    options:
+      show_source: false
+::: spectra.waveforms.radar.NonlinearFM
+    options:
+      show_source: false
+::: spectra.waveforms.radar.BarkerCodedPulse
+    options:
+      show_source: false
+::: spectra.waveforms.radar.PolyphaseCodedPulse
+    options:
+      show_source: false
+
+## Spread Spectrum (Additional)
+
+::: spectra.waveforms.spread_spectrum.DSSS_QPSK
+    options:
+      show_source: false
+::: spectra.waveforms.spread_spectrum.FHSS
+    options:
+      show_source: false
+::: spectra.waveforms.spread_spectrum.THSS
+    options:
+      show_source: false
+::: spectra.waveforms.spread_spectrum.CDMA_Forward
+    options:
+      show_source: false
+::: spectra.waveforms.spread_spectrum.CDMA_Reverse
+    options:
+      show_source: false
+
+## Multi-Function Emitters
+
+::: spectra.waveforms.multifunction.scheduled_waveform.ScheduledWaveform
+    options:
+      show_source: false
+::: spectra.waveforms.multifunction.schedule.StaticSchedule
+    options:
+      show_source: false
+::: spectra.waveforms.multifunction.schedule.StochasticSchedule
+    options:
+      show_source: false
+::: spectra.waveforms.multifunction.schedule.CognitiveSchedule
+    options:
+      show_source: false
+::: spectra.waveforms.multifunction.schedule.SegmentSpec
+    options:
+      show_source: false
+::: spectra.waveforms.multifunction.schedule.ModeSpec
+    options:
+      show_source: false
