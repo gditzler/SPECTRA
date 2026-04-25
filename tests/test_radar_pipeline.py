@@ -1,16 +1,16 @@
 """Tests for RadarPipelineDataset."""
 import numpy as np
-import pytest
 import torch
+from typing import Any
 
 
 def _make_pipeline_ds(**kwargs):
     from spectra.datasets.radar_pipeline import RadarPipelineDataset
-    from spectra.targets.trajectory import ConstantVelocity
     from spectra.impairments.clutter import RadarClutter
+    from spectra.targets.trajectory import ConstantVelocity
     from spectra.waveforms import LFM
 
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         waveform_pool=[LFM()],
         trajectory_pool=[
             ConstantVelocity(initial_range=100.0, velocity=0.5, dt=1.0),
