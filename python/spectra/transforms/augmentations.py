@@ -7,7 +7,7 @@ class CutOut:
     def __init__(self, max_length_fraction: float = 0.1):
         self._max_frac = max_length_fraction
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         if rng is None:
             rng = np.random.default_rng()
         out = iq.copy()
@@ -21,14 +21,14 @@ class CutOut:
 class TimeReversal:
     """Flip signal in time."""
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         return iq[::-1].copy()
 
 
 class ChannelSwap:
     """Swap I/Q channels (complex conjugate)."""
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         return iq.conj().copy()
 
 
@@ -38,7 +38,7 @@ class PatchShuffle:
     def __init__(self, num_patches: int = 8):
         self._num_patches = num_patches
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         if rng is None:
             rng = np.random.default_rng()
         patches = np.array_split(iq, self._num_patches)
@@ -53,7 +53,7 @@ class RandomDropSamples:
         self._drop_rate = drop_rate
         self._fill = fill
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         if rng is None:
             rng = np.random.default_rng()
         out = iq.copy()
@@ -79,7 +79,7 @@ class AddSlope:
     def __init__(self, max_slope: float = 0.1):
         self._max_slope = max_slope
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         if rng is None:
             rng = np.random.default_rng()
         slope = rng.uniform(-self._max_slope, self._max_slope)
@@ -93,7 +93,7 @@ class RandomMagRescale:
     def __init__(self, scale_range: tuple = (0.5, 2.0)):
         self._scale_range = scale_range
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         if rng is None:
             rng = np.random.default_rng()
         scale = rng.uniform(*self._scale_range)
@@ -106,7 +106,7 @@ class AGC:
     def __init__(self, target_power: float = 1.0):
         self._target_power = target_power
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         power = np.mean(np.abs(iq) ** 2)
         if power > 0:
             scale = np.sqrt(self._target_power / power)
@@ -124,7 +124,7 @@ class MixUp:
     def __init__(self, alpha: float = 0.2):
         self._alpha = alpha
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         if rng is None:
             rng = np.random.default_rng()
         lam = rng.beta(self._alpha, self._alpha)
@@ -142,7 +142,7 @@ class CutMix:
     def __init__(self, alpha: float = 1.0):
         self._alpha = alpha
 
-    def __call__(self, iq: np.ndarray, rng: np.random.Generator = None) -> np.ndarray:
+    def __call__(self, iq: np.ndarray, rng: np.random.Generator | None = None) -> np.ndarray:
         if rng is None:
             rng = np.random.default_rng()
         lam = rng.beta(self._alpha, self._alpha)

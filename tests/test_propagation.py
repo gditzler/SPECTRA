@@ -1,6 +1,7 @@
 """Tests for propagation models."""
 
 import math
+from typing import Literal
 
 import pytest
 from spectra.environment.propagation import (
@@ -264,7 +265,7 @@ class TestOkumuraHataPL:
 
     def test_invalid_environment_raises(self):
         with pytest.raises(ValueError, match="environment"):
-            OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban")  # old COST231 name
+            OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban")  # ty: ignore[invalid-argument-type] # intentional invalid Literal
 
     def test_shadow_fading_deterministic_with_seed(self):
         m = OkumuraHataPL(h_bs_m=50.0, h_ms_m=1.5, environment="urban_small_medium", sigma_db=8.0)
@@ -387,7 +388,7 @@ class TestGPP38901UMa:
             m(1.0, 3.5e9)  # below 10 m
 
     def test_invalid_los_mode_raises(self):
-        m = GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="bogus")
+        m = GPP38901UMa(h_bs_m=25.0, h_ut_m=1.5, los_mode="bogus")  # ty: ignore[invalid-argument-type] # intentional invalid Literal
         with pytest.raises(ValueError, match="los_mode"):
             m(500.0, 3.5e9, seed=0)
 
@@ -512,14 +513,19 @@ class TestITU_R_P1411:
         assert los(200.0, 2.4e9, seed=0).path_loss_db < nlos(200.0, 2.4e9, seed=0).path_loss_db
 
     def test_all_three_environments(self):
-        for env in ["urban_high_rise", "urban_low_rise_suburban", "residential"]:
+        envs: list[Literal["urban_high_rise", "urban_low_rise_suburban", "residential"]] = [
+            "urban_high_rise",
+            "urban_low_rise_suburban",
+            "residential",
+        ]
+        for env in envs:
             m = ITU_R_P1411(environment=env)
             r = m(200.0, 2.4e9, seed=0)
             assert isinstance(r, PathLossResult)
 
     def test_invalid_environment_raises(self):
         with pytest.raises(ValueError, match="environment"):
-            ITU_R_P1411(environment="rural")
+            ITU_R_P1411(environment="rural")  # ty: ignore[invalid-argument-type] # intentional invalid Literal
 
     def test_farther_distance_more_loss(self):
         m = ITU_R_P1411(environment="urban_high_rise", los_mode="force_los")

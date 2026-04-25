@@ -1,6 +1,6 @@
 import numpy as np
-import pytest
 import torch
+from typing import Any
 from torch.utils.data import DataLoader
 
 
@@ -10,7 +10,7 @@ def _make_dataset(**kwargs):
     from spectra.datasets.direction_finding import DirectionFindingDataset
     from spectra.waveforms import BPSK
 
-    defaults = dict(
+    defaults: dict[str, Any] = dict(
         array=ula(num_elements=4, frequency=2.4e9),
         signal_pool=[BPSK(samples_per_symbol=4)],
         num_signals=1,
@@ -140,12 +140,10 @@ def test_with_impairments():
 
 
 def test_with_transform():
-    from spectra.transforms.snapshot import ToSnapshotMatrix
 
     # ToSnapshotMatrix expects numpy input [N, 2, T] but dataset returns torch.Tensor
     # Use a lambda to convert tensor → numpy → snapshot matrix → back to tensor
     def snapshot_transform(x):
-        import numpy as np
         arr = x.numpy()
         return torch.from_numpy(arr[:, 0, :] + 1j * arr[:, 1, :])
 

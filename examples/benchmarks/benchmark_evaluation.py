@@ -18,14 +18,16 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.benchmarks import load_benchmark, load_snr_sweep, evaluate_snr_sweep
+import torch
 from plot_helpers import savefig
+from spectra.benchmarks import evaluate_snr_sweep, load_benchmark, load_snr_sweep
 
 # ── 1. Load the spectra-18 benchmark ────────────────────────────────────────
 print("Loading spectra-18 benchmark...")
@@ -47,7 +49,7 @@ print(f"  Samples: {len(ds_snr)}")
 
 # ── 4. Simulate a simple classifier on the SNR sweep ────────────────────────
 # (Predictions are intentionally simple to demonstrate the evaluate_snr_sweep API)
-import torch
+
 
 def identity_predict_fn(batch):
     """Placeholder: always predict class 0 — replace with a real model."""

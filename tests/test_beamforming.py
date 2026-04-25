@@ -1,7 +1,6 @@
 # tests/test_beamforming.py
 """Tests for delay-and-sum, MVDR, and LCMV beamformers."""
 import numpy as np
-import pytest
 from spectra.arrays.array import ula
 
 
@@ -55,7 +54,9 @@ def test_mvdr_distortionless_constraint():
     w = _mvdr_weights(X, arr, target_az=np.deg2rad(45.0))
     a = arr.steering_vector(azimuth=np.deg2rad(45.0), elevation=0.0)
     response = float(np.abs(w.conj() @ a))
-    assert abs(response - 1.0) < 0.05, f"MVDR distortionless constraint violated: |w^H a| = {response:.4f}"
+    assert abs(response - 1.0) < 0.05, (
+        f"MVDR distortionless constraint violated: |w^H a| = {response:.4f}"
+    )
 
 
 def test_lcmv_output_shape():

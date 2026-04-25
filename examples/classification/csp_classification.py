@@ -14,19 +14,20 @@ Learn how to:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
 import spectra as sp
 from plot_helpers import savefig
 
 try:
+    from sklearn.metrics import accuracy_score, confusion_matrix
     from sklearn.model_selection import train_test_split
-    from sklearn.metrics import confusion_matrix, accuracy_score
 except ImportError:
     raise ImportError(
         "This example requires scikit-learn. Install it with:\n"
@@ -67,7 +68,7 @@ dataset = sp.CyclostationaryDataset(
 
 sample_data, sample_label = dataset[0]
 print(f"\nDataset size: {len(dataset)}")
-print(f"Representations per sample:")
+print("Representations per sample:")
 for name, tensor in sample_data.items():
     print(f"  {name}: shape={list(tensor.shape)}, dtype={tensor.dtype}")
 print(f"Label: {sample_label} ({class_names[sample_label]})")
@@ -181,7 +182,11 @@ for fs in feature_sets:
     print(f"  {fs}: {acc_fs:.1%}")
 
 fig, ax = plt.subplots(figsize=(8, 4))
-bars = ax.bar(list(accuracies.keys()), list(accuracies.values()), color=["steelblue", "coral", "seagreen"])
+bars = ax.bar(
+    list(accuracies.keys()),
+    list(accuracies.values()),
+    color=["steelblue", "coral", "seagreen"],
+)
 ax.set_ylabel("Test Accuracy")
 ax.set_title("Feature Set Comparison — Random Forest AMC")
 ax.set_ylim(0, 1.05)

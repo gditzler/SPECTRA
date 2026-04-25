@@ -1,12 +1,10 @@
-import numpy as np
-import pytest
 from spectra.datasets._base import BaseIQDataset
 
 
 class ConcreteDataset(BaseIQDataset):
     """Minimal concrete subclass for testing."""
-    def __getitem__(self, idx):
-        rng = self._make_rng(idx)
+    def __getitem__(self, index):
+        rng = self._make_rng(index)
         return rng.random()
 
 

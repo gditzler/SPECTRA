@@ -14,14 +14,16 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.algorithms import single_pulse_canceller, double_pulse_canceller, doppler_filter_bank
 from plot_helpers import savefig
+from spectra.algorithms import doppler_filter_bank, double_pulse_canceller, single_pulse_canceller
 
 rng = np.random.default_rng(42)
 
@@ -42,7 +44,8 @@ for p in range(num_pulses):
     clutter[p, target_range_bin] += target_amplitude * np.exp(1j * phase)
 
 # Add noise
-pulse_matrix = clutter + 0.5 * (rng.standard_normal(clutter.shape) + 1j * rng.standard_normal(clutter.shape))
+noise = rng.standard_normal(clutter.shape) + 1j * rng.standard_normal(clutter.shape)
+pulse_matrix = clutter + 0.5 * noise
 
 # ── 2. Apply MTI cancellers ─────────────────────────────────────────────────
 spc = single_pulse_canceller(pulse_matrix)

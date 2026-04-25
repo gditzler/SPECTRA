@@ -10,8 +10,8 @@ import numpy as np
 import torch
 
 from spectra.arrays.array import AntennaArray
-from spectra.datasets._base import BaseIQDataset
 from spectra.arrays.calibration import CalibrationErrors
+from spectra.datasets._base import BaseIQDataset
 from spectra.datasets.iq_utils import truncate_pad
 from spectra.impairments.compose import Compose
 from spectra.scene.signal_desc import SignalDescription
@@ -40,7 +40,7 @@ class DirectionFindingTarget:
     signal_descs: List[SignalDescription] = field(default_factory=list)
 
 
-class DirectionFindingDataset(BaseIQDataset):
+class DirectionFindingDataset(BaseIQDataset[Tuple[torch.Tensor, DirectionFindingTarget]]):
     """On-the-fly direction-finding IQ snapshot dataset.
 
     Generates multi-antenna IQ snapshots deterministically from
@@ -118,8 +118,8 @@ class DirectionFindingDataset(BaseIQDataset):
         self.impairments = impairments
         self.transform = transform
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, DirectionFindingTarget]:
-        rng = self._make_rng(idx)
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, DirectionFindingTarget]:
+        rng = self._make_rng(index)
 
         # --- Determine number of sources ---
         if isinstance(self.num_signals, tuple):
@@ -230,6 +230,7 @@ class DirectionFindingDataset(BaseIQDataset):
         self, azimuths: np.ndarray, elevations: np.ndarray
     ) -> bool:
         """Check that all pairs of angles have at least min_angular_separation."""
+        assert self.min_angular_separation is not None
         n = len(azimuths)
         for i in range(n):
             for j in range(i + 1, n):

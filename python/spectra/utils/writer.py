@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from spectra.utils.file_handlers.zarr_handler import ZarrHandler
@@ -71,7 +73,7 @@ class DatasetWriter:
                 )
                 arr[:] = all_targets
 
-    def finalize(self, metadata: dict = None):
+    def finalize(self, metadata: Optional[dict] = None):
         """Flush and write metadata."""
         if metadata:
             self._handler.write_metadata(metadata)

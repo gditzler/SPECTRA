@@ -19,10 +19,10 @@ def confusion_matrix(
         [num_classes, num_classes] array where entry (i, j) is the count
         of samples with true label i predicted as j.
     """
-    y_true = np.asarray(y_true, dtype=int)
-    y_pred = np.asarray(y_pred, dtype=int)
+    y_true_arr = np.asarray(y_true, dtype=int)
+    y_pred_arr = np.asarray(y_pred, dtype=int)
     cm = np.zeros((num_classes, num_classes), dtype=int)
-    for t, p in zip(y_true, y_pred):
+    for t, p in zip(y_true_arr, y_pred_arr):
         cm[t, p] += 1
     return cm
 
@@ -37,11 +37,11 @@ def accuracy(y_true: Sequence[int], y_pred: Sequence[int]) -> float:
     Returns:
         Fraction of correctly classified samples.
     """
-    y_true = np.asarray(y_true, dtype=int)
-    y_pred = np.asarray(y_pred, dtype=int)
-    if len(y_true) == 0:
+    y_true_arr = np.asarray(y_true, dtype=int)
+    y_pred_arr = np.asarray(y_pred, dtype=int)
+    if len(y_true_arr) == 0:
         return 0.0
-    return float(np.mean(y_true == y_pred))
+    return float(np.mean(y_true_arr == y_pred_arr))
 
 
 def classification_report(
@@ -59,9 +59,9 @@ def classification_report(
     Returns:
         Dict mapping class name to {"precision", "recall", "f1", "support"}.
     """
-    y_true = np.asarray(y_true, dtype=int)
-    y_pred = np.asarray(y_pred, dtype=int)
-    classes = np.unique(np.concatenate([y_true, y_pred]))
+    y_true_arr = np.asarray(y_true, dtype=int)
+    y_pred_arr = np.asarray(y_pred, dtype=int)
+    classes = np.unique(np.concatenate([y_true_arr, y_pred_arr]))
     num_classes = int(classes.max()) + 1 if len(classes) > 0 else 0
 
     if class_names is None:
@@ -106,15 +106,15 @@ def per_snr_accuracy(
     Returns:
         Dict mapping SNR value to accuracy at that SNR.
     """
-    y_true = np.asarray(y_true, dtype=int)
-    y_pred = np.asarray(y_pred, dtype=int)
-    snr_values = np.asarray(snr_values, dtype=float)
+    y_true_arr = np.asarray(y_true, dtype=int)
+    y_pred_arr = np.asarray(y_pred, dtype=int)
+    snr_values_arr = np.asarray(snr_values, dtype=float)
 
     result = {}
-    for snr in np.unique(snr_values):
-        mask = snr_values == snr
+    for snr in np.unique(snr_values_arr):
+        mask = snr_values_arr == snr
         if mask.sum() > 0:
-            result[float(snr)] = float(np.mean(y_true[mask] == y_pred[mask]))
+            result[float(snr)] = float(np.mean(y_true_arr[mask] == y_pred_arr[mask]))
     return result
 
 
@@ -133,18 +133,18 @@ def per_snr_rmse(
     Returns:
         Dict mapping each unique SNR value to the RMSE in degrees at that SNR.
     """
-    true_angles = np.asarray(true_angles, dtype=float)
-    estimated_angles = np.asarray(estimated_angles, dtype=float)
-    snr_values = np.asarray(snr_values, dtype=float)
+    true_angles_arr = np.asarray(true_angles, dtype=float)
+    estimated_angles_arr = np.asarray(estimated_angles, dtype=float)
+    snr_values_arr = np.asarray(snr_values, dtype=float)
 
-    if len(true_angles) == 0:
+    if len(true_angles_arr) == 0:
         return {}
 
     result: Dict[float, float] = {}
-    for snr in np.unique(snr_values):
-        mask = snr_values == snr
+    for snr in np.unique(snr_values_arr):
+        mask = snr_values_arr == snr
         if mask.sum() > 0:
-            errors = true_angles[mask] - estimated_angles[mask]
+            errors = true_angles_arr[mask] - estimated_angles_arr[mask]
             rmse_rad = float(np.sqrt(np.mean(errors ** 2)))
             result[float(snr)] = float(np.rad2deg(rmse_rad))
     return result
@@ -152,16 +152,16 @@ def per_snr_rmse(
 
 def bit_error_rate(tx_bits: np.ndarray, rx_bits: np.ndarray) -> float:
     """Fraction of bits that differ between transmitted and received sequences."""
-    tx_bits = np.asarray(tx_bits)
-    rx_bits = np.asarray(rx_bits)
-    return float(np.mean(tx_bits != rx_bits))
+    tx_bits_arr = np.asarray(tx_bits)
+    rx_bits_arr = np.asarray(rx_bits)
+    return float(np.mean(tx_bits_arr != rx_bits_arr))
 
 
 def symbol_error_rate(tx_indices: np.ndarray, rx_indices: np.ndarray) -> float:
     """Fraction of symbol indices that differ."""
-    tx_indices = np.asarray(tx_indices)
-    rx_indices = np.asarray(rx_indices)
-    return float(np.mean(tx_indices != rx_indices))
+    tx_indices_arr = np.asarray(tx_indices)
+    rx_indices_arr = np.asarray(rx_indices)
+    return float(np.mean(tx_indices_arr != rx_indices_arr))
 
 
 def packet_error_rate(
@@ -171,13 +171,13 @@ def packet_error_rate(
 
     Truncates to the largest multiple of ``packet_length``.
     """
-    tx_bits = np.asarray(tx_bits)
-    rx_bits = np.asarray(rx_bits)
-    n_packets = len(tx_bits) // packet_length
+    tx_bits_arr = np.asarray(tx_bits)
+    rx_bits_arr = np.asarray(rx_bits)
+    n_packets = len(tx_bits_arr) // packet_length
     if n_packets == 0:
         return 0.0
     usable = n_packets * packet_length
-    tx_blocks = tx_bits[:usable].reshape(n_packets, packet_length)
-    rx_blocks = rx_bits[:usable].reshape(n_packets, packet_length)
+    tx_blocks = tx_bits_arr[:usable].reshape(n_packets, packet_length)
+    rx_blocks = rx_bits_arr[:usable].reshape(n_packets, packet_length)
     packet_errors = np.any(tx_blocks != rx_blocks, axis=1)
     return float(np.mean(packet_errors))

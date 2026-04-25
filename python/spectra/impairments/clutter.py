@@ -13,10 +13,9 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 import numpy as np
-
 
 _GROUND_PRESETS = {
     "rural":          (20.0,     5.0),
@@ -129,7 +128,7 @@ class RadarClutter:
                 f"terrain must be one of {list(_GROUND_PRESETS)}, got {terrain!r}"
             )
         cnr, spread = _GROUND_PRESETS[terrain]
-        defaults = dict(
+        defaults: dict[str, Any] = dict(
             cnr=cnr,
             doppler_spread=spread,
             sample_rate=sample_rate,
@@ -151,7 +150,7 @@ class RadarClutter:
         if sea_state not in _SEA_PRESETS:
             raise ValueError(f"sea_state must be 1-6, got {sea_state}")
         cnr, spread = _SEA_PRESETS[sea_state]
-        defaults = dict(
+        defaults: dict[str, Any] = dict(
             cnr=cnr,
             doppler_spread=spread,
             sample_rate=sample_rate,
@@ -175,7 +174,7 @@ class RadarClutter:
         cnr = 10.0 * np.log10(max(rain_rate_mmhr, 0.1)) + 10.0
         spread = 20.0 * np.sqrt(rain_rate_mmhr)
         doppler_center = 30.0
-        defaults = dict(
+        defaults: dict[str, Any] = dict(
             cnr=cnr,
             doppler_spread=spread,
             sample_rate=sample_rate,

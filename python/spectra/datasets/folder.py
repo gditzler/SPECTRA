@@ -9,7 +9,7 @@ from spectra.utils.file_handlers.base_reader import FileReader
 from spectra.utils.file_handlers.registry import get_reader, supported_extensions
 
 
-class SignalFolderDataset(Dataset):
+class SignalFolderDataset(Dataset[Tuple[torch.Tensor, int]]):
     """ImageFolder-style dataset that loads RF recordings from disk.
 
     Expects a directory structure where each subdirectory is a class::
@@ -91,8 +91,8 @@ class SignalFolderDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        filepath, class_idx = self.samples[idx]
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
+        filepath, class_idx = self.samples[index]
 
         # Load IQ via appropriate reader
         reader = get_reader(filepath, self.reader_overrides)

@@ -6,6 +6,8 @@ specific waveform.  Use them with the output of
 :class:`~spectra.datasets.radar.RadarDataset` or with raw captures.
 """
 
+from typing import Optional
+
 import numpy as np
 
 
@@ -78,7 +80,7 @@ def os_cfar(
     power: np.ndarray,
     guard_cells: int,
     training_cells: int,
-    k_rank: int = None,
+    k_rank: Optional[int] = None,
     pfa: float = 1e-6,
 ) -> np.ndarray:
     """Ordered-Statistics CFAR detector.

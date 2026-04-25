@@ -15,11 +15,9 @@ from spectra.cli.config_builder import (
     default_num_samples,
     default_seeds,
     get_impairment_registry,
-    get_waveform_registry,
     serialize_config,
     validate_config,
 )
-
 
 # ---------------------------------------------------------------------------
 # Prompt helpers
@@ -293,7 +291,11 @@ def run() -> None:
 
     # 10. Output
     _print_header("Output")
-    output_options = ["Save YAML config only", "Save YAML and generate dataset (Zarr)", "Print only (no save)"]
+    output_options = [
+        "Save YAML config only",
+        "Save YAML and generate dataset (Zarr)",
+        "Print only (no save)",
+    ]
     out_idx = _choose_one("Select output", output_options)
 
     if out_idx == 2:
@@ -321,8 +323,8 @@ def run() -> None:
 
     # 11. Done
     _print_header("Done!")
-    print(f"  Load your dataset with:")
-    print(f'    from spectra import load_benchmark')
+    print("  Load your dataset with:")
+    print('    from spectra import load_benchmark')
     print(f'    ds = load_benchmark("{yaml_path}", "train")')
     print()
 

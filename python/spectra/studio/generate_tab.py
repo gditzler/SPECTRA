@@ -3,16 +3,18 @@
 
 from __future__ import annotations
 
-import numpy as np
 import gradio as gr
 
 from spectra.cli.config_builder import (
     IMPAIRMENT_PRESETS,
-    get_waveform_registry,
     get_impairment_registry,
-    build_config,
+    get_waveform_registry,
 )
-from spectra.studio.params import get_all_categories, get_waveforms_for_category, get_waveform_params
+from spectra.studio.params import (
+    get_all_categories,
+    get_waveform_params,
+    get_waveforms_for_category,
+)
 from spectra.studio.plotting import plot_constellation, plot_fft
 
 
@@ -80,7 +82,7 @@ def _generate_signal_inner(category, waveform_name, sample_rate, num_samples, sn
 
     # Apply impairments
     if preset != "clean" and preset in IMPAIRMENT_PRESETS:
-        from spectra.impairments import Compose, AWGN
+        from spectra.impairments import Compose
         from spectra.scene.signal_desc import SignalDescription
         imp_reg = get_impairment_registry()
         chain = []
@@ -89,10 +91,22 @@ def _generate_signal_inner(category, waveform_name, sample_rate, num_samples, sn
             if imp_cls:
                 chain.append(imp_cls(**entry.get("params", {})))
         if chain:
-            desc = SignalDescription(0, len(iq)/sample_rate, -sample_rate/2, sample_rate/2, label, snr_db)
+            desc = SignalDescription(
+                0,
+                len(iq) / sample_rate,
+                -sample_rate / 2,
+                sample_rate / 2,
+                label,
+                snr_db,
+            )
             iq, _ = Compose(chain)(iq, desc, sample_rate=sample_rate)
 
-    meta = {"waveform_label": label, "sample_rate": sample_rate, "num_samples": len(iq), "snr_db": snr_db}
+    meta = {
+        "waveform_label": label,
+        "sample_rate": sample_rate,
+        "num_samples": len(iq),
+        "snr_db": snr_db,
+    }
     fig_const = plot_constellation(iq)
     fig_psd = plot_fft(iq, sample_rate=sample_rate)
     return iq, meta, {}, fig_const, fig_psd
@@ -105,12 +119,18 @@ def build_generate_tab(iq_state, meta_state, config_state):
     with gr.Row():
         with gr.Column(scale=2):
             category = gr.Dropdown(choices=categories, value=categories[0], label="Category")
-            waveform = gr.Dropdown(choices=get_waveforms_for_category(categories[0]), label="Waveform")
+            waveform = gr.Dropdown(
+                choices=get_waveforms_for_category(categories[0]), label="Waveform"
+            )
             sample_rate = gr.Number(value=1e6, label="Sample Rate (Hz)")
             num_samples = gr.Number(value=1024, label="Number of IQ Samples", precision=0)
             snr_db = gr.Slider(-10, 40, value=20, label="SNR (dB)")
             seed = gr.Number(value=42, label="Seed", precision=0)
-            preset = gr.Dropdown(choices=["clean", "mild", "realistic"], value="clean", label="Impairment Preset")
+            preset = gr.Dropdown(
+                choices=["clean", "mild", "realistic"],
+                value="clean",
+                label="Impairment Preset",
+            )
 
             wideband = gr.Checkbox(value=False, label="Wideband Scene Mode")
             capture_bw = gr.Number(value=800e3, label="Capture Bandwidth (Hz)", visible=False)
@@ -134,8 +154,11 @@ def build_generate_tab(iq_state, meta_state, config_state):
                 for i in range(10):
                     if i < len(params):
                         p = params[i]
-                        updates.append(gr.update(visible=True, label=p["label"],
-                                                  value=p["default"] if p["default"] is not None else 0))
+                        updates.append(gr.update(
+                            visible=True,
+                            label=p["label"],
+                            value=p["default"] if p["default"] is not None else 0,
+                        ))
                     else:
                         updates.append(gr.update(visible=False))
                 return updates
@@ -148,7 +171,7 @@ def build_generate_tab(iq_state, meta_state, config_state):
         with gr.Column(scale=3):
             const_plot = gr.Plot(label="Constellation")
             psd_plot = gr.Plot(label="Power Spectral Density")
-            info = gr.Markdown("*Click Generate to preview*")
+            gr.Markdown("*Click Generate to preview*")
 
     gen_btn.click(
         _generate_signal,

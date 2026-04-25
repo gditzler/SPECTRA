@@ -9,9 +9,9 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
 from spectra.arrays.array import AntennaArray
+from spectra.datasets._base import BaseIQDataset
 from spectra.datasets.iq_utils import truncate_pad
 from spectra.scene.signal_desc import SignalDescription
 from spectra.waveforms.base import Waveform
@@ -42,7 +42,7 @@ class WidebandDFTarget:
     signal_descs: List[SignalDescription] = field(default_factory=list)
 
 
-class WidebandDirectionFindingDataset(Dataset):
+class WidebandDirectionFindingDataset(BaseIQDataset[Tuple[torch.Tensor, WidebandDFTarget]]):
     """On-the-fly wideband direction-finding dataset.
 
     Generates multi-antenna wideband IQ captures with ``num_signals`` co-channel
@@ -126,8 +126,8 @@ class WidebandDirectionFindingDataset(Dataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, WidebandDFTarget]:
-        rng = np.random.default_rng(seed=(self.seed, idx))
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, WidebandDFTarget]:
+        rng = np.random.default_rng(seed=(self.seed, index))
 
         # Number of sources
         if isinstance(self.num_signals, tuple):

@@ -77,12 +77,12 @@ class TestPerSNRAccuracy:
 
 
 def test_per_snr_rmse_basic():
-    from spectra.metrics import per_snr_rmse
     import numpy as np
+    from spectra.metrics import per_snr_rmse
     true_az = np.array([1.0, 1.0, 2.0, 2.0])
     est_az  = np.array([1.1, 0.9, 2.2, 1.8])
     snrs    = np.array([10.0, 10.0, 20.0, 20.0])
-    result = per_snr_rmse(true_az, est_az, snrs)
+    result = per_snr_rmse(true_az.tolist(), est_az.tolist(), snrs.tolist())
     assert set(result.keys()) == {10.0, 20.0}
     # SNR=10: errors are 0.1 and 0.1 rad → RMSE = 0.1 rad = ~5.73°
     assert abs(result[10.0] - np.rad2deg(0.1)) < 0.01

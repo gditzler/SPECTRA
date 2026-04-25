@@ -1,6 +1,6 @@
 import importlib.resources
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast, overload
 
 import numpy as np
 import yaml
@@ -113,6 +113,7 @@ def _build_narrowband(config: Dict[str, Any], split: str) -> NarrowbandDataset:
     )
     if has_awgn:
         # Replace AWGN with one using the config's snr_range
+        assert impairments is not None  # has_awgn implies impairments is non-empty
         new_transforms = []
         for t in impairments.transforms:
             if isinstance(t, AWGN):
@@ -283,20 +284,26 @@ def load_snr_sweep(name: str, split: str = "test") -> SNRSweepDataset:
     return _build_snr_sweep(config, split)
 
 
-def load_benchmark(
-    name: str, split: str = "train"
-) -> Union[
-    NarrowbandDataset,
-    WidebandDataset,
-    DirectionFindingDataset,
+_SplitName = Literal["train", "val", "test"]
+_AnyBenchmarkDataset = Union[NarrowbandDataset, WidebandDataset, DirectionFindingDataset]
+_AnyBenchmarkTriple = Union[
     Tuple[NarrowbandDataset, NarrowbandDataset, NarrowbandDataset],
     Tuple[WidebandDataset, WidebandDataset, WidebandDataset],
-    Tuple[
-        DirectionFindingDataset,
-        DirectionFindingDataset,
-        DirectionFindingDataset,
-    ],
-]:
+    Tuple[DirectionFindingDataset, DirectionFindingDataset, DirectionFindingDataset],
+]
+
+
+@overload
+def load_benchmark(name: str, split: _SplitName = ...) -> _AnyBenchmarkDataset: ...
+
+
+@overload
+def load_benchmark(name: str, split: Literal["all"]) -> _AnyBenchmarkTriple: ...
+
+
+def load_benchmark(
+    name: str, split: str = "train"
+) -> Union[_AnyBenchmarkDataset, _AnyBenchmarkTriple]:
     """Load a benchmark dataset from a YAML config.
 
     Parameters
@@ -335,5 +342,10 @@ def load_benchmark(
         )
 
     if split == "all":
-        return builder(config, "train"), builder(config, "val"), builder(config, "test")
+        # Builder is the same callable across the three calls, so the runtime
+        # tuple is homogeneous (all-narrowband, all-wideband, or all-DF).
+        return cast(
+            _AnyBenchmarkTriple,
+            (builder(config, "train"), builder(config, "val"), builder(config, "test")),
+        )
     return builder(config, split)

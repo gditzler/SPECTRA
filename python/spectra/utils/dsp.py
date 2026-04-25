@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from spectra._rust import (
@@ -118,7 +120,7 @@ def noise_generator(
     num_samples: int,
     power: float = 1.0,
     color: str = "white",
-    seed: int = None,
+    seed: Optional[int] = None,
 ) -> np.ndarray:
     """Generate complex noise with specified color and power.
 

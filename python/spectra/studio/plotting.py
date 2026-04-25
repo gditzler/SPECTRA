@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import Optional
 
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -96,7 +95,7 @@ def plot_waterfall(
         freqs = np.fft.fftshift(np.fft.fftfreq(nfft, d=1.0 / sample_rate))
         # Transpose so time is on Y, frequency on X (per spec)
         ax.imshow(spec_db.T, aspect="auto", origin="lower", cmap="viridis",
-                  extent=[freqs[0] / 1e3, freqs[-1] / 1e3, 0, n_frames])
+                  extent=(float(freqs[0]) / 1e3, float(freqs[-1]) / 1e3, 0.0, float(n_frames)))
         ax.set_xlabel("Frequency (kHz)")
         ax.set_ylabel("Time (frame)")
         ax.set_title("Spectrogram")

@@ -50,16 +50,6 @@ class NarrowbandMetadata(DatasetMetadata):
     snr_range: Tuple[float, float] = (0.0, 20.0)
     impairment_config: Dict = field(default_factory=dict)
 
-    def build_dataset(self):
-        from spectra.datasets import NarrowbandDataset
-
-        return NarrowbandDataset(
-            waveform_labels=self.waveform_labels,
-            num_iq_samples=self.num_iq_samples,
-            num_samples=self.num_samples,
-            seed=self.seed,
-        )
-
     @classmethod
     def from_dict(cls, d: Dict) -> "NarrowbandMetadata":
         # Convert snr_range from list to tuple if needed
@@ -67,6 +57,14 @@ class NarrowbandMetadata(DatasetMetadata):
             d = dict(d)
             d["snr_range"] = tuple(d["snr_range"])
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
+
+    @classmethod
+    def from_yaml(cls, path: str) -> "NarrowbandMetadata":
+        import yaml
+
+        with open(path, "r") as f:
+            d = yaml.safe_load(f)
+        return cls.from_dict(d)
 
 
 @dataclass
@@ -77,17 +75,17 @@ class WidebandMetadata(DatasetMetadata):
     capture_duration: float = 1e-3
     num_signals_range: Tuple[int, int] = (1, 5)
 
-    def build_dataset(self):
-        from spectra.datasets import WidebandDataset
-
-        return WidebandDataset(
-            num_samples=self.num_samples,
-            seed=self.seed,
-        )
-
     @classmethod
     def from_dict(cls, d: Dict) -> "WidebandMetadata":
         if "num_signals_range" in d and isinstance(d["num_signals_range"], list):
             d = dict(d)
             d["num_signals_range"] = tuple(d["num_signals_range"])
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
+
+    @classmethod
+    def from_yaml(cls, path: str) -> "WidebandMetadata":
+        import yaml
+
+        with open(path, "r") as f:
+            d = yaml.safe_load(f)
+        return cls.from_dict(d)

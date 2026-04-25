@@ -38,7 +38,7 @@ class RawIQWriter(FileWriter):
             iq.tofile(self._path)
         else:
             # Interleave I/Q and scale to integer range
-            scale = float(np.iinfo(self._dtype).max)
+            scale = float(np.iinfo(np.dtype(self._dtype).type).max)
             interleaved = np.empty(len(iq) * 2, dtype=np.float32)
             interleaved[0::2] = iq.real
             interleaved[1::2] = iq.imag

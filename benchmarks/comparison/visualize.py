@@ -139,7 +139,7 @@ def plot_confusion_matrices(ml_results, classifier, out_dir, class_names):
         cm = np.array(data[key]["confusion_matrix"])
         acc = data[key]["accuracy"]
 
-        im = ax.imshow(cm, cmap="Blues", interpolation="nearest")
+        ax.imshow(cm, cmap="Blues", interpolation="nearest")
         ax.set_title(f"{key}\nacc={acc:.3f}", fontsize=9)
         ax.set_xlabel("Predicted")
         ax.set_ylabel("True")

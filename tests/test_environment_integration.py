@@ -1,6 +1,7 @@
 """Tests for environment-to-impairment integration."""
 
 import pytest
+from typing import Any
 from spectra.environment.core import Emitter, Environment, LinkParams, ReceiverConfig
 from spectra.environment.integration import link_params_to_impairments
 from spectra.environment.position import Position
@@ -219,7 +220,7 @@ class TestEndToEnd:
 
 class TestTDLAutoChain:
     def _lp(self, **overrides):
-        defaults = dict(
+        defaults: dict[str, Any] = dict(
             emitter_index=0,
             snr_db=15.0,
             path_loss_db=100.0,

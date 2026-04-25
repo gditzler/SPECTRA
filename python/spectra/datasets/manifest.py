@@ -11,7 +11,7 @@ from spectra.utils.file_handlers.base_reader import FileReader
 from spectra.utils.file_handlers.registry import get_reader
 
 
-class ManifestDataset(Dataset):
+class ManifestDataset(Dataset[Tuple[torch.Tensor, int]]):
     """Dataset that reads files listed in a CSV or JSON manifest.
 
     Useful when files are in a flat directory or when labels come from
@@ -101,8 +101,8 @@ class ManifestDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        filepath, class_idx = self.samples[idx]
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
+        filepath, class_idx = self.samples[index]
 
         # Load IQ via appropriate reader
         reader = get_reader(filepath, self.reader_overrides)

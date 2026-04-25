@@ -31,7 +31,7 @@ class RawIQReader(FileReader):
             raw = raw.reshape(-1, 2)
             scale = 1.0
             if np.issubdtype(self._dtype, np.integer):
-                scale = float(np.iinfo(self._dtype).max)
+                scale = float(np.iinfo(np.dtype(self._dtype).type).max)
             iq = (
                 raw[:, 0].astype(np.float32) / scale + 1j * raw[:, 1].astype(np.float32) / scale
             ).astype(np.complex64)

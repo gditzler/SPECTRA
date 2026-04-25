@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -105,9 +105,11 @@ class TDLChannel(Transform):
     ) -> "TDLChannel":
         instance = cls.__new__(cls)
         instance._profile_name = "custom"
-        instance._profile = {"delays_ns": delays_ns, "powers_db": powers_db}
+        # Profile dict mixes list and scalar values, so type widely.
+        profile: Dict[str, Any] = {"delays_ns": delays_ns, "powers_db": powers_db}
         if k_factor_db is not None:
-            instance._profile["k_factor_db"] = k_factor_db
+            profile["k_factor_db"] = k_factor_db
+        instance._profile = profile
         instance._doppler_hz = doppler_hz
         return instance
 

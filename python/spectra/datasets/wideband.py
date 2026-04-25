@@ -9,7 +9,7 @@ from spectra.scene.composer import Composer, SceneConfig
 from spectra.scene.labels import STFTParams, to_coco
 
 
-class WidebandDataset(BaseIQDataset):
+class WidebandDataset(BaseIQDataset[Tuple[torch.Tensor, Dict]]):
     def __init__(
         self,
         scene_config: SceneConfig,
@@ -29,9 +29,9 @@ class WidebandDataset(BaseIQDataset):
         # Build class list from signal pool
         self.class_list = sorted(set(w.label for w in scene_config.signal_pool))
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Dict]:
-        # Deterministic seed from (base_seed, idx)
-        rng = self._make_rng(idx)
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Dict]:
+        # Deterministic seed from (base_seed, index)
+        rng = self._make_rng(index)
         scene_seed = int(rng.integers(0, 2**32))
 
         iq, signal_descs = self.composer.generate(seed=scene_seed)
@@ -53,15 +53,16 @@ class WidebandDataset(BaseIQDataset):
         # Apply transform (e.g., STFT)
         if self.transform is not None:
             data = self.transform(iq)
-            # Build STFT params for label conversion
+            # Build STFT params for label conversion. The transform is expected
+            # to expose ``nfft`` and ``hop_length`` attributes (e.g. STFT).
             stft = self.transform
             stft_params = STFTParams(
-                nfft=stft.nfft,
-                hop_length=stft.hop_length,
+                nfft=getattr(stft, "nfft"),
+                hop_length=getattr(stft, "hop_length"),
                 sample_rate=self.scene_config.sample_rate,
                 num_samples=len(iq),
             )
-            targets = to_coco(signal_descs, stft_params, self.class_list)
+            targets: Dict = to_coco(signal_descs, stft_params, self.class_list)
         else:
             data = torch.tensor(np.stack([iq.real, iq.imag]), dtype=torch.float32)
             targets = {

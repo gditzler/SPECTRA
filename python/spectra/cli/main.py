@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from typing import Sized, cast
 
 
 def _cmd_studio(args: argparse.Namespace) -> None:
@@ -25,7 +26,8 @@ def _cmd_generate(args: argparse.Namespace) -> None:
         # "all" split returns a 3-tuple
         for split_name, ds in zip(["train", "val", "test"], dataset):
             output_dir = f"{args.output}/{split_name}"
-            print(f"Exporting {split_name} split ({len(ds)} samples) to {output_dir}...")
+            n_samples = len(cast(Sized, ds))
+            print(f"Exporting {split_name} split ({n_samples} samples) to {output_dir}...")
             SigMFWriter.write_from_dataset(
                 ds, output_dir, sample_rate=args.sample_rate or 1e6
             )
@@ -50,7 +52,7 @@ def _cmd_viz(args: argparse.Namespace) -> None:
     iq, metadata = reader.read(args.file)
     sr = metadata.sample_rate or 1e6
 
-    from spectra.studio.plotting import plot_fft, plot_iq, plot_waterfall, plot_constellation
+    from spectra.studio.plotting import plot_constellation, plot_fft, plot_iq, plot_waterfall
 
     plot_funcs = {
         "fft": lambda: plot_fft(iq, sample_rate=sr, dark=False),
@@ -98,7 +100,10 @@ def main() -> None:
     # viz (requires spectra[ui] for plotting functions)
     sp_viz = subparsers.add_parser("viz", help="Quick IQ file visualization")
     sp_viz.add_argument("file", help="Path to IQ file (.sigmf-meta, .cf32, .npy)")
-    sp_viz.add_argument("--plot", default="fft", choices=["fft", "iq", "waterfall", "constellation"])
+    sp_viz.add_argument(
+        "--plot", default="fft",
+        choices=["fft", "iq", "waterfall", "constellation"],
+    )
     sp_viz.add_argument("--save", default=None, help="Save plot to file instead of showing")
 
     # build

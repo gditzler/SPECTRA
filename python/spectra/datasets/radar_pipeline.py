@@ -7,18 +7,17 @@ radar ML tasks.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
 from spectra.algorithms.mti import doppler_filter_bank, single_pulse_canceller
 from spectra.algorithms.radar import ca_cfar, os_cfar
+from spectra.datasets._base import BaseIQDataset
 from spectra.impairments.clutter import RadarClutter
 from spectra.targets.rcs import NonFluctuatingRCS, SwerlingRCS
-from spectra.targets.trajectory import Trajectory
 from spectra.tracking.kalman import ConstantVelocityKF, RangeDopplerKF
 from spectra.waveforms.base import Waveform
 
@@ -39,7 +38,7 @@ class RadarPipelineTarget:
     doppler_detections: Optional[List[np.ndarray]] = None
 
 
-class RadarPipelineDataset(Dataset):
+class RadarPipelineDataset(BaseIQDataset[Tuple[torch.Tensor, RadarPipelineTarget]]):
     """On-the-fly end-to-end radar pipeline dataset.
 
     Note:
@@ -51,8 +50,8 @@ class RadarPipelineDataset(Dataset):
         self,
         waveform_pool: List[Waveform],
         trajectory_pool: List,
-        swerling_cases: List[int] = None,
-        clutter_presets: List[RadarClutter] = None,
+        swerling_cases: Optional[List[int]] = None,
+        clutter_presets: Optional[List[RadarClutter]] = None,
         num_range_bins: int = 256,
         sample_rate: float = 1e6,
         carrier_frequency: float = 10e9,
@@ -88,8 +87,8 @@ class RadarPipelineDataset(Dataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, RadarPipelineTarget]:
-        rng = np.random.default_rng(seed=(self.seed, idx))
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, RadarPipelineTarget]:
+        rng = np.random.default_rng(seed=(self.seed, index))
 
         wf_idx = int(rng.integers(0, len(self.waveform_pool)))
         waveform = self.waveform_pool[wf_idx]
@@ -100,7 +99,7 @@ class RadarPipelineDataset(Dataset):
         for _ in range(n_targets):
             traj_template = self.trajectory_pool[int(rng.integers(0, len(self.trajectory_pool)))]
             offset = rng.uniform(-50, 50)
-            from spectra.targets.trajectory import ConstantVelocity, ConstantTurnRate
+            from spectra.targets.trajectory import ConstantTurnRate, ConstantVelocity
             if isinstance(traj_template, ConstantTurnRate):
                 traj = ConstantTurnRate(
                     initial_range=traj_template.initial_range + offset,
@@ -274,14 +273,19 @@ class RadarPipelineDataset(Dataset):
                         best_dist = float("inf")
                         best_idx = -1
                         for j in range(len(dets_range)):
-                            innov = np.array([float(dets_range[j]), float(dets_doppler[j])]) - pred_z
+                            z_j = np.array([float(dets_range[j]), float(dets_doppler[j])])
+                            innov = z_j - pred_z
                             d = float(innov @ S_inv @ innov)
                             if d < best_dist:
                                 best_dist = d
                                 best_idx = j
                         gate_threshold = 9.21  # chi-squared, 2 DoF, 99%
                         if best_dist < gate_threshold and best_idx >= 0:
-                            kf.update(np.array([float(dets_range[best_idx]), float(dets_doppler[best_idx])]))
+                            z = np.array([
+                                float(dets_range[best_idx]),
+                                float(dets_doppler[best_idx]),
+                            ])
+                            kf.update(z)
                     else:
                         pred_range = predicted[0]
                         nearest_idx = np.argmin(np.abs(dets_range - pred_range))

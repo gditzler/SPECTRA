@@ -2,14 +2,14 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
+from spectra.datasets._base import BaseIQDataset
 from spectra.datasets.iq_utils import truncate_pad
 from spectra.impairments.compose import Compose
 from spectra.waveforms.base import Waveform
 
 
-class CyclostationaryDataset(Dataset):
+class CyclostationaryDataset(BaseIQDataset[Tuple[Dict[str, torch.Tensor], int]]):
     """Multi-representation dataset for cyclostationary signal processing.
 
     Unlike :class:`NarrowbandDataset` which applies a single transform,
@@ -61,8 +61,8 @@ class CyclostationaryDataset(Dataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int) -> Tuple[Dict[str, torch.Tensor], int]:
-        rng = np.random.default_rng(seed=(self.seed, idx))
+    def __getitem__(self, index: int) -> Tuple[Dict[str, torch.Tensor], int]:
+        rng = np.random.default_rng(seed=(self.seed, index))
 
         # Pick a waveform class
         waveform_idx = int(rng.integers(0, len(self.waveform_pool)))

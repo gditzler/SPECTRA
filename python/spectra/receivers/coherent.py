@@ -8,15 +8,15 @@ import numpy as np
 
 from spectra._rust import (
     apply_rrc_filter_with_taps,
+    get_ask_constellation,
     get_bpsk_constellation,
-    get_qpsk_constellation,
     get_psk_constellation,
     get_qam_constellation,
-    get_ask_constellation,
+    get_qpsk_constellation,
 )
 from spectra.receivers.base import Receiver
-from spectra.waveforms.base import Waveform
 from spectra.utils.rrc_cache import cached_rrc_taps
+from spectra.waveforms.base import Waveform
 
 
 def constellation_to_bits(indices: np.ndarray, constellation_size: int) -> np.ndarray:
@@ -70,7 +70,7 @@ class CoherentReceiver(Receiver):
 
     def __init__(self, waveform: Waveform) -> None:
         self.waveform = waveform
-        self.samples_per_symbol = waveform.samples_per_symbol
+        self.samples_per_symbol = getattr(waveform, "samples_per_symbol")
         self.rolloff = getattr(waveform, "rolloff", 0.35)
         self.filter_span = getattr(waveform, "filter_span", 10)
         self.constellation = _get_constellation(waveform)

@@ -5,12 +5,13 @@ import time
 from pathlib import Path
 
 import numpy as np
-import torch
 import yaml
 from torch.utils.data import DataLoader
 
 from benchmarks.comparison.dataset_builders import (
     build_spectra_dataset as _build_spectra,
+)
+from benchmarks.comparison.dataset_builders import (
     build_torchsig_dataset as _build_torchsig,
 )
 
@@ -129,7 +130,8 @@ def main():
         print(f"  Init time:       {init_ts:.3f} s")
         print(f"  __getitem__:     {results['torchsig']['getitem_mean_ms']:.3f} ms (mean)")
         print(f"  Amortized cost:  {results['torchsig']['amortized_cost_ms']:.3f} ms/sample")
-        print(f"  DataLoader:      {results['torchsig']['dataloader_throughput_sps']:.0f} samples/s")
+        throughput_ts = results["torchsig"]["dataloader_throughput_sps"]
+        print(f"  DataLoader:      {throughput_ts:.0f} samples/s")
 
     results["methodology"] = (
         "TorchSig materializes all data during __init__(); "

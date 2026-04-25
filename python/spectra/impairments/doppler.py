@@ -77,6 +77,10 @@ class DopplerShift(Transform):
             return self._speed_mps * np.cos(np.radians(self._angle_deg)) / _C * self._carrier_hz
         if self._max_fd_hz is not None:
             return float(np.random.uniform(-self._max_fd_hz, self._max_fd_hz))
+        if self._fd_hz is None:
+            raise ValueError(
+                "DopplerShift requires one of fd_hz, max_fd_hz, or speed_mps"
+            )
         return float(self._fd_hz)
 
     def __call__(

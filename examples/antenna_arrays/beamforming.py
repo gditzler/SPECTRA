@@ -15,18 +15,17 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib.pyplot as plt
-
+import numpy as np
+from plot_helpers import OUTPUT_DIR, savefig
+from spectra.algorithms import compute_beam_pattern, delay_and_sum, lcmv, mvdr
+from spectra.algorithms.beamforming import _mvdr_weights
 from spectra.arrays import ula
 from spectra.datasets import DirectionFindingDataset
 from spectra.waveforms import QPSK
-from spectra.algorithms import delay_and_sum, mvdr, lcmv, compute_beam_pattern
-from spectra.algorithms.beamforming import _mvdr_weights
-
-from plot_helpers import savefig, OUTPUT_DIR
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -94,7 +93,12 @@ w_lcmv = lcmv(
 )
 
 fig, ax = plt.subplots(figsize=(9, 4))
-for name, w, color in [("DAS", w_das, "steelblue"), ("MVDR", w_mvdr, "seagreen"), ("LCMV", w_lcmv, "darkorange")]:
+_beamformers = [
+    ("DAS", w_das, "steelblue"),
+    ("MVDR", w_mvdr, "seagreen"),
+    ("LCMV", w_lcmv, "darkorange"),
+]
+for name, w, color in _beamformers:
     pattern = compute_beam_pattern(w, arr, SCAN_RAD)
     ax.plot(SCAN_DEG, 10 * np.log10(pattern + 1e-12), label=name, color=color, linewidth=1.3)
 

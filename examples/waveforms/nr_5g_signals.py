@@ -16,14 +16,16 @@ Run:
 
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from spectra.waveforms import NR_OFDM, NR_PDSCH, NR_PUSCH, NR_PRACH, NR_SSB
 from plot_helpers import savefig
+from spectra.waveforms import NR_OFDM, NR_PDSCH, NR_PRACH, NR_PUSCH, NR_SSB
 
 sample_rate = 30.72e6  # 30.72 MHz (common NR rate)
 seed = 42
@@ -40,7 +42,8 @@ nr_waveforms = [
 fig, axes = plt.subplots(len(nr_waveforms), 2, figsize=(14, 3 * len(nr_waveforms)))
 for row, (name, waveform) in enumerate(nr_waveforms):
     iq = waveform.generate(num_symbols=128, sample_rate=sample_rate, seed=seed)
-    print(f"{name}: label={waveform.label}, samples={len(iq)}, BW={waveform.bandwidth(sample_rate)/1e6:.2f} MHz")
+    bw_mhz = waveform.bandwidth(sample_rate) / 1e6
+    print(f"{name}: label={waveform.label}, samples={len(iq)}, BW={bw_mhz:.2f} MHz")
 
     # Time domain (first 1000 samples)
     n = min(1000, len(iq))

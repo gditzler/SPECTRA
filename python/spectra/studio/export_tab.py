@@ -4,10 +4,11 @@
 from __future__ import annotations
 
 import os
-import numpy as np
-import gradio as gr
 
-from spectra.cli.config_builder import build_config, serialize_config
+import gradio as gr
+import numpy as np
+
+from spectra.cli.config_builder import serialize_config
 
 
 def _export_single(iq_data, meta, output_path, fmt, center_freq):
@@ -15,7 +16,6 @@ def _export_single(iq_data, meta, output_path, fmt, center_freq):
     if iq_data is None:
         return "No signal generated. Go to Generate tab first."
     sr = meta.get("sample_rate", 1e6)
-    label = meta.get("waveform_label", "unknown")
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
@@ -49,13 +49,17 @@ def build_export_tab(iq_state, meta_state, config_state):
 
     # Dataset mode controls (hidden by default)
     with gr.Group(visible=False) as dataset_group:
-        n_train = gr.Number(value=50000, label="Train Samples", precision=0)
-        n_val = gr.Number(value=10000, label="Val Samples", precision=0)
-        n_test = gr.Number(value=10000, label="Test Samples", precision=0)
-        snr_min = gr.Slider(-10, 40, value=-10, label="SNR Min (dB)")
-        snr_max = gr.Slider(-10, 40, value=30, label="SNR Max (dB)")
+        gr.Number(value=50000, label="Train Samples", precision=0)
+        gr.Number(value=10000, label="Val Samples", precision=0)
+        gr.Number(value=10000, label="Test Samples", precision=0)
+        gr.Slider(-10, 40, value=-10, label="SNR Min (dB)")
+        gr.Slider(-10, 40, value=30, label="SNR Max (dB)")
 
-    mode.change(lambda m: gr.update(visible=(m == "Dataset")), inputs=[mode], outputs=[dataset_group])
+    mode.change(
+        lambda m: gr.update(visible=(m == "Dataset")),
+        inputs=[mode],
+        outputs=[dataset_group],
+    )
 
     export_btn = gr.Button("Export", variant="primary")
     save_yaml_btn = gr.Button("Save Config Only", variant="secondary")

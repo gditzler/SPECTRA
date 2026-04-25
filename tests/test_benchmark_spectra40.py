@@ -25,6 +25,7 @@ class TestSpectra40:
         data, label = ds[0]
         assert data.shape == (2, 1024)
         assert data.dtype == torch.float32
+        assert isinstance(label, int)
         assert 0 <= label < 40
 
     def test_all_40_classes_present(self):
