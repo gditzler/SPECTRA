@@ -2,6 +2,7 @@
 
 import pytest
 import torch
+from typing import Any
 from spectra.datasets.cyclo import CyclostationaryDataset
 from spectra.transforms import PSD, SCD, Cumulants
 from spectra.waveforms import BPSK, QPSK
@@ -133,7 +134,7 @@ class TestCyclostationaryDatasetBasic:
 @pytest.mark.csp
 class TestCyclostationaryDatasetDeterminism:
     def test_same_seed_same_output(self):
-        kwargs = dict(
+        kwargs: dict[str, Any] = dict(
             waveform_pool=_make_pool(),
             num_samples=10,
             num_iq_samples=NUM_IQ,
@@ -151,7 +152,7 @@ class TestCyclostationaryDatasetDeterminism:
                 torch.testing.assert_close(d1[key], d2[key])
 
     def test_different_seed_different_output(self):
-        common = dict(
+        common: dict[str, Any] = dict(
             waveform_pool=_make_pool(),
             num_samples=10,
             num_iq_samples=NUM_IQ,
