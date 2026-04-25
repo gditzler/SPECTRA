@@ -35,18 +35,26 @@ jobs:
             rust/target
           key: docs-cargo-${{ hashFiles('rust/Cargo.lock') }}
 
+      - name: Create virtualenv
+        run: python -m venv .venv
+
       - name: Install build & docs dependencies
         run: |
+          source .venv/bin/activate
           python -m pip install --upgrade pip
           pip install maturin numpy
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -e ".[docs,all]"
 
       - name: Build Rust extension
-        run: maturin develop --release
+        run: |
+          source .venv/bin/activate
+          maturin develop --release
 
       - name: Build site
-        run: mkdocs build --site-dir site
+        run: |
+          source .venv/bin/activate
+          mkdocs build --site-dir site
 
       - uses: actions/upload-pages-artifact@v3
         with:
