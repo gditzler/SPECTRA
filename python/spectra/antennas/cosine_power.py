@@ -1,6 +1,7 @@
 """Cosine-power element pattern approximating patch/microstrip antennas."""
 
 import numpy as np
+
 from spectra.antennas.base import AntennaElement
 
 

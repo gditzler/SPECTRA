@@ -1,5 +1,5 @@
 import os
-from typing import Callable, List, Optional, Protocol
+from typing import Any, Callable, List, Optional, Protocol
 
 import numpy as np
 
@@ -38,7 +38,7 @@ def _tensor_to_complex64(data) -> np.ndarray:
 
 
 def export_dataset_to_folder(
-    dataset,
+    dataset: Any,
     output_dir: str,
     writer_factory: Callable[[str], _SupportsWrite],
     file_extension: str,

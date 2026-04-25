@@ -23,11 +23,6 @@ class ReassignedGabor:
             Smaller values → sharper time resolution; larger values →
             sharper frequency resolution.  Default ``nfft / 4``.
 
-    Returns:
-        ``torch.Tensor`` of shape ``[1, nfft, n_frames]`` (float32).
-        Values are accumulated squared magnitudes (power), DC-centred
-        along the frequency axis.
-
     Example::
 
         rgt = ReassignedGabor(nfft=256, hop_length=64, sigma=32.0)
@@ -52,6 +47,16 @@ class ReassignedGabor:
         self.sigma = _sigma
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Apply the Reassigned Gabor Transform to the input IQ signal.
+
+        Args:
+            iq: 1-D complex64 IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[1, nfft, n_frames]`` (float32).
+            Values are accumulated squared magnitudes (power), DC-centred
+            along the frequency axis.
+        """
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
         result = np.asarray(_compute_rgt(iq, self.nfft, self.hop_length, self.sigma))
         return torch.from_numpy(result).unsqueeze(0).float()

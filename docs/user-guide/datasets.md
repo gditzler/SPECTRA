@@ -93,15 +93,24 @@ Generates signals at fixed SNR levels for evaluation curves. Used by
 
 ```python
 from spectra.datasets.snr_sweep import SNRSweepDataset
+from spectra.impairments import AWGN, Compose
+from spectra.waveforms import BPSK, QPSK
+
+def impairments_fn(snr_db: float) -> Compose:
+    """Build the impairment chain for a given SNR."""
+    return Compose([AWGN(snr=snr_db)])
 
 dataset = SNRSweepDataset(
     waveform_pool=[QPSK(), BPSK()],
-    num_samples_per_snr=500,
-    snr_values=[-10, -5, 0, 5, 10, 15, 20],
+    snr_levels=[-10, -5, 0, 5, 10, 15, 20],
+    samples_per_cell=500,
     num_iq_samples=1024,
     sample_rate=1e6,
+    impairments_fn=impairments_fn,
     seed=42,
 )
+
+iq, class_idx, snr_db = dataset[0]   # __getitem__ returns (Tensor, int, float)
 ```
 
 ---
@@ -269,3 +278,146 @@ Each TX antenna generates an independent waveform stream (with different sub-see
     IQ signal for a given index regardless of which worker processes it or in what
     order. This eliminates the seed-collision bugs that occur when workers share
     or independently advance a global RNG.
+
+---
+
+## Radar Datasets
+
+Two datasets cover the radar signal-processing pipeline at different
+levels of abstraction.
+
+### RadarDataset
+
+On-the-fly **range-profile** dataset for target-detection training. Each
+`__getitem__` returns `(Tensor[num_range_bins], RadarTarget)` where
+`RadarTarget` carries `range_bins`, `snrs`, `num_targets`, and
+`waveform_label`. Targets are point scatterers at random range bins with
+matched-filter range profiles plus AWGN.
+
+```python
+from spectra.datasets.radar import RadarDataset
+from spectra.waveforms import LFM, BarkerCodedPulse, PolyphaseCodedPulse
+
+ds = RadarDataset(
+    waveform_pool=[LFM(), BarkerCodedPulse(), PolyphaseCodedPulse(code_type="p4")],
+    num_range_bins=512,
+    sample_rate=1e6,
+    snr_range=(5.0, 25.0),
+    num_targets_range=(1, 3),
+    num_samples=1000,
+    seed=42,
+)
+profile, target = ds[0]
+# profile: Tensor[512]
+# target.num_targets, target.range_bins, target.snrs, target.waveform_label
+```
+
+### RadarPipelineDataset
+
+End-to-end multi-CPI pipeline producing waveform → target injection →
+clutter → matched filter → MTI → CFAR → Kalman tracker training data.
+Returns `(Tensor[sequence_length, num_range_bins], RadarPipelineTarget)`
+where the target carries the full pipeline state including detections
+and tracker state.
+
+!!! note "Range units"
+    `ConstantVelocity` (and other trajectory models) express `initial_range`
+    and `velocity` in **range-bin units**, not metres. Scale accordingly.
+
+```python
+from spectra.datasets.radar_pipeline import RadarPipelineDataset
+from spectra.targets.trajectory import ConstantVelocity
+from spectra.waveforms import LFM
+
+ds = RadarPipelineDataset(
+    waveform_pool=[LFM()],
+    trajectory_pool=[ConstantVelocity(initial_range=128, velocity=5, dt=1e-3)],
+    num_range_bins=256,
+    sample_rate=1e6,
+    pulses_per_cpi=16,
+    sequence_length=4,
+    apply_mti=True,
+    cfar_type="ca",
+    num_samples=500,
+    seed=0,
+)
+iq, target = ds[0]
+# iq: Tensor[4, 256]  — sequence_length CPIs × num_range_bins
+# target.kf_states, target.detections, target.true_ranges, ...
+```
+
+---
+
+## Direction-Finding Datasets
+
+### DirectionFindingDataset
+
+Snapshot-matrix dataset for narrowband DoA-estimation training. Returns
+`(Tensor[num_elements, 2, num_snapshots], DirectionFindingTarget)` where
+the last two dimensions are I and Q channels and `DirectionFindingTarget`
+carries `azimuths`, `elevations`, and `num_sources`.
+
+```python
+from spectra.arrays import ula
+from spectra.datasets.direction_finding import DirectionFindingDataset
+from spectra.waveforms import QPSK
+
+array = ula(num_elements=8, spacing=0.5, frequency=1e9)
+ds = DirectionFindingDataset(
+    array=array,
+    signal_pool=[QPSK()],
+    num_signals=2,
+    num_snapshots=128,
+    sample_rate=1e6,
+    snr_range=(10.0, 20.0),
+    num_samples=1000,
+    seed=0,
+)
+snapshot, target = ds[0]
+# snapshot: Tensor[8, 2, 128]  — elements × {I,Q} × snapshots
+# target.num_sources, target.azimuths, target.elevations
+```
+
+**Note:** `default_collate` cannot batch `DirectionFindingTarget` directly —
+pass a custom `collate_fn`:
+
+```python
+from torch.utils.data import DataLoader
+
+def collate_fn(batch):
+    return torch.stack([x for x, _ in batch]), [t for _, t in batch]
+
+loader = DataLoader(ds, batch_size=8, collate_fn=collate_fn)
+```
+
+### WidebandDirectionFindingDataset
+
+Joint wideband spectrum + DoA dataset where each source occupies a
+distinct sub-band. Each source must be at least `min_freq_separation` Hz
+apart in frequency; angular separation can also be enforced via
+`min_angular_separation` (radians). Returns
+`(Tensor[num_elements, 2, num_snapshots], WidebandDFTarget)`.
+
+```python
+from spectra.arrays import ula
+from spectra.datasets.wideband_df import WidebandDirectionFindingDataset
+from spectra.waveforms import BPSK, QPSK
+
+array = ula(num_elements=8, spacing=0.5, frequency=1e9)
+ds = WidebandDirectionFindingDataset(
+    array=array,
+    signal_pool=[BPSK(), QPSK()],
+    num_signals=3,
+    num_snapshots=256,
+    sample_rate=10e6,
+    capture_bandwidth=8e6,
+    snr_range=(5.0, 20.0),
+    num_samples=500,
+    seed=0,
+)
+snapshot, target = ds[0]
+# snapshot: Tensor[8, 2, 256]
+```
+
+See [Direction Finding](direction-finding.md) for the complete DoA
+estimation workflow that consumes these datasets.

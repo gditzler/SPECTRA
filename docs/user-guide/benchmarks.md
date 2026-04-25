@@ -80,20 +80,23 @@ iq, target = ds[0]  # iq: [n_elements, 2, num_snapshots], target: DirectionFindi
 
 ### evaluate_snr_sweep()
 
-Evaluates a trained model or classifier across a range of SNR values.
+Evaluates a callable predictor over an `SNRSweepDataset` and returns
+per-SNR accuracy.
 
 ```python
+import torch
 from spectra.benchmarks.evaluate import evaluate_snr_sweep
+from spectra.benchmarks.loader import load_snr_sweep
 
-results = evaluate_snr_sweep(
-    model=my_model,           # callable: iq_batch -> label_batch
-    benchmark_name="spectra-18",
-    snr_values=[-10, -5, 0, 5, 10, 15, 20],
-    num_samples_per_snr=500,
-    device="cpu",
-)
+def predict_fn(batch: torch.Tensor) -> torch.Tensor:
+    """Accepts Tensor[B, 2, N], returns Tensor[B] of predicted class indices."""
+    return model(batch).argmax(dim=-1)
 
-# results: {"snr_db": [...], "accuracy": [...]}
-for snr, acc in zip(results["snr_db"], results["accuracy"]):
-    print(f"SNR {snr:+3d} dB: {acc:.1%}")
+dataset = load_snr_sweep("spectra-snr")
+results = evaluate_snr_sweep(predict_fn, dataset, batch_size=64)
+
+# results: {snr_db: {"accuracy": float, "per_class": Dict[int, float]}}
+for snr_db in sorted(results):
+    acc = results[snr_db]["accuracy"]
+    print(f"SNR {snr_db:+5.1f} dB: {acc:.1%}")
 ```

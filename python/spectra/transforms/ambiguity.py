@@ -18,9 +18,6 @@ class AmbiguityFunction:
         max_lag: Maximum delay in samples. Default 128.
         n_doppler: Number of Doppler bins. Default 256.
         output_format: "magnitude" (C=1), "mag_phase" (C=2), or "real_imag" (C=2).
-
-    Returns:
-        torch.Tensor of shape [C, n_doppler, 2*max_lag+1].
     """
 
     def __init__(self, max_lag: int = 128, n_doppler: int = 256, output_format: str = "magnitude"):
@@ -34,6 +31,14 @@ class AmbiguityFunction:
         self.output_format = output_format
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Compute the Ambiguity Function of the input IQ signal.
+
+        Args:
+            iq: 1-D complex IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[C, n_doppler, 2*max_lag+1]``.
+        """
         iq = np.ascontiguousarray(iq, dtype=np.complex128)
         N = len(iq)
         n_lags = 2 * self.max_lag + 1

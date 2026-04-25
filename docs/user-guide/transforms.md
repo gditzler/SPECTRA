@@ -211,6 +211,179 @@ For cross-sample MixUp/CutMix with soft labels, see [Dataset-Level Wrappers](dat
 
 ---
 
+---
+
+## Alignment & Domain Adaptation
+
+When training a classifier on data from one capture and evaluating on
+another, **alignment transforms** equalize the recordings so domain
+shift does not masquerade as model error. Each is a stateless `Transform`
+with the standard `(iq, desc, **kwargs) -> (iq, desc)` interface and is
+composable via `Compose`.
+
+| Transform | Purpose |
+|-----------|---------|
+| `DCRemove` | Subtract the mean to remove any DC residual |
+| `Resample` | Polyphase resample to a target sample rate |
+| `PowerNormalize` | Scale total power to a target dBFS level (default -20 dBFS) |
+| `AGCNormalize` | Normalize gain to undo differences in hardware AGC settings |
+| `ClipNormalize` | Clip outliers beyond N sigma and rescale to [-1, 1] |
+| `BandpassAlign` | Frequency-shift and bandpass-filter to a target center and bandwidth |
+| `NoiseFloorMatch` | Estimate noise floor and scale to match a target level |
+| `NoiseProfileTransfer` | Transfer noise characteristics from a real capture *(planned)* |
+| `SpectralWhitening` | Flatten PSD by dividing by the smoothed spectral envelope |
+| `ReceiverEQ` | Equalize receiver frequency response using a reference PSD *(planned)* |
+
+```python
+import numpy as np
+from spectra.impairments import Compose
+from spectra.transforms.alignment import (
+    DCRemove, PowerNormalize, ClipNormalize,
+    BandpassAlign, SpectralWhitening,
+)
+
+iq = (np.random.randn(4096) + 1j * np.random.randn(4096)).astype(np.complex64)
+desc = None  # or a SignalDescription instance
+
+# Build a reusable alignment pipeline
+align = Compose([
+    DCRemove(),
+    ClipNormalize(clip_sigma=3.0),
+    BandpassAlign(center_freq=0.0, bandwidth=0.4),  # requires sample_rate kwarg at call time
+    SpectralWhitening(smoothing_window=64),
+    PowerNormalize(target_power_dbfs=-20.0),
+])
+
+# Call with sample_rate when BandpassAlign is in the chain
+iq_aligned, desc_aligned = align(iq, desc, sample_rate=1.0)
+```
+
+`Resample` normalises the output length to a new sample rate:
+
+```python
+from spectra.transforms.alignment import Resample
+
+resampler = Resample(target_sample_rate=2e6)
+iq_resampled, _ = resampler(iq, desc, sample_rate=4e6)
+# iq_resampled.shape == (2048,)  (half the original 4096 samples)
+```
+
+!!! note "Planned transforms"
+    `NoiseProfileTransfer` and `ReceiverEQ` are designed but not yet
+    implemented. Calling them raises `NotImplementedError`. Contributions
+    are tracked in `docs/plans/2026-03-11-domain-adaptation-transforms.md`.
+
+---
+
+## Choi-Williams Distribution (CWD)
+
+The Choi-Williams Distribution suppresses the cross-terms that the
+Wigner-Ville Distribution introduces between multi-component signals.
+Prefer CWD over WVD when the signal contains multiple tones or chirps
+whose interference terms obscure real features.
+
+```python
+import numpy as np
+from spectra.transforms import CWD
+
+iq = (np.random.randn(2048) + 1j * np.random.randn(2048)).astype(np.complex64)
+
+cwd = CWD(nfft=256, sigma=1.0, output_format="magnitude", db_scale=False)
+tfd = cwd(iq)  # Tensor[1, 2048, 256]
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `nfft` | 256 | FFT size (frequency axis length) |
+| `n_time` | `None` | Time samples to keep; `None` uses all |
+| `sigma` | 1.0 | Cross-term suppression strength — larger values suppress more |
+| `output_format` | `"magnitude"` | `"magnitude"` (C=1) or `"real_imag"` (C=2) |
+| `db_scale` | `False` | Convert magnitude to dB |
+
+Output shape: `[C, n_time, nfft]`.
+
+---
+
+## Reassigned Gabor Transform
+
+The Reassigned Gabor Transform sharpens spectrogram features by
+relocating each energy contribution to its time-frequency centroid.
+This produces a more concentrated representation than a plain
+`Spectrogram` when noise broadens spectral lines or thin chirp
+tracks need to be resolved.
+
+```python
+import numpy as np
+from spectra.transforms import ReassignedGabor
+
+iq = (np.random.randn(2048) + 1j * np.random.randn(2048)).astype(np.complex64)
+
+rg = ReassignedGabor(nfft=256, hop_length=64)
+S = rg(iq)  # Tensor[1, 256, n_frames]
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `nfft` | 256 | FFT size (frequency resolution) |
+| `hop_length` | 64 | Hop between successive frames |
+| `sigma` | `None` | Gaussian window sigma; `None` derives from `nfft` |
+
+Output shape: `[1, nfft, n_frames]` where `n_frames = ceil(N / hop_length)`.
+
+---
+
+## Instantaneous Frequency
+
+`InstantaneousFrequency` computes the differential phase of a complex
+IQ signal — equivalent to the Hilbert-domain frequency at each sample.
+This is useful as an FM-domain feature or as the input to any pipeline
+that reasons about instantaneous modulation.
+
+```python
+import numpy as np
+from spectra.transforms import InstantaneousFrequency
+
+iq = (np.random.randn(2048) + 1j * np.random.randn(2048)).astype(np.complex64)
+
+inst = InstantaneousFrequency(sample_rate=1.0, normalize=False)
+freq = inst(iq)  # Tensor[1, 2048]
+```
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `sample_rate` | 1.0 | Sample rate in Hz; scales the output to Hz units |
+| `normalize` | `False` | Normalize output to the range [-0.5, 0.5] |
+
+Output shape: `[1, N]` (same length as the input signal).
+
+---
+
+## Snapshot-Matrix Conversion
+
+`ToSnapshotMatrix` converts the `[n_elements, 2, num_snapshots]` real
+tensor produced by `DirectionFindingDataset` into the complex
+`[n_elements, num_snapshots]` snapshot matrix consumed by the classical
+DoA estimators in `spectra.algorithms.doa` (MUSIC, ESPRIT, Capon).
+
+```python
+import torch
+from spectra.transforms import ToSnapshotMatrix
+
+to_snap = ToSnapshotMatrix()
+
+# Typical DirectionFindingDataset output: [N_elements, 2 (I/Q), T_snapshots]
+data = torch.randn(4, 2, 512)
+X = to_snap(data)  # complex Tensor[4, 512]
+
+# Build sample covariance matrix for MUSIC/Capon
+R = (X @ X.conj().T) / X.shape[1]  # [4, 4] Hermitian
+```
+
+The constructor takes no arguments. The transform is deterministic and
+operates on CPU or CUDA tensors.
+
+---
+
 ## Multi-Representation Example
 
 ```python

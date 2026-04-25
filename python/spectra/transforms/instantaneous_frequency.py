@@ -19,9 +19,6 @@ class InstantaneousFrequency:
             is in [-1, 1] relative to the Nyquist frequency. Requires
             ``sample_rate`` to be set. Default ``False``.
 
-    Returns:
-        ``Tensor[1, N]`` of float32 instantaneous frequency values.
-
     Example::
 
         from spectra import QPSK
@@ -37,6 +34,14 @@ class InstantaneousFrequency:
         self.normalize = normalize
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Compute the instantaneous frequency of the input IQ signal.
+
+        Args:
+            iq: 1-D complex IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[1, N]`` (``float32``).
+        """
         # Differential phase: angle of x[n] * conj(x[n-1])
         diff = iq[1:] * np.conj(iq[:-1])
         inst_freq = np.angle(diff).astype(np.float32)

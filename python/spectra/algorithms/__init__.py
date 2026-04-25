@@ -5,7 +5,11 @@ from spectra.algorithms.beamforming import (
     mvdr,
 )
 from spectra.algorithms.doa import capon, esprit, find_peaks_doa, music, root_music
-from spectra.algorithms.mti import doppler_filter_bank, double_pulse_canceller, single_pulse_canceller
+from spectra.algorithms.mti import (
+    doppler_filter_bank,
+    double_pulse_canceller,
+    single_pulse_canceller,
+)
 from spectra.algorithms.radar import ca_cfar, matched_filter, os_cfar
 
 __all__ = [

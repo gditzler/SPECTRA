@@ -1,5 +1,5 @@
 import sqlite3
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
@@ -89,7 +89,7 @@ class SQLiteWriter(FileWriter):
 
     @staticmethod
     def write_from_dataset(
-        dataset,
+        dataset: Any,
         output_path: str,
         class_list: Optional[List[str]] = None,
         max_samples: Optional[int] = None,

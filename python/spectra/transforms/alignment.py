@@ -13,7 +13,7 @@ BandpassAlign.
 Reference-based (Tier 3 stubs): NoiseProfileTransfer, ReceiverEQ.
 """
 
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -347,7 +347,7 @@ class NoiseProfileTransfer(Transform):
             array from a real receiver.
     """
 
-    def __init__(self, noise_source):
+    def __init__(self, noise_source: Any):
         self._source = noise_source
 
     def __call__(
@@ -378,7 +378,7 @@ class ReceiverEQ(Transform):
             one. Should be from a flat-spectrum calibration signal.
     """
 
-    def __init__(self, reference_psd):
+    def __init__(self, reference_psd: Any):
         self._ref = reference_psd
 
     def __call__(

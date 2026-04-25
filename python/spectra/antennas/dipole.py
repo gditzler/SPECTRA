@@ -1,7 +1,9 @@
 """Short and half-wave dipole antenna element patterns."""
 
 from typing import Literal
+
 import numpy as np
+
 from spectra.antennas.base import AntennaElement
 
 

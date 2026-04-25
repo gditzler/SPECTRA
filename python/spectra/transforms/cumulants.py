@@ -16,9 +16,6 @@ class Cumulants:
     Args:
         max_order: Maximum cumulant order.  ``4`` returns 5 features,
             ``6`` returns 9 features.
-
-    Returns:
-        ``torch.Tensor`` of shape ``[n_features]`` (``float32``).
     """
 
     def __init__(self, max_order: int = 4):
@@ -27,6 +24,14 @@ class Cumulants:
         self.max_order = max_order
 
     def __call__(self, iq: np.ndarray) -> torch.Tensor:
+        """Compute cumulant features of the input IQ signal.
+
+        Args:
+            iq: 1-D complex64 IQ array.
+
+        Returns:
+            ``torch.Tensor`` of shape ``[n_features]`` (``float32``).
+        """
         iq = np.ascontiguousarray(iq, dtype=np.complex64)
         cumulant_values = np.asarray(_compute_cumulants(iq, self.max_order))
         features = np.abs(cumulant_values).astype(np.float32)
