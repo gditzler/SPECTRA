@@ -184,10 +184,12 @@ Preconfigured variants:
 | `OFDM72` | `"OFDM-72"` | 72 |
 | `OFDM128` | `"OFDM-128"` | 128 |
 | `OFDM180` | `"OFDM-180"` | 180 |
+| `OFDM256` | `"OFDM-256"` | 256 |
 | `OFDM300` | `"OFDM-300"` | 300 |
 | `OFDM512` | `"OFDM-512"` | 512 |
 | `OFDM600` | `"OFDM-600"` | 600 |
-| `OFDM1024` | `"OFDM-1024"` | 1024 |
+| `OFDM900` | `"OFDM-900"` | 900 |
+| `OFDM1200` | `"OFDM-1200"` | 1200 |
 | `OFDM2048` | `"OFDM-2048"` | 2048 |
 
 ---
