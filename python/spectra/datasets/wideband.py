@@ -9,7 +9,7 @@ from spectra.scene.composer import Composer, SceneConfig
 from spectra.scene.labels import STFTParams, to_coco
 
 
-class WidebandDataset(BaseIQDataset):
+class WidebandDataset(BaseIQDataset[Tuple[torch.Tensor, Dict]]):
     def __init__(
         self,
         scene_config: SceneConfig,
@@ -29,9 +29,9 @@ class WidebandDataset(BaseIQDataset):
         # Build class list from signal pool
         self.class_list = sorted(set(w.label for w in scene_config.signal_pool))
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Dict]:
-        # Deterministic seed from (base_seed, idx)
-        rng = self._make_rng(idx)
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Dict]:
+        # Deterministic seed from (base_seed, index)
+        rng = self._make_rng(index)
         scene_seed = int(rng.integers(0, 2**32))
 
         iq, signal_descs = self.composer.generate(seed=scene_seed)

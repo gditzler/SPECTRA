@@ -12,10 +12,10 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
-from torch.utils.data import Dataset
 
 from spectra.algorithms.mti import doppler_filter_bank, single_pulse_canceller
 from spectra.algorithms.radar import ca_cfar, os_cfar
+from spectra.datasets._base import BaseIQDataset
 from spectra.impairments.clutter import RadarClutter
 from spectra.targets.rcs import NonFluctuatingRCS, SwerlingRCS
 from spectra.tracking.kalman import ConstantVelocityKF, RangeDopplerKF
@@ -38,7 +38,7 @@ class RadarPipelineTarget:
     doppler_detections: Optional[List[np.ndarray]] = None
 
 
-class RadarPipelineDataset(Dataset):
+class RadarPipelineDataset(BaseIQDataset[Tuple[torch.Tensor, RadarPipelineTarget]]):
     """On-the-fly end-to-end radar pipeline dataset.
 
     Note:
@@ -87,8 +87,8 @@ class RadarPipelineDataset(Dataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, RadarPipelineTarget]:
-        rng = np.random.default_rng(seed=(self.seed, idx))
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, RadarPipelineTarget]:
+        rng = np.random.default_rng(seed=(self.seed, index))
 
         wf_idx = int(rng.integers(0, len(self.waveform_pool)))
         waveform = self.waveform_pool[wf_idx]

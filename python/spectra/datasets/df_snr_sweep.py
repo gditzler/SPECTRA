@@ -13,7 +13,7 @@ from spectra.scene.signal_desc import SignalDescription
 from spectra.waveforms.base import Waveform
 
 
-class DirectionFindingSNRSweepDataset(Dataset):
+class DirectionFindingSNRSweepDataset(Dataset[Tuple[torch.Tensor, DirectionFindingTarget, float]]):
     """Structured (SNR level × sample) grid for DoA algorithm evaluation.
 
     Items are indexed as ``snr_idx * samples_per_snr + sample_idx``.
@@ -66,9 +66,9 @@ class DirectionFindingSNRSweepDataset(Dataset):
     def __len__(self) -> int:
         return len(self.snr_levels) * self.samples_per_snr
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, DirectionFindingTarget, float]:
-        snr_idx = idx // self.samples_per_snr
-        sample_idx = idx % self.samples_per_snr
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, DirectionFindingTarget, float]:
+        snr_idx = index // self.samples_per_snr
+        sample_idx = index % self.samples_per_snr
         snr_db = float(self.snr_levels[snr_idx])
 
         rng = np.random.default_rng(seed=(self.seed, snr_idx, sample_idx))

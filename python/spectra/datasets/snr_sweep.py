@@ -18,7 +18,7 @@ from spectra.impairments.compose import Compose
 from spectra.waveforms.base import Waveform
 
 
-class SNRSweepDataset(BaseIQDataset):
+class SNRSweepDataset(BaseIQDataset[Tuple[torch.Tensor, int, float]]):
     """Fixed (SNR × class × sample) grid. __getitem__ returns (Tensor, int, float)."""
 
     def __init__(
@@ -42,9 +42,9 @@ class SNRSweepDataset(BaseIQDataset):
         self.sample_rate = sample_rate
         self.impairments_fn = impairments_fn
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int, float]:
-        snr_idx = idx // self._cell_size
-        rem = idx % self._cell_size
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int, float]:
+        snr_idx = index // self._cell_size
+        rem = index % self._cell_size
         class_idx = rem // self.samples_per_cell
         cell_idx = rem % self.samples_per_cell
 

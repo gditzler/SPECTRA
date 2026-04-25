@@ -32,7 +32,7 @@ class RadarTarget:
     waveform_label: str
 
 
-class RadarDataset(BaseIQDataset):
+class RadarDataset(BaseIQDataset[Tuple[torch.Tensor, RadarTarget]]):
     """On-the-fly radar range-profile dataset for target detection.
 
     Generates a matched-filter range profile for each item.  Each item
@@ -79,8 +79,8 @@ class RadarDataset(BaseIQDataset):
         self.snr_range = snr_range
         self.num_targets_range = num_targets_range
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, RadarTarget]:
-        rng = self._make_rng(idx)
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, RadarTarget]:
+        rng = self._make_rng(index)
 
         # Pick waveform
         wf_idx = int(rng.integers(0, len(self.waveform_pool)))

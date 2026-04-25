@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import Dataset
 
 
-class MixUpDataset(Dataset):
+class MixUpDataset(Dataset[Tuple[torch.Tensor, Tuple[int, int, float]]]):
     """Wraps a classification dataset to apply MixUp between two samples.
 
     For each index, draws a second sample and blends the two tensors using
@@ -25,9 +25,9 @@ class MixUpDataset(Dataset):
     def __len__(self) -> int:
         return len(self._dataset)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Tuple[int, int, float]]:
-        rng = np.random.default_rng(seed=(45, idx))
-        x1, y1 = self._dataset[idx]
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Tuple[int, int, float]]:
+        rng = np.random.default_rng(seed=(45, index))
+        x1, y1 = self._dataset[index]
         idx2 = int(rng.integers(0, len(self._dataset)))
         x2, y2 = self._dataset[idx2]
         lam = float(rng.beta(self._alpha, self._alpha))
@@ -35,7 +35,7 @@ class MixUpDataset(Dataset):
         return mixed, (y1, y2, lam)
 
 
-class CutMixDataset(Dataset):
+class CutMixDataset(Dataset[Tuple[torch.Tensor, Tuple[int, int, float]]]):
     """Wraps a classification dataset to apply CutMix between two samples.
 
     For each index, draws a second sample and replaces a random segment
@@ -53,9 +53,9 @@ class CutMixDataset(Dataset):
     def __len__(self) -> int:
         return len(self._dataset)
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, Tuple[int, int, float]]:
-        rng = np.random.default_rng(seed=(45, idx))
-        x1, y1 = self._dataset[idx]
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, Tuple[int, int, float]]:
+        rng = np.random.default_rng(seed=(45, index))
+        x1, y1 = self._dataset[index]
         idx2 = int(rng.integers(0, len(self._dataset)))
         x2, y2 = self._dataset[idx2]
         lam = float(rng.beta(self._alpha, self._alpha))

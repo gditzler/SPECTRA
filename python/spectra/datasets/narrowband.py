@@ -9,7 +9,7 @@ from spectra.impairments.compose import Compose
 from spectra.waveforms.base import Waveform
 
 
-class NarrowbandDataset(BaseIQDataset):
+class NarrowbandDataset(BaseIQDataset[Tuple[torch.Tensor, int]]):
     """On-the-fly narrowband IQ dataset for AMC classification.
 
     Generates signals deterministically from ``(base_seed, idx)`` pairs using
@@ -60,8 +60,8 @@ class NarrowbandDataset(BaseIQDataset):
         self.class_weights = class_weights
         self.mimo_config = mimo_config
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:
-        rng = self._make_rng(idx)
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, int]:
+        rng = self._make_rng(index)
 
         # Pick a waveform class
         if self.class_weights is not None:
