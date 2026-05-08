@@ -130,3 +130,35 @@ def test_matched_filter_gain_db():
     # TBP = 100 → gain = 20 dB
     assert matched_filter_gain_db(100.0) == pytest.approx(20.0)
     assert matched_filter_gain_db(1.0) == pytest.approx(0.0)
+
+
+def test_simulate_ber_awgn_bpsk_matches_theory_at_5dB():
+    """At Eb/N0 = 5 dB and 100k bits, BPSK BER should be within 0.5 dB
+    of theory (P_b ≈ 5.95e-3)."""
+    from _verify_helpers import ber_bpsk_awgn, simulate_ber_awgn
+
+    ebn0_db = np.array([5.0])
+    measured = simulate_ber_awgn(modulation="bpsk", ebn0_db=ebn0_db,
+                                 n_bits=100_000, seed=0)
+    theory = ber_bpsk_awgn(ebn0_db)[0]
+    measured_db = 10 * np.log10(measured[0])
+    theory_db = 10 * np.log10(theory)
+    assert abs(measured_db - theory_db) < 0.5
+
+
+def test_measure_evm_rms_matches_snr_inverse():
+    """EVM_RMS = 1 / sqrt(SNR_linear) for unit-power signal + AWGN."""
+    from _verify_helpers import measure_evm_rms
+
+    rng = np.random.default_rng(0)
+    # Reference: 10000 unit-power QPSK symbols on the unit circle
+    bits = rng.integers(0, 4, size=10_000)
+    tx = np.exp(1j * (np.pi / 4 + bits * np.pi / 2)).astype(np.complex64)
+    snr_db = 30.0
+    snr_linear = 10 ** (snr_db / 10)
+    sigma = np.sqrt(1.0 / (2.0 * snr_linear))
+    noise = sigma * (rng.standard_normal(len(tx)) + 1j * rng.standard_normal(len(tx)))
+    rx = tx + noise.astype(np.complex64)
+    evm = measure_evm_rms(rx_symbols=rx, tx_ref=tx)
+    expected = 1.0 / np.sqrt(snr_linear)  # 0.0316 at 30 dB
+    np.testing.assert_allclose(evm, expected, rtol=0.10)

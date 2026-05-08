@@ -268,3 +268,48 @@ def matched_filter_gain_db(tbp: float) -> float:
     Reference: ``levanon2004:eq5.5`` — gain_dB = 10·log10(TBP).
     """
     return 10.0 * np.log10(float(tbp))
+
+
+def simulate_ber_awgn(
+    modulation: str,
+    ebn0_db: np.ndarray,
+    n_bits: int,
+    seed: int = 0,
+) -> np.ndarray:
+    """Simulate BER over AWGN for a given modulation.
+
+    Currently supports ``"bpsk"`` (used by ``verify_bpsk.py`` for S1).
+    QPSK / QAM scripts use higher-level helpers that re-use this function
+    via bit-to-symbol mappings.
+    """
+    rng = np.random.default_rng(seed)
+    ebn0_db = np.atleast_1d(np.asarray(ebn0_db, dtype=float))
+    bers = np.zeros_like(ebn0_db)
+
+    if modulation.lower() == "bpsk":
+        bits = rng.integers(0, 2, size=n_bits, endpoint=False)
+        tx = (2.0 * bits - 1.0).astype(np.float64)  # 0→-1, 1→+1
+        for i, ebn0 in enumerate(ebn0_db):
+            ebn0_lin = 10 ** (ebn0 / 10.0)
+            sigma = np.sqrt(1.0 / (2.0 * ebn0_lin))  # bit energy = 1
+            noise = sigma * rng.standard_normal(n_bits)
+            rx = tx + noise
+            bits_hat = (rx > 0).astype(int)
+            errors = int(np.sum(bits_hat != bits))
+            bers[i] = max(errors / n_bits, 1.0 / n_bits)  # floor at 1/N
+        return bers
+    raise NotImplementedError(f"simulate_ber_awgn(modulation={modulation!r})")
+
+
+def measure_evm_rms(rx_symbols: np.ndarray, tx_ref: np.ndarray) -> float:
+    """RMS EVM relative to the reference constellation power.
+
+    Reference: ``3gpp_38_104:§B.2``. Definition:
+        EVM_RMS = sqrt(mean(|rx - tx|²)) / sqrt(mean(|tx|²))
+    """
+    rx = np.asarray(rx_symbols)
+    tx = np.asarray(tx_ref)
+    err = rx - tx
+    num = np.sqrt(np.mean(np.abs(err) ** 2))
+    den = np.sqrt(np.mean(np.abs(tx) ** 2))
+    return float(num / den)
