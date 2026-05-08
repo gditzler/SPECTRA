@@ -47,6 +47,7 @@ dev = [
     "pyyaml>=6.0",
     "zarr>=2.16",
     "h5py>=3.0",
+    "nbmake>=1.5",
 ]
 
 [project.urls]
@@ -76,6 +77,7 @@ markers = [
     "csp: marks cyclostationary signal processing tests",
     "io: marks tests requiring file I/O optional dependencies",
     "benchmark: marks benchmark output format and logic tests",
+    "verification: signal-generation verification suite",
 ]
 
 [tool.ruff]

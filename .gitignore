@@ -25,6 +25,9 @@ uv.lock
 examples/outputs/*.png
 .DS_Store
 
+# Generated verification figures
+examples/outputs/verification/
+
 # Working directories
 .claude/
 .worktrees/
