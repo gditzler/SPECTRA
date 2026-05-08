@@ -204,3 +204,25 @@ def test_measure_acpr_db_returns_high_for_clean_tone():
     # Channel BW = 1 MHz, adjacent at ±1 MHz
     acpr = measure_acpr_db(iq, fs=fs, channel_bw=1e6, offsets=(1e6,))
     assert acpr[1e6] > 60.0
+
+
+def test_autocorr_peak_to_sidelobe_barker_13_is_13():
+    from _verify_helpers import autocorr_peak_to_sidelobe
+
+    barker_13 = np.array([+1, +1, +1, +1, +1, -1, -1, +1, +1, -1, +1, -1, +1],
+                         dtype=float)
+    pslr = autocorr_peak_to_sidelobe(barker_13)
+    np.testing.assert_allclose(pslr, 13.0, rtol=0, atol=1e-9)
+
+
+def test_measure_cp_correlation_peak_recovers_cp_lag():
+    from _verify_helpers import measure_cp_correlation_peak
+
+    rng = np.random.default_rng(0)
+    n_fft, n_cp = 64, 16
+    body = (rng.standard_normal(n_fft) + 1j * rng.standard_normal(n_fft)) / np.sqrt(2)
+    sym = np.concatenate([body[-n_cp:], body])
+    sequence = np.tile(sym, 8).astype(np.complex64)
+    lag, peak = measure_cp_correlation_peak(sequence, n_fft=n_fft, n_cp=n_cp)
+    assert lag == n_fft
+    assert peak > 0.5

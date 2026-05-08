@@ -383,3 +383,45 @@ def measure_acpr_db(
         adj_power = float(np.trapezoid(p[adj_mask], f[adj_mask]))
         out[off] = 10.0 * np.log10(main_power / max(adj_power, 1e-30))
     return out
+
+
+def autocorr_peak_to_sidelobe(seq: np.ndarray) -> float:
+    """Aperiodic autocorrelation peak / max-sidelobe ratio.
+
+    Reference: ``levanon2004:eq3.32`` — for a length-N Barker code, this
+    ratio equals N exactly. Defining property of Barker codes.
+    """
+    a = np.asarray(seq, dtype=float)
+    full = np.correlate(a, a, mode="full")
+    centre = len(full) // 2
+    peak = float(full[centre])
+    sidelobes = np.delete(full, centre)
+    max_side = float(np.max(np.abs(sidelobes)))
+    if max_side == 0:
+        return float("inf")
+    return abs(peak) / max_side
+
+
+def measure_cp_correlation_peak(
+    ofdm_iq: np.ndarray,
+    n_fft: int,
+    n_cp: int,
+) -> tuple[int, float]:
+    """Argmax of the autocorrelation between ``x[n]`` and ``x[n+n_fft]``.
+
+    Reference: ``vandeBeek1997:§III``. Returns ``(lag_at_peak, normalised_peak)``.
+    A correctly-built OFDM sequence with cyclic prefix of length ``n_cp``
+    yields a peak at lag = ``n_fft``.
+    """
+    x = np.asarray(ofdm_iq).astype(np.complex128)
+    max_lag = min(2 * n_fft, len(x) - 1)
+    corr = np.zeros(max_lag, dtype=float)
+    for k in range(1, max_lag):
+        a = x[: len(x) - k]
+        b = x[k:]
+        win = min(n_cp, len(a))
+        num = np.abs(np.sum(a[:win] * np.conj(b[:win])))
+        den = np.sqrt(np.sum(np.abs(a[:win]) ** 2) * np.sum(np.abs(b[:win]) ** 2))
+        corr[k] = num / max(den, 1e-30)
+    lag = int(np.argmax(corr))
+    return lag, float(corr[lag])
