@@ -57,3 +57,26 @@ def test_result_table_renders_html():
     html = t.render_html()
     assert "<table" in html and "</table>" in html
     assert "P1" in html
+
+
+def test_parse_references_loads_known_keys():
+    from _verify_helpers import REFERENCES
+
+    assert "proakis2008" in REFERENCES
+    assert "3gpp_38_211" in REFERENCES
+    assert "rtca_do260b" in REFERENCES
+
+
+def test_cite_resolves_known_locus():
+    from _verify_helpers import cite
+
+    s = cite("proakis2008:eq4.3-13")
+    assert "Proakis" in s or "proakis2008" in s
+    assert "eq4.3-13" in s
+
+
+def test_cite_raises_on_unknown_key():
+    from _verify_helpers import cite
+
+    with pytest.raises(KeyError):
+        cite("nope2099:eq1")

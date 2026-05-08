@@ -125,3 +125,76 @@ class ResultTable:
             "<th>Expected</th><th>Tol</th><th>Pass</th><th>Cite</th></tr></thead>"
             f"<tbody>{''.join(rows_html)}</tbody></table>"
         )
+
+
+import re
+from pathlib import Path
+
+
+def _parse_references_md(path: Path) -> dict[str, dict]:
+    """Parse REFERENCES.md into ``{key: {"raw": str, "loci": {locus: text, ...}}}``."""
+    text = path.read_text()
+    entries: dict[str, dict] = {}
+    current_key: str | None = None
+    current_block: list[str] = []
+    in_loci = False
+    loci: dict[str, str] = {}
+
+    def _flush() -> None:
+        nonlocal current_key, current_block, loci
+        if current_key is not None:
+            entries[current_key] = {
+                "raw": "\n".join(current_block).strip(),
+                "loci": dict(loci),
+            }
+        current_block = []
+        loci = {}
+
+    for line in text.splitlines():
+        m = re.match(r"^##\s+\[([^\]]+)\]\s*$", line)
+        if m:
+            _flush()
+            current_key = m.group(1)
+            in_loci = False
+            continue
+        if current_key is None:
+            continue
+        current_block.append(line)
+        if re.match(r"^- Loci used:\s*$", line):
+            in_loci = True
+            continue
+        if in_loci:
+            mloc = re.match(r"^\s+- ([^\s].*?)\s+—\s+(.+)$", line)
+            if mloc:
+                loci[mloc.group(1).rstrip(",")] = mloc.group(2)
+    _flush()
+    return entries
+
+
+_REF_PATH = Path(__file__).resolve().parent / "REFERENCES.md"
+REFERENCES: dict[str, dict] = _parse_references_md(_REF_PATH)
+
+
+def cite(key: str) -> str:
+    """Resolve a citation key like ``proakis2008:eq4.3-13`` to a short string."""
+    if ":" in key:
+        ref_key, locus = key.split(":", 1)
+    else:
+        ref_key, locus = key, ""
+    if ref_key not in REFERENCES:
+        raise KeyError(f"Unknown citation key '{ref_key}'. See REFERENCES.md.")
+    raw = REFERENCES[ref_key]["raw"]
+    short = ref_key
+    for line in raw.splitlines():
+        if line.startswith("- Authors:"):
+            short = line.split(":", 1)[1].strip().split(",")[0].strip()
+            break
+        if line.startswith("- Org:"):
+            short = line.split(":", 1)[1].strip()
+            break
+    year = ""
+    for line in raw.splitlines():
+        if line.startswith("- Year:"):
+            year = line.split(":", 1)[1].strip()
+            break
+    return f"{short} {year}{(', ' + locus) if locus else ''}".strip()
