@@ -110,3 +110,12 @@ The parser in `_verify_helpers.py` reads this file at script startup.
 - DOI:     10.1109/MWC.2005.1421929
 - Loci used:
   - §I              — OFDM PAPR distribution (Gaussian approx, Rayleigh envelope)
+
+## [barker]
+- Authors: R. H. Barker
+- Title:   "Group Synchronizing of Binary Digital Systems"
+- Pub:     Communication Theory, ed. W. Jackson, Academic Press, pp. 273–287
+- Year:    1953
+- Loci used:
+  - algebraic       — Binary code with |c[i]| = 1, energy = N chips (sum of squares = N)
+  - rect-pulse-psd  — Rectangular chip pulse yields sinc² power spectral density envelope
