@@ -91,8 +91,21 @@ examples/
 ├── environment/                             # Propagation & link budgets
 │   └── propagation_and_links.py             # Intermediate
 │
-└── benchmarks/                              # Reproducible evaluation
-    └── benchmark_evaluation.py              # Advanced
+├── benchmarks/                              # Reproducible evaluation
+│   └── benchmark_evaluation.py              # Advanced
+│
+└── verification/                            # Citation-backed signal generation proofs
+    ├── verify_bpsk.py                       # Advanced
+    ├── verify_qpsk.py                       # Advanced
+    ├── verify_qam16.py                      # Advanced
+    ├── verify_gmsk.py                       # Advanced
+    ├── verify_ofdm.py                       # Advanced
+    ├── verify_nr_pss.py                     # Advanced
+    ├── verify_nr_sss.py                     # Advanced
+    ├── verify_lfm.py                        # Advanced
+    ├── verify_barker13.py                   # Advanced
+    ├── verify_adsb.py                       # Advanced
+    └── verification_suite.ipynb             # Master narrative notebook
 ```
 
 ## Examples by Category
@@ -192,6 +205,27 @@ examples/
 | Example | Level | Description |
 |---------|-------|-------------|
 | `benchmark_evaluation.py` | Advanced | Load and evaluate built-in benchmarks (spectra-18, spectra-spread, etc.) |
+
+### Verification
+
+Citation-backed proofs that SPECTRA's waveform generators produce signals
+matching theoretical expectations and published standards. See
+`examples/verification/README.md` for methodology and how to read the
+result tables.
+
+| Example | Level | Strongest evidence |
+|---------|-------|--------------------|
+| `verify_bpsk.py`     | Advanced | BER vs theory ± 0.3 dB; constellation on real axis |
+| `verify_qpsk.py`     | Advanced | SER vs theory; Gray constellation; PAPR |
+| `verify_qam16.py`    | Advanced | SER vs theory; rectangular grid; EVM |
+| `verify_gmsk.py`     | Advanced | Constant envelope; Laurent main-lobe; BER |
+| `verify_ofdm.py`     | Advanced | Subcarrier orthogonality; CP correlation peak |
+| `verify_nr_pss.py`   | Advanced | Sample-exact 3GPP TS 38.211 §7.4.2.2 PSS |
+| `verify_nr_sss.py`   | Advanced | Sample-exact 3GPP TS 38.211 §7.4.2.3 SSS |
+| `verify_lfm.py`      | Advanced | Linear IF ramp; matched-filter gain |
+| `verify_barker13.py` | Advanced | PSLR exactly = 13; 100 % detection at SNR=10 dB |
+| `verify_adsb.py`     | Advanced | CRC-24 byte equality (RTCA DO-260B G(x)=0x1FFF409) |
+| `verification_suite.ipynb` | Advanced | All ten waveforms in one narrative notebook |
 
 ## Output
 
