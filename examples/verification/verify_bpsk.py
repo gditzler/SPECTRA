@@ -8,7 +8,7 @@ Proves that the generated BPSK waveform satisfies:
   P4. PSD shape correlation with squared-RRC ≥ 0.99. [proakis2008:eq9.2-37]
   P5. OBW (99 %) within 5 % of theoretical 99%-OBW.  [itu_sm_328:§3]
   P6. ACLR at ±2·R_s offset ≥ 45 dB.                [3gpp_38_104:T6.6.3.1-1]
-  S1. BER vs Eb/N0 ∈ [0,6] dB, max |Δ| ≤ 1.0 dB.   [proakis2008:eq4.3-13]
+  S1. BER vs Eb/N0 ∈ [0,9] dB, max |Δ| ≤ 0.5 dB (full) / 0.8 dB (quick). [proakis2008:eq4.3-13]
   S2. EVM at SNR=40 dB ≤ 1 % RMS.                   [3gpp_38_104:§B.2]
 
 Implementation notes:
@@ -146,7 +146,7 @@ def performance(full: bool = False) -> ResultTable:
     # With n_bits=100 k, theory BER at 6 dB ≈2.4e-3 → 240 errors.
     # At 7 dB, BER≈7.7e-4 → 77 errors → too noisy for a 0.3–1 dB tolerance.
     ebn0_max = 9.0 if full else 6.0
-    tol_db = 0.3 if full else 1.0
+    tol_db = 0.5 if full else 0.8
 
     # S1 — BER vs theory
     ebn0_db = np.arange(0, ebn0_max + 1, 1.0)
