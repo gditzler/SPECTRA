@@ -80,3 +80,53 @@ def test_cite_raises_on_unknown_key():
 
     with pytest.raises(KeyError):
         cite("nope2099:eq1")
+
+
+def test_ber_bpsk_awgn_at_known_snr():
+    from _verify_helpers import ber_bpsk_awgn
+
+    # At Eb/N0 = 0 dB:  P_b = Q(sqrt(2)) ≈ 0.0786496035
+    # At Eb/N0 = 10 dB: P_b = Q(sqrt(20)) ≈ 3.872e-6
+    bers = ber_bpsk_awgn(np.array([0.0, 10.0]))
+    np.testing.assert_allclose(bers[0], 0.0786496035, rtol=1e-6)
+    np.testing.assert_allclose(bers[1], 3.872e-6, rtol=5e-3)
+
+
+def test_ser_mpsk_awgn_matches_bpsk_at_M2():
+    from _verify_helpers import ber_bpsk_awgn, ser_mpsk_awgn
+
+    ebn0_db = np.array([0.0, 5.0, 10.0])
+    bpsk = ber_bpsk_awgn(ebn0_db)
+    # M=2 PSK SER == BPSK BER (binary)
+    mpsk2 = ser_mpsk_awgn(M=2, ebn0_db=ebn0_db)
+    np.testing.assert_allclose(mpsk2, bpsk, rtol=5e-3, atol=1e-6)
+
+
+def test_ser_mqam_awgn_4qam_matches_qpsk_approx():
+    from _verify_helpers import ser_mqam_awgn, ser_mpsk_awgn
+
+    # 4-QAM ≡ QPSK, SERs should be close to within 0.5 dB
+    ebn0_db = np.array([6.0, 10.0])
+    qam = ser_mqam_awgn(M=4, ebn0_db=ebn0_db)
+    qpsk = ser_mpsk_awgn(M=4, ebn0_db=ebn0_db)
+    assert np.all(np.abs(qam - qpsk) / qpsk < 0.10)
+
+
+def test_psd_rrc_squared_unit_area():
+    from _verify_helpers import psd_rrc_squared
+
+    f = np.linspace(-5e6, 5e6, 4001)
+    Rs = 1e6
+    psd = psd_rrc_squared(f, Rs=Rs, alpha=0.35)
+    # Integrated PSD over [-Rs, Rs] should be close to 1 for a unit-energy pulse
+    df = f[1] - f[0]
+    area = np.trapezoid(psd, dx=df)
+    assert 0.85 < area < 1.15
+
+
+def test_matched_filter_gain_db():
+    from _verify_helpers import matched_filter_gain_db
+
+    # TBP = 100 → gain = 20 dB
+    assert matched_filter_gain_db(100.0) == pytest.approx(20.0)
+    assert matched_filter_gain_db(1.0) == pytest.approx(0.0)

@@ -198,3 +198,73 @@ def cite(key: str) -> str:
             year = line.split(":", 1)[1].strip()
             break
     return f"{short} {year}{(', ' + locus) if locus else ''}".strip()
+
+
+import numpy as np
+from scipy.special import erfc
+
+
+def _q(x: np.ndarray) -> np.ndarray:
+    """Q-function: Q(x) = 0.5·erfc(x/sqrt(2))."""
+    return 0.5 * erfc(np.asarray(x) / np.sqrt(2.0))
+
+
+def ber_bpsk_awgn(ebn0_db: np.ndarray | float) -> np.ndarray:
+    """BER for coherent BPSK over AWGN.
+
+    Reference: ``proakis2008:eq4.3-13`` — P_b = Q(sqrt(2·Eb/N0)).
+    """
+    ebn0 = 10.0 ** (np.asarray(ebn0_db, dtype=float) / 10.0)
+    return _q(np.sqrt(2.0 * ebn0))
+
+
+def ser_mpsk_awgn(M: int, ebn0_db: np.ndarray | float) -> np.ndarray:
+    """SER for coherent M-PSK over AWGN (high-SNR approximation).
+
+    Reference: ``proakis2008:eq4.3-15`` —
+        P_s ≈ 2·Q(sqrt(2·Es/N0)·sin(π/M)),
+    where Es/N0 = log2(M)·Eb/N0.
+    """
+    ebn0 = 10.0 ** (np.asarray(ebn0_db, dtype=float) / 10.0)
+    esn0 = np.log2(M) * ebn0
+    if M == 2:
+        return _q(np.sqrt(2.0 * ebn0))
+    return 2.0 * _q(np.sqrt(2.0 * esn0) * np.sin(np.pi / M))
+
+
+def ser_mqam_awgn(M: int, ebn0_db: np.ndarray | float) -> np.ndarray:
+    """SER for square M-QAM over AWGN.
+
+    Reference: ``proakis2008:eq4.3-30`` —
+        P_s ≈ 4·(1 − 1/sqrt(M))·Q(sqrt(3·log2(M)·Eb/N0 / (M−1))).
+    """
+    ebn0 = 10.0 ** (np.asarray(ebn0_db, dtype=float) / 10.0)
+    arg = np.sqrt(3.0 * np.log2(M) * ebn0 / (M - 1.0))
+    return 4.0 * (1.0 - 1.0 / np.sqrt(M)) * _q(arg)
+
+
+def psd_rrc_squared(f: np.ndarray, Rs: float, alpha: float) -> np.ndarray:
+    """One-sided PSD shape of a unit-energy root-raised-cosine pulse.
+
+    Reference: ``proakis2008:eq9.2-37`` — squared-magnitude RRC frequency
+    response. Returns an unnormalised shape; tests / measurements compare
+    *correlation*, not absolute level.
+    """
+    f = np.abs(np.asarray(f, dtype=float))
+    T = 1.0 / Rs
+    psd = np.zeros_like(f)
+    inner = f <= (1.0 - alpha) / (2.0 * T)
+    outer = (f > (1.0 - alpha) / (2.0 * T)) & (f <= (1.0 + alpha) / (2.0 * T))
+    psd[inner] = T
+    if alpha > 0.0:
+        x = (np.pi * T / alpha) * (f[outer] - (1.0 - alpha) / (2.0 * T))
+        psd[outer] = 0.5 * T * (1.0 + np.cos(x))
+    return psd
+
+
+def matched_filter_gain_db(tbp: float) -> float:
+    """LFM matched-filter compression gain.
+
+    Reference: ``levanon2004:eq5.5`` — gain_dB = 10·log10(TBP).
+    """
+    return 10.0 * np.log10(float(tbp))
