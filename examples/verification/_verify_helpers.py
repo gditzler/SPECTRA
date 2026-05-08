@@ -425,3 +425,98 @@ def measure_cp_correlation_peak(
         corr[k] = num / max(den, 1e-30)
     lag = int(np.argmax(corr))
     return lag, float(corr[lag])
+
+
+import argparse
+import sys
+from typing import Callable
+
+
+OUTPUT_DIR = Path(__file__).resolve().parents[1] / "outputs" / "verification"
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="SPECTRA verification script. Use --full for publication runs."
+    )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Run statistical (S*) checks at publication-grade sample sizes.",
+    )
+    return parser.parse_args()
+
+
+def save_verification_figure(name: str) -> Path:
+    """Save the current Matplotlib figure under ``examples/outputs/verification/``."""
+    import matplotlib.pyplot as plt
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    out = OUTPUT_DIR / name
+    plt.gcf().tight_layout()
+    plt.savefig(out, dpi=110)
+    return out
+
+
+def plot_theory_overlay(
+    measured: np.ndarray,
+    theory: np.ndarray,
+    x: np.ndarray,
+    *,
+    xlabel: str,
+    ylabel: str,
+    title: str,
+    measured_label: str = "measured",
+    theory_label: str = "theory",
+    yscale: str = "log",
+) -> None:
+    import matplotlib.pyplot as plt
+
+    plt.figure(figsize=(7, 4))
+    plt.plot(x, theory, "k--", lw=1.5, label=theory_label)
+    plt.plot(x, measured, "o", ms=5, label=measured_label)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title(title)
+    if yscale == "log":
+        plt.yscale("log")
+    plt.grid(True, which="both", alpha=0.3)
+    plt.legend()
+
+
+def plot_psd_with_theory(
+    iq: np.ndarray,
+    fs: float,
+    theory_fn: Callable[[np.ndarray], np.ndarray],
+    *,
+    title: str,
+    nfft: int = 4096,
+) -> None:
+    import matplotlib.pyplot as plt
+
+    f, p = _welch_psd(iq, fs=fs, nperseg=nfft)
+    p_db = 10 * np.log10(p / np.max(p) + 1e-30)
+    t = theory_fn(f)
+    t_db = 10 * np.log10(t / np.max(t) + 1e-30)
+    plt.figure(figsize=(7, 4))
+    plt.plot(f / 1e3, p_db, lw=0.8, label="measured")
+    plt.plot(f / 1e3, t_db, "k--", lw=1.0, label="theory")
+    plt.xlabel("Freq (kHz)")
+    plt.ylabel("PSD (dB, normalised)")
+    plt.title(title)
+    plt.grid(True, alpha=0.3)
+    plt.legend()
+
+
+def run_script(
+    properties_fn: Callable[[], "ResultTable"],
+    performance_fn: Callable[[bool], "ResultTable"],
+) -> int:
+    """Standard ``__main__`` entry for verify_<wf>.py scripts."""
+    args = parse_args()
+    p = properties_fn()
+    s = performance_fn(args.full)
+    print(p.render())
+    print()
+    print(s.render())
+    return 0 if (p.all_passed and s.all_passed) else 1

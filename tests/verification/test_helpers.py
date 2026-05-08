@@ -226,3 +226,35 @@ def test_measure_cp_correlation_peak_recovers_cp_lag():
     lag, peak = measure_cp_correlation_peak(sequence, n_fft=n_fft, n_cp=n_cp)
     assert lag == n_fft
     assert peak > 0.5
+
+
+def test_parse_args_full_flag(monkeypatch):
+    from _verify_helpers import parse_args
+
+    monkeypatch.setattr(sys, "argv", ["x", "--full"])
+    ns = parse_args()
+    assert ns.full is True
+
+
+def test_parse_args_default_full_is_false(monkeypatch):
+    from _verify_helpers import parse_args
+
+    monkeypatch.setattr(sys, "argv", ["x"])
+    ns = parse_args()
+    assert ns.full is False
+
+
+def test_save_verification_figure_writes_png(tmp_path, monkeypatch):
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    from _verify_helpers import save_verification_figure, OUTPUT_DIR
+
+    monkeypatch.setattr("_verify_helpers.OUTPUT_DIR", tmp_path)
+    fig, ax = plt.subplots()
+    ax.plot([0, 1], [0, 1])
+    save_verification_figure("test_plot.png")
+    plt.close(fig)
+    assert (tmp_path / "test_plot.png").exists()
