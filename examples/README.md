@@ -215,7 +215,7 @@ result tables.
 
 | Example | Level | Strongest evidence |
 |---------|-------|--------------------|
-| `verify_bpsk.py`     | Advanced | BER vs theory ± 0.3 dB; constellation on real axis |
+| `verify_bpsk.py`     | Advanced | BER vs theory ± 0.5 dB (full mode); constellation on real axis |
 | `verify_qpsk.py`     | Advanced | SER vs theory; Gray constellation; PAPR |
 | `verify_qam16.py`    | Advanced | SER vs theory; rectangular grid; EVM |
 | `verify_gmsk.py`     | Advanced | Constant envelope; Laurent main-lobe; BER |

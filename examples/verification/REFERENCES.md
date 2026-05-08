@@ -119,3 +119,24 @@ The parser in `_verify_helpers.py` reads this file at script startup.
 - Loci used:
   - algebraic       — Binary code with |c[i]| = 1, energy = N chips (sum of squares = N)
   - rect-pulse-psd  — Rectangular chip pulse yields sinc² power spectral density envelope
+
+## [bpsk]
+- Note: Informal citation key for BPSK definitional properties.
+- Loci used:
+  - constellation   — BPSK symbols lie on the real axis at ±1 (binary phase-shift keying defining property)
+
+## [gmsk]
+- Note: Informal citation key for GMSK (Gaussian Minimum Shift Keying) implementation properties.
+- Loci used:
+  - cpm-defn        — CPM (Continuous Phase Modulation) constant-envelope property: s(t) = exp(j·φ(t)), |s(t)| = 1
+  - gaussian        — Gaussian pre-modulation filter 3-dB bandwidth = BT·R_s (two-sided), where BT is the bandwidth-time product
+
+## [lfm]
+- Note: Informal citation key for LFM (Linear Frequency Modulation / chirp) definitional properties.
+- Loci used:
+  - definition      — LFM waveform: instantaneous frequency is a linear ramp f(t) = f_0 + (B/T)·t; total swept bandwidth = B within pulse duration T
+
+## [ofdm]
+- Note: Informal citation key for OFDM spectral containment property.
+- Loci used:
+  - psd-shape       — OFDM guard-band spectral containment: power in used subcarriers exceeds guard-band power (subcarrier orthogonality implies zero energy in guard bins for noiseless reference build)

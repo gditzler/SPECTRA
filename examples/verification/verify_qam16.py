@@ -69,14 +69,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
-
 import spectra as sp
-from spectra._rust import (
-    generate_qam_symbols,
-    generate_qam_symbols_with_indices,
-    get_qam_constellation,
-)
-
 from _verify_helpers import (
     ResultTable,
     _welch_psd,
@@ -91,7 +84,11 @@ from _verify_helpers import (
     save_verification_figure,
     ser_mqam_awgn,
 )
-
+from spectra._rust import (
+    generate_qam_symbols,
+    generate_qam_symbols_with_indices,
+    get_qam_constellation,
+)
 
 SAMPLE_RATE = 1.0e6
 SAMPLES_PER_SYMBOL = 8

@@ -36,10 +36,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
-
-from spectra._rust import generate_nr_pss
-
 from _verify_helpers import ResultTable, run_script
+from spectra._rust import generate_nr_pss
 
 
 def _reference_pss(n_id_2: int) -> np.ndarray:

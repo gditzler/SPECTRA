@@ -27,7 +27,7 @@ def test_result_table_add_and_render_ascii():
 
     t = ResultTable("BPSK — Properties")
     t.add("P1", "constellation imag",
-          measured=0.0, expected=0.0, tol=1e-9, cite="dummy:def", units="")
+          measured=0.0, expected=0.0, tol=1e-9, cite="bpsk:constellation", units="")
     t.add("P2", "bandwidth (kHz)",
           measured=135.0, expected=135.0, tol=1.35, cite="sklar2001:§3.5,eq3.74",
           units="kHz")
@@ -43,7 +43,7 @@ def test_result_table_records_failure_when_outside_tolerance():
 
     t = ResultTable("Demo")
     t.add("P1", "x", measured=1.5, expected=1.0, tol=0.1,
-          cite="dummy:eq1", units="")
+          cite="proakis2008:eq4.3-13", units="")
     assert t.all_passed is False
     assert "[FAIL]" in t.render() or "✗" in t.render()
 
@@ -53,7 +53,7 @@ def test_result_table_renders_html():
 
     t = ResultTable("Demo")
     t.add("P1", "x", measured=1.0, expected=1.0, tol=0.01,
-          cite="dummy:eq1", units="")
+          cite="proakis2008:eq4.3-13", units="")
     html = t.render_html()
     assert "<table" in html and "</table>" in html
     assert "P1" in html
@@ -103,7 +103,7 @@ def test_ser_mpsk_awgn_matches_bpsk_at_M2():
 
 
 def test_ser_mqam_awgn_4qam_matches_qpsk_approx():
-    from _verify_helpers import ser_mqam_awgn, ser_mpsk_awgn
+    from _verify_helpers import ser_mpsk_awgn, ser_mqam_awgn
 
     # 4-QAM ≡ QPSK, SERs should be close to within 0.5 dB
     ebn0_db = np.array([6.0, 10.0])
@@ -249,8 +249,7 @@ def test_save_verification_figure_writes_png(tmp_path, monkeypatch):
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-
-    from _verify_helpers import save_verification_figure, OUTPUT_DIR
+    from _verify_helpers import save_verification_figure
 
     monkeypatch.setattr("_verify_helpers.OUTPUT_DIR", tmp_path)
     fig, ax = plt.subplots()

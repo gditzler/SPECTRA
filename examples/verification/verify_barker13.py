@@ -40,10 +40,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
-
 import spectra as sp  # noqa: F401 — ensures the package is importable
-from spectra.waveforms.barker import BARKER_CODES, BarkerCode
-
 from _verify_helpers import (
     ResultTable,
     autocorr_peak_to_sidelobe,
@@ -51,6 +48,7 @@ from _verify_helpers import (
     run_script,
     save_verification_figure,
 )
+from spectra.waveforms.barker import BARKER_CODES, BarkerCode
 
 # ── Canonical chip sequence ───────────────────────────────────────────────────
 CANONICAL_13 = np.array(

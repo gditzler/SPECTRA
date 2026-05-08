@@ -54,9 +54,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
-
-from spectra._rust import generate_qam_symbols
-
 from _verify_helpers import (
     ResultTable,
     measure_cp_correlation_peak,
@@ -64,9 +61,8 @@ from _verify_helpers import (
     measure_obw,
     measure_papr_db,
     run_script,
-    _welch_psd,
 )
-
+from spectra._rust import generate_qam_symbols
 
 SAMPLE_RATE = 1.0e6
 N_FFT = 64

@@ -36,10 +36,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
-
-from spectra.waveforms.aviation_maritime import ADSB
-
 from _verify_helpers import ResultTable, run_script
+from spectra.waveforms.aviation_maritime import ADSB
 
 # ── Physical design parameters ────────────────────────────────────────────────
 # ADS-B chip period = 0.5 µs → chip rate = 2 Mchips/s.

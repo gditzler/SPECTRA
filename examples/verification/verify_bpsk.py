@@ -36,12 +36,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import numpy as np
-
 import spectra as sp
-from spectra._rust import generate_bpsk_symbols
-
 from _verify_helpers import (
     ResultTable,
+    _welch_psd,
     ber_bpsk_awgn,
     measure_acpr_db,
     measure_evm_rms,
@@ -53,9 +51,8 @@ from _verify_helpers import (
     run_script,
     save_verification_figure,
     simulate_ber_awgn,
-    _welch_psd,
 )
-
+from spectra._rust import generate_bpsk_symbols
 
 SAMPLE_RATE = 1.0e6
 SAMPLES_PER_SYMBOL = 8
