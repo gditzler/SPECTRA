@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/spectra_logo_bifrequency_cross.svg" alt="SPECTRA logo" width="320">
+</p>
+
 # SPECTRA
 
 Realistic radar and communication waveform generation with PyTorch integration.
