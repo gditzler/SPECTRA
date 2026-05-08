@@ -313,3 +313,73 @@ def measure_evm_rms(rx_symbols: np.ndarray, tx_ref: np.ndarray) -> float:
     num = np.sqrt(np.mean(np.abs(err) ** 2))
     den = np.sqrt(np.mean(np.abs(tx) ** 2))
     return float(num / den)
+
+
+def _welch_psd(iq: np.ndarray, fs: float, nperseg: int = 4096) -> tuple[np.ndarray, np.ndarray]:
+    from scipy.signal import welch
+
+    f, p = welch(iq, fs=fs, nperseg=min(nperseg, len(iq)),
+                 return_onesided=False, scaling="density")
+    order = np.argsort(f)
+    return f[order], p[order]
+
+
+def measure_obw(iq: np.ndarray, fs: float, fraction: float = 0.99) -> float:
+    """Occupied bandwidth containing ``fraction`` of total spectral power.
+
+    Reference: ``itu_sm_328:§3``.
+    """
+    f, p = _welch_psd(iq, fs=fs)
+    cum = np.cumsum(p)
+    cum /= cum[-1]
+    lo_target = (1.0 - fraction) / 2.0
+    hi_target = 1.0 - lo_target
+    lo_idx = int(np.searchsorted(cum, lo_target))
+    hi_idx = int(np.searchsorted(cum, hi_target))
+    return float(f[hi_idx] - f[lo_idx])
+
+
+def measure_papr_db(iq: np.ndarray, percentile: float = 99.9) -> float:
+    """Peak-to-Average Power Ratio at the given amplitude percentile."""
+    p = np.abs(iq) ** 2
+    peak = np.percentile(p, percentile)
+    avg = np.mean(p)
+    return 10.0 * np.log10(peak / avg)
+
+
+def measure_psd_shape_correlation(measured_psd: np.ndarray, theory_psd: np.ndarray) -> float:
+    """Pearson correlation between two PSD shapes (length-matched)."""
+    a = np.asarray(measured_psd, dtype=float)
+    b = np.asarray(theory_psd, dtype=float)
+    if a.shape != b.shape:
+        raise ValueError(f"shape mismatch {a.shape} vs {b.shape}")
+    a = a - a.mean()
+    b = b - b.mean()
+    denom = np.sqrt((a * a).sum() * (b * b).sum())
+    if denom == 0:
+        return 0.0
+    return float((a * b).sum() / denom)
+
+
+def measure_acpr_db(
+    iq: np.ndarray,
+    fs: float,
+    channel_bw: float,
+    offsets: tuple[float, ...],
+) -> dict[float, float]:
+    """ACPR (in dB) for adjacent channels at the given offsets from DC.
+
+    Returns a dict ``{offset: acpr_db}`` where ACPR = 10·log10(P_main / P_adj).
+    """
+    f, p = _welch_psd(iq, fs=fs)
+    half = channel_bw / 2.0
+    main_mask = (f >= -half) & (f <= half)
+    main_power = float(np.trapezoid(p[main_mask], f[main_mask]))
+    out: dict[float, float] = {}
+    for off in offsets:
+        adj_mask = ((f >= off - half) & (f <= off + half)) | (
+            (f >= -off - half) & (f <= -off + half)
+        )
+        adj_power = float(np.trapezoid(p[adj_mask], f[adj_mask]))
+        out[off] = 10.0 * np.log10(main_power / max(adj_power, 1e-30))
+    return out

@@ -162,3 +162,45 @@ def test_measure_evm_rms_matches_snr_inverse():
     evm = measure_evm_rms(rx_symbols=rx, tx_ref=tx)
     expected = 1.0 / np.sqrt(snr_linear)  # 0.0316 at 30 dB
     np.testing.assert_allclose(evm, expected, rtol=0.10)
+
+
+def test_measure_obw_pure_tone_is_narrow():
+    """A 1 kHz tone in a 1 MHz capture should have OBW(99%) << capture BW."""
+    from _verify_helpers import measure_obw
+
+    fs = 1e6
+    t = np.arange(50_000) / fs
+    iq = np.exp(1j * 2 * np.pi * 1e3 * t).astype(np.complex64)
+    obw = measure_obw(iq, fs=fs, fraction=0.99)
+    assert obw < 0.01 * fs  # tone OBW is dominated by FFT leakage but tiny
+
+
+def test_measure_papr_db_pure_tone_is_zero():
+    """A constant-envelope tone has PAPR ≈ 0 dB (peak == average)."""
+    from _verify_helpers import measure_papr_db
+
+    fs = 1e6
+    t = np.arange(10_000) / fs
+    iq = np.exp(1j * 2 * np.pi * 1e3 * t).astype(np.complex64)
+    papr = measure_papr_db(iq, percentile=99.9)
+    assert -0.1 < papr < 0.1
+
+
+def test_measure_psd_shape_correlation_self_is_one():
+    from _verify_helpers import measure_psd_shape_correlation
+
+    psd = np.exp(-np.linspace(-3, 3, 256) ** 2)
+    c = measure_psd_shape_correlation(psd, psd)
+    np.testing.assert_allclose(c, 1.0, atol=1e-12)
+
+
+def test_measure_acpr_db_returns_high_for_clean_tone():
+    """A pure tone confined to a narrow channel has very high ACPR."""
+    from _verify_helpers import measure_acpr_db
+
+    fs = 10e6
+    t = np.arange(100_000) / fs
+    iq = np.exp(1j * 2 * np.pi * 100e3 * t).astype(np.complex64)
+    # Channel BW = 1 MHz, adjacent at ±1 MHz
+    acpr = measure_acpr_db(iq, fs=fs, channel_bw=1e6, offsets=(1e6,))
+    assert acpr[1e6] > 60.0
