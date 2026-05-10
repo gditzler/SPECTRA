@@ -103,15 +103,16 @@ class GMSK(Waveform):
         symbols = generate_bpsk_symbols(num_symbols, seed=s)
         sps = self.samples_per_symbol
 
-        # Upsample with zero-insertion
-        symbols_up = np.zeros(num_symbols * sps, dtype=np.float32)
-        symbols_up[::sps] = symbols.real
+        # Repeat-upsample so the frequency-pulse train averages to ±1.
+        # A sum-normalised Gaussian preserves the DC level of its input;
+        # zero-insertion would attenuate it by sps, yielding h_eff = h/sps.
+        symbols_up = np.repeat(symbols.real.astype(np.float32), sps)
 
         # Gaussian filter
         h = self._gaussian_taps()
         filtered = np.convolve(symbols_up, h, mode="same")
 
-        # Phase modulation (MSK: h=0.5)
+        # Phase modulation: per-symbol total Δφ = π·h·b_k with h = 0.5.
         delta_phi = np.pi * 0.5 * filtered / sps
         phase = np.cumsum(delta_phi)
         return np.exp(1j * phase).astype(np.complex64)
