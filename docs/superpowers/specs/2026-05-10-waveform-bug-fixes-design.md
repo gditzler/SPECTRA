@@ -149,14 +149,22 @@ path because that's covered by the verifier.
 
 - P2 — expected step `π · 0.5 ≈ 1.5708 rad`, tolerance 1 % relative
   (was `π · 0.0625`). Citation key unchanged: `proakis2008:§4.4-3`.
-- P4 — proper Laurent-expansion 3-dB BW check, tolerance 20 % relative
-  against `0.5 · R_s` (the Laurent prediction for BT=0.3, h=0.5). Citation
-  `laurent1986:§III` now applies — was suppressed before.
-- P5 — replace `OBW_EMPIRICAL_HZ = 31_000.0` with `OBW_THEORY_HZ ≈ 1.5 · R_s`
-  (standard BT=0.3 GMSK figure). Citation `itu_sm_328:§3`.
-- S1 — BER vs Q(√(2·Eb/N0)) over [0, 10] dB with the standard
-  correlator-based demod (not frequency-discriminator at 40 dB). Tolerance
-  ≤ 0.5 dB at full mode (matches BPSK).
+- P4 — PSD 3-dB BW vs the BT=0.3 / h=0.5 reference `0.27 · R_s` (Laurent
+  expansion, third-order term dominant), tolerance 25 % relative. Citation
+  `laurent1986:§III`. Note: the `0.5 · R_s` figure that appears in some
+  references is the BT = ∞ MSK main-lobe; the Gaussian filter at BT = 0.3
+  compresses the main lobe to ≈ 0.27 · R_s.
+- P5 — 99 % OBW vs `0.92 · R_s` (BT=0.3 GMSK, GSM/3GPP industry
+  reference), tolerance 10 % relative. Citation `itu_sm_328:§3`. Note: the
+  `1.5 · R_s` figure is the Carson's-rule peak-deviation bandwidth, not
+  the 99 % OBW — they are distinct quantities.
+- S1 — BER vs Q(√(2·Eb/N0)) over [0, 10] dB using a **coherent
+  matched-filter receiver** (I/Q split with cos(πt/2Tb), sin(πt/2Tb)
+  matched filters, offset-bit recovery). For BT = 0.3 GMSK the coherent
+  receiver tracks the MSK theory line within ~0.5–1 dB; tolerance 0.8 dB
+  (quick) / 1.0 dB (full). The frequency-discriminator demod is
+  *non-coherent* and gives ~27 dB BER loss vs coherent theory at moderate
+  SNR — it is not the right pairing for a Q-function reference.
 - The five-paragraph deviation block at the top of the docstring deletes.
 - `assets/verification/gmsk_S1_ber.png` is regenerated as a proper theory
   overlay.

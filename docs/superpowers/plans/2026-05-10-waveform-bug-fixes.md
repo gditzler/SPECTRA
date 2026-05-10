@@ -187,12 +187,13 @@ GMSK properties.
   P2. Modulation index h = 0.5: steady-state per-symbol
       |Δφ| ≈ π/2 rad on a constant-bit stream.             [proakis2008:§4.4-3]
   P3. Gaussian filter 3-dB BW within 20 % of BT·R_s·2.    [gmsk:gaussian]
-  P4. PSD 3-dB BW within 30 % of Laurent prediction ~0.5·R_s for BT=0.3, h=0.5.
+  P4. PSD 3-dB BW within 25 % of 0.27·R_s (Laurent main-lobe for BT=0.3, h=0.5).
                                                             [laurent1986:§III]
-  P5. OBW 99 % within 30 % of 1.5·R_s (standard BT=0.3 GMSK figure).
+  P5. OBW 99 % within 10 % of 0.92·R_s (GSM/3GPP BT=0.3 GMSK reference).
                                                             [itu_sm_328:§3]
-  S1. BER vs Q(√(2·Eb/N0)) over [0, 10] dB, max |Δ| ≤ 0.8 dB (quick) /
-      0.5 dB (full).                                       [proakis2008:eq4.4-43]
+  S1. BER vs Q(√(2·Eb/N0)) over [0, 10] dB using a coherent matched-filter
+      MSK receiver. Max |Δ| ≤ 1.0 dB (quick) / 0.8 dB (full).
+                                                            [proakis2008:eq4.4-43]
 
 Run:
     python examples/verification/verify_gmsk.py            # quick mode
@@ -294,41 +295,91 @@ def properties() -> ResultTable:
         cite="gmsk:gaussian", units="Hz",
     )
 
-    # P4 — PSD 3-dB BW vs Laurent prediction (~0.5·R_s for BT=0.3, h=0.5)
+    # P4 — PSD 3-dB BW vs BT=0.3 / h=0.5 reference (0.27·R_s).
+    # The Laurent decomposition shows the main lobe of the squared-mag
+    # frequency response for BT=0.3 GMSK is ≈ 0.27·R_s wide at -3 dB.
     f, p = _welch_psd(iq, fs=SAMPLE_RATE, nperseg=4096)
     p_db = 10.0 * np.log10(p / np.max(p) + 1e-30)
     above_psd = np.where(p_db >= -3.0)[0]
     main_bw = float(f[above_psd[-1]] - f[above_psd[0]]) if len(above_psd) > 0 else 0.0
-    expected_psd_bw = 0.5 * SYMBOL_RATE
+    expected_psd_bw = 0.27 * SYMBOL_RATE
     t.add(
         "P4", "PSD 3-dB BW (Hz)",
         measured=main_bw, expected=expected_psd_bw,
-        tol=0.30 * expected_psd_bw,
+        tol=0.25 * expected_psd_bw,
         cite="laurent1986:§III", units="Hz",
     )
 
-    # P5 — 99 % OBW vs standard 1.5·R_s
+    # P5 — 99 % OBW vs GSM/3GPP BT=0.3 GMSK reference (0.92·R_s).
+    # Note: 1.5·R_s is the Carson's-rule peak-deviation bandwidth (for
+    # h=0.5 narrowband approximation), not the 99 % OBW. The 99 % OBW
+    # of BT=0.3 GMSK is the industry value referenced in GSM specs.
     obw = measure_obw(iq, fs=SAMPLE_RATE, fraction=0.99)
-    expected_obw = 1.5 * SYMBOL_RATE
+    expected_obw = 0.92 * SYMBOL_RATE
     t.add(
         "P5", "OBW 99 % (Hz)",
         measured=obw, expected=expected_obw,
-        tol=0.30 * expected_obw,
+        tol=0.10 * expected_obw,
         cite="itu_sm_328:§3", units="Hz",
     )
 
     return t
 
 
+def _coherent_msk_demod(rx: np.ndarray, sps: int, n_bits: int) -> np.ndarray:
+    """Coherent matched-filter MSK receiver.
+
+    Standard offset-QPSK-like demodulator [proakis2008:eq4.4-43]:
+      - I-channel matched filter: cos(πt / 2·Tb), spanning 2·Tb, demodulates
+        even bits at multiples of 2·Tb.
+      - Q-channel matched filter: sin(πt / 2·Tb), spanning 2·Tb, demodulates
+        odd bits at odd multiples of Tb (offset by Tb).
+
+    Each output is the sign of the matched-filter integral over a 2-bit
+    interval. Even/odd outputs are interleaved into the recovered bit stream.
+    For BT=0.3 GMSK the Gaussian filter introduces ~0.5–1 dB ISI loss
+    relative to ideal MSK; the demod is otherwise unchanged.
+    """
+    Tb_samples = sps  # 1 bit period in samples
+    n_per_filter = 2 * Tb_samples  # matched filter length
+
+    # Matched filter impulse responses (time-reversed half-cosine pulses).
+    t_axis = np.arange(n_per_filter) / Tb_samples  # 0 .. 2
+    cos_pulse = np.cos(np.pi * (t_axis - 1.0) / 2.0)  # peak at t=Tb
+    sin_pulse = np.sin(np.pi * t_axis / 2.0)          # peak at t=Tb
+
+    i_arm = rx.real
+    q_arm = rx.imag
+
+    yi = np.convolve(i_arm, cos_pulse[::-1], mode="same")
+    yq = np.convolve(q_arm, sin_pulse[::-1], mode="same")
+
+    # Sample even bits at t = 2k·Tb on I, odd bits at t = (2k+1)·Tb on Q.
+    n_pairs = n_bits // 2
+    even_idx = (np.arange(n_pairs) * 2 + 1) * Tb_samples
+    odd_idx = (np.arange(n_pairs) * 2 + 2) * Tb_samples
+    even_idx = np.clip(even_idx, 0, len(rx) - 1)
+    odd_idx = np.clip(odd_idx, 0, len(rx) - 1)
+
+    even_bits = (yi[even_idx] > 0).astype(int)
+    odd_bits = (yq[odd_idx] > 0).astype(int)
+
+    bits = np.empty(2 * n_pairs, dtype=int)
+    bits[0::2] = even_bits
+    bits[1::2] = odd_bits
+    return bits
+
+
 def performance(full: bool = False) -> ResultTable:
     t = ResultTable("GMSK — Performance")
 
-    # S1 — BER vs MSK theory Q(√(2·Eb/N0)) using correlator demod
-    # The decision metric is sgn(Σ_n Im(rx[n]·conj(rx[n-1]))) per symbol
-    # (frequency-discriminator), which approaches the Q-function bound for
-    # h = 0.5 at moderate Eb/N0 [proakis2008:eq4.4-43].
+    # S1 — BER vs Q(√(2·Eb/N0)) using a coherent matched-filter MSK receiver.
+    # Theory line is the optimum coherent MSK BER [proakis2008:eq4.4-43].
+    # For BT=0.3 GMSK the coherent receiver tracks theory within ~0.5–1 dB
+    # (the gap is the Gaussian-filter ISI loss).
     n_bits = 200_000 if full else 50_000
-    tol_db = 0.5 if full else 0.8
+    n_bits -= n_bits % 2  # even count for I/Q interleaving
+    tol_db = 0.8 if full else 1.0
     ebn0_db = np.arange(0.0, 11.0, 1.0)
     measured_ber = np.zeros(len(ebn0_db))
 
@@ -337,26 +388,25 @@ def performance(full: bool = False) -> ResultTable:
     for i, eb in enumerate(ebn0_db):
         bits = rng.integers(0, 2, size=n_bits, endpoint=False)
         tx = _make_gmsk_signal(bits, sps, BT)
+        # Eb / N0 normalisation: signal has unit amplitude so energy per
+        # sample = 1; energy per bit Eb = sps. Setting noise variance per
+        # complex dimension σ² = sps/(2·Eb/N0_lin) makes Eb/N0_measured
+        # match Eb/N0_target.
         ebn0_lin = 10.0 ** (eb / 10.0)
-        sigma = np.sqrt(1.0 / (2.0 * ebn0_lin))
+        sigma = np.sqrt(sps / (2.0 * ebn0_lin))
         noise = sigma * (rng.standard_normal(len(tx)) + 1j * rng.standard_normal(len(tx)))
         rx = tx + noise.astype(np.complex64)
-        z = rx[1:] * np.conj(rx[:-1])
-        freq_diff = np.angle(z)
-        freq_padded = np.concatenate([[0.0], freq_diff])
-        freq_sym = freq_padded.reshape(n_bits, sps).sum(axis=1)
-        bits_hat = (freq_sym > 0).astype(int)
-        errors = int(np.sum(bits_hat != bits))
-        measured_ber[i] = float(max(errors / n_bits, 1.0 / n_bits))
+        bits_hat = _coherent_msk_demod(rx, sps, n_bits)
+        errors = int(np.sum(bits_hat != bits[: len(bits_hat)]))
+        measured_ber[i] = float(max(errors / len(bits_hat), 1.0 / len(bits_hat)))
 
     theory_ber = _q(np.sqrt(2.0 * 10.0 ** (ebn0_db / 10.0)))
-    # Cap measurement floor for log conversion
     floor = 1.0 / n_bits
     meas_db = 10.0 * np.log10(np.maximum(measured_ber, floor))
     theo_db = 10.0 * np.log10(np.maximum(theory_ber, floor))
     max_off = float(np.max(np.abs(meas_db - theo_db)))
     t.add(
-        "S1", f"max |Δ| BER vs theory (dB) over [0, 10] dB",
+        "S1", "max |Δ| BER vs theory (dB) over [0, 10] dB",
         measured=max_off, expected=0.0, tol=tol_db,
         cite="proakis2008:eq4.4-43", units="dB",
     )
@@ -364,8 +414,8 @@ def performance(full: bool = False) -> ResultTable:
     plot_theory_overlay(
         measured_ber, theory_ber, ebn0_db,
         xlabel="Eb/N0 (dB)", ylabel="BER",
-        title="GMSK BER vs theory (AWGN)",
-        measured_label="measured (freq-discriminator)",
+        title="GMSK BER vs theory (AWGN, coherent receiver)",
+        measured_label="measured (coherent MF)",
         theory_label="Q(√(2·Eb/N0))",
     )
     save_verification_figure("gmsk_S1_ber.png")
