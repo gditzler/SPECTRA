@@ -53,6 +53,17 @@ pytest -m "verification and slow" tests/verification/
 pytest --nbmake examples/verification/verification_suite.ipynb
 ```
 
+## Reviewer Tutorial
+
+A pedagogy-focused companion to this suite lives in `tutorial_for_reviewers.ipynb` (with a CLI mirror in `tutorial_for_reviewers.py`). It walks a skeptical reviewer through the methodology for BPSK, OFDM, and Barker-13, with a regression-injection catalogue that demonstrates which checks catch which faults. Recommended starting point for anyone reviewing this work who isn't already a SPECTRA contributor.
+
+    # Run the notebook
+    jupyter notebook examples/verification/tutorial_for_reviewers.ipynb
+
+    # Or run the CLI mirror
+    python examples/verification/tutorial_for_reviewers.py
+    python examples/verification/tutorial_for_reviewers.py --full   # publication-grade
+
 ## Per-Waveform Evidence
 
 ### BPSK — `verify_bpsk.py`
