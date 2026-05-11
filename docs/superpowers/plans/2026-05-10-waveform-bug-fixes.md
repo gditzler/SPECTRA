@@ -26,6 +26,7 @@
 - Modify: `CHANGELOG.md` (BREAKING + Fixed entries)
 - Modify: `pyproject.toml:7` (version bump)
 - Modify: `rust/Cargo.toml:3` (version bump)
+- Modify: `rust/src/lib.rs` (hardcoded `__version__` string, caught during implementation)
 - Regenerate: `assets/verification/qam16_P5_psd.png`, `assets/verification/qam16_S1_ser.png`
 
 ---

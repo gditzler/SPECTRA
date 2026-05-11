@@ -308,6 +308,9 @@ Version bumps land with PR-B (pre-1.0 minor for the breaking change):
 
 - `pyproject.toml` line 7: `version = "0.1.0"` → `"0.2.0"`.
 - `rust/Cargo.toml` line 3: `version = "0.1.0"` → `"0.2.0"`.
+- `rust/src/lib.rs`: `m.add("__version__", "0.1.0")` → `"0.2.0"` (the
+  Rust side of the PyO3 module exports `__version__` to Python; keep
+  it in sync — caught during implementation, not by the original spec).
 
 PR-A is non-breaking and ships at 0.1.0; the version bump rides on PR-B.
 
