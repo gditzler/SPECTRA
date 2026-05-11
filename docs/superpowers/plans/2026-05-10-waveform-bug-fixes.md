@@ -626,6 +626,12 @@ In `rust/src/modulators.rs`, replace the existing `build_qam_constellation` (lin
 /// such that physical nearest neighbours have labels whose Gray codes differ
 /// in exactly one bit [proakis2008:§4.3.2]. The constellation is normalised
 /// to unit average symbol energy.
+///
+/// Construction: for each grid position (i, j) the label is
+/// `(gray(i) << n) | gray(j)` where `gray(x) = x ^ (x >> 1)`.
+/// Placing the point for grid position (i, j) at `constellation[label]`
+/// guarantees that any two points differing by one step in the I or Q
+/// direction have labels whose XOR has exactly one bit set.
 fn build_qam_constellation(order: usize) -> Result<Vec<Complex32>, String> {
     let side = (order as f64).sqrt() as usize;
     if side * side != order {
@@ -635,20 +641,18 @@ fn build_qam_constellation(order: usize) -> Result<Vec<Complex32>, String> {
     if (1usize << n) != side {
         return Err("QAM order must be 2^(2n) (16, 64, 256, 1024)".to_string());
     }
-    let mask = (1usize << n) - 1;
-    let mut constellation = Vec::with_capacity(order);
-    for k in 0..order {
-        // Gray(k) = k XOR (k>>1). Top n bits index the I-axis Gray level;
-        // bottom n bits index the Q-axis Gray level. Because Gray code is
-        // reflective, the resulting (i_level, q_level) sequence traces a
-        // boustrophedon path through the grid with single-bit transitions
-        // between physical neighbours.
-        let g = k ^ (k >> 1);
-        let i_level = (g >> n) & mask;
-        let q_level = g & mask;
-        let re = 2.0 * i_level as f64 - (side - 1) as f64;
-        let im = 2.0 * q_level as f64 - (side - 1) as f64;
-        constellation.push(Complex32::new(re as f32, im as f32));
+    let mut constellation = vec![Complex32::new(0.0, 0.0); order];
+    for i in 0..side {
+        for j in 0..side {
+            // Gray code for each axis index; combining them gives a label
+            // whose nearest-neighbour pairs differ in exactly one bit.
+            let gi = i ^ (i >> 1);
+            let gj = j ^ (j >> 1);
+            let label = (gi << n) | gj;
+            let re = 2.0 * i as f64 - (side - 1) as f64;
+            let im = 2.0 * j as f64 - (side - 1) as f64;
+            constellation[label] = Complex32::new(re as f32, im as f32);
+        }
     }
     normalize_constellation(&mut constellation);
     Ok(constellation)

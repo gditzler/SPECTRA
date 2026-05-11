@@ -215,25 +215,28 @@ fn build_qam_constellation(order: usize) -> Result<Vec<Complex32>, String> {
     if (1usize << n) != side {
         return Err("QAM order must be 2^(2n) (16, 64, 256, 1024)".to_string());
     }
-    let mask = (1usize << n) - 1;
-    let mut constellation = Vec::with_capacity(order);
-    for k in 0..order {
-        let g = k ^ (k >> 1);                 // binary → Gray
-        let i_level = (g >> n) & mask;        // top n Gray bits = I-axis Gray level
-        let q_level = g & mask;               // bottom n Gray bits = Q-axis Gray level
-        let re = 2.0 * i_level as f64 - (side - 1) as f64;
-        let im = 2.0 * q_level as f64 - (side - 1) as f64;
-        constellation.push(Complex32::new(re as f32, im as f32));
+    let mut constellation = vec![Complex32::new(0.0, 0.0); order];
+    for i in 0..side {
+        for j in 0..side {
+            let gi = i ^ (i >> 1);              // I-axis Gray code
+            let gj = j ^ (j >> 1);              // Q-axis Gray code
+            let label = (gi << n) | gj;         // top n bits = I, bottom n = Q
+            let re = 2.0 * i as f64 - (side - 1) as f64;
+            let im = 2.0 * j as f64 - (side - 1) as f64;
+            constellation[label] = Complex32::new(re as f32, im as f32);
+        }
     }
     normalize_constellation(&mut constellation);
     Ok(constellation)
 }
 ```
 
-This works because Gray code is reflective: enumerating `k = 0..M-1` traces
-through the (top-n-bits, bottom-n-bits) plane in Gray order along both
-axes. Defining property: `popcount(label(p1) XOR label(p2)) == 1` for every
-pair of physical nearest neighbours `p1, p2`.
+This works because each axis index is Gray-encoded independently; stepping
+by one in either I or J changes exactly one bit of the corresponding half of
+the label, and the other half is unchanged. Defining property:
+`popcount(label(p1) XOR label(p2)) == 1` for every pair of physical nearest
+neighbours `p1, p2`. (Note: a naive "Gray-encode k then bit-split" approach
+does *not* produce this property — Gray-coding must be applied per axis.)
 
 ### Rust unit test
 
