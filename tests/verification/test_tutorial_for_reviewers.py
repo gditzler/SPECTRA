@@ -255,3 +255,31 @@ class TestOFDMMeasurements:
         )
         # EVM at SNR=40 dB should be ~1 %; tolerance 2 %.
         assert evm <= 0.02, f"EVM {evm} > 0.02 at SNR=40 dB"
+
+
+class TestBarker13Measurements:
+    """Tutorial Barker-13 functions produce expected numeric values."""
+
+    def _load_tutorial(self):
+        import importlib
+        import sys
+
+        script_dir = _REPO_ROOT / "examples" / "verification"
+        if str(script_dir) not in sys.path:
+            sys.path.insert(0, str(script_dir))
+        return importlib.import_module("tutorial_for_reviewers")
+
+    def test_canonical_code_equality(self):
+        tutorial = self._load_tutorial()
+        match = tutorial.barker13_canonical_equality()
+        assert match == 1, "Barker-13 code does not match Levanon Tab. 6.1"
+
+    def test_pslr_equals_13(self):
+        tutorial = self._load_tutorial()
+        pslr = tutorial.barker13_pslr()
+        assert pslr == pytest.approx(13.0, abs=1e-9)
+
+    def test_detection_rate_at_10db(self):
+        tutorial = self._load_tutorial()
+        rate = tutorial.barker13_detection_rate(snr_db=10.0, n_trials=200, seed=0)
+        assert rate >= 0.95, f"detection rate {rate} below 0.95 at SNR=10 dB"

@@ -280,8 +280,73 @@ def ofdm_evm_after_awgn(
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# Barker-13 — added in subsequent tasks
+# Barker-13
 # ════════════════════════════════════════════════════════════════════════════
+
+CANONICAL_BARKER_13 = np.array(
+    [+1, +1, +1, +1, +1, -1, -1, +1, +1, -1, +1, -1, +1], dtype=int
+)
+
+
+def barker13_canonical_equality() -> int:
+    """P1: SPECTRA's BARKER_CODES[13] matches Levanon & Mozeson Tab. 6.1 exactly.
+
+    Returns 1 if equal, 0 otherwise. Tolerance is 0 — bit-exact integer
+    equality. This check guards code *storage*, not transmission integrity
+    (a flipped chip on the wire still passes this check — that's an
+    instructive point in the regression catalogue).
+    """
+    from spectra.waveforms.barker import BARKER_CODES
+
+    stored = np.asarray(BARKER_CODES[13], dtype=int)
+    return int(np.array_equal(stored, CANONICAL_BARKER_13))
+
+
+def barker13_pslr() -> float:
+    """P2: Aperiodic autocorrelation PSLR (peak / max-sidelobe) = 13.
+
+    For a Barker-N sequence the PSLR equals N exactly when chips are ±1
+    integers (Levanon 2004, eq. 3.32). Tolerance 1e-9 in tests (float
+    round-off only; integer arithmetic gives the exact 13.0).
+    """
+    code = CANONICAL_BARKER_13.astype(float)
+    acf = np.correlate(code, code, mode="full")
+    peak = float(np.max(np.abs(acf)))
+    # Sidelobes: every position except the centre (lag 0 in the full output
+    # is at index len(code) - 1).
+    mask = np.ones(len(acf), dtype=bool)
+    mask[len(code) - 1] = False
+    sidelobe = float(np.max(np.abs(acf[mask])))
+    if sidelobe == 0.0:
+        return float("inf")
+    return peak / sidelobe
+
+
+def barker13_detection_rate(snr_db: float = 10.0, n_trials: int = 200, seed: int = 0) -> float:
+    """S1: Matched-filter detection rate at the specified SNR.
+
+    Generates ``n_trials`` realisations of the Barker-13 code embedded in
+    real-valued AWGN. For each, applies the matched filter (time-reversed
+    conjugate) and checks whether |y[n]| peaks at the expected lag
+    (len(code) - 1). Returns the fraction that did. Expected ≥ 98 % at
+    SNR = 10 dB; the tutorial test allows 95 % for a 200-trial run to
+    keep variance contained.
+    """
+    rng = np.random.default_rng(seed)
+    code = CANONICAL_BARKER_13.astype(float)
+    matched = code[::-1]  # real-valued; conjugate is the same
+    snr_lin = 10.0 ** (snr_db / 10.0)
+    # Signal power = sum(code²) / len(code) = 1; noise σ² per sample:
+    sigma = np.sqrt(1.0 / (2.0 * snr_lin))
+    expected_lag = len(code) - 1
+    correct = 0
+    for _ in range(n_trials):
+        rx = code + sigma * rng.standard_normal(len(code))
+        comp = np.convolve(rx, matched, mode="full")
+        peak_idx = int(np.argmax(np.abs(comp)))
+        if peak_idx == expected_lag:
+            correct += 1
+    return correct / n_trials
 
 
 def run_all(full: bool = False) -> dict:
@@ -334,8 +399,15 @@ def run_all(full: bool = False) -> dict:
         "evm_at_40db": evm,
     }
 
-    # ── Barker-13: populated in next task ───────────────────────────────────
-    results["barker13"] = {"pslr": float("nan")}
+    # ── Barker-13 ───────────────────────────────────────────────────────────
+    n_trials = 1000 if full else 200
+    results["barker13"] = {
+        "canonical_equality": barker13_canonical_equality(),
+        "pslr": barker13_pslr(),
+        "detection_rate_10db": barker13_detection_rate(
+            snr_db=10.0, n_trials=n_trials, seed=0
+        ),
+    }
 
     return results
 
@@ -357,6 +429,13 @@ def _print_summary(results: dict) -> None:
     print(f"  P2  CP corr argmax lag       = {of['cp_lag']} (expect 64)")
     print(f"  P2b CP corr peak amplitude   = {of['cp_peak']:.3f}")
     print(f"  S1  EVM at SNR = 40 dB       = {100 * of['evm_at_40db']:.2f} %")
+    print("=" * 60)
+    print("Barker-13")
+    print("-" * 60)
+    bk = results["barker13"]
+    print(f"  P1  canonical code equality  = {bk['canonical_equality']} (expect 1)")
+    print(f"  P2  PSLR (peak/max-sidelobe) = {bk['pslr']:.3f} (expect 13.0)")
+    print(f"  S1  detection rate @ 10 dB   = {100 * bk['detection_rate_10db']:.1f} %")
     print("=" * 60)
 
 
@@ -382,6 +461,13 @@ def main() -> int:
         failed.append("OFDM P2b")
     if of["evm_at_40db"] > 0.02:
         failed.append("OFDM S1")
+    bk = results["barker13"]
+    if bk["canonical_equality"] != 1:
+        failed.append("Barker-13 P1")
+    if abs(bk["pslr"] - 13.0) > 1e-9:
+        failed.append("Barker-13 P2")
+    if bk["detection_rate_10db"] < 0.95:
+        failed.append("Barker-13 S1")
     if failed:
         print(f"\nFAILED: {', '.join(failed)}")
         return 1
