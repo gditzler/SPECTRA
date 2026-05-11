@@ -41,3 +41,63 @@ def test_script_module_importable():
     assert results["bpsk"]["psd_correlation"] >= 0.99, results["bpsk"]
     assert results["ofdm"]["orthogonality_error"] <= 1e-9, results["ofdm"]
     assert results["barker13"]["pslr"] == pytest.approx(13.0, abs=1e-9), results["barker13"]
+
+
+class TestPostIQCorruption:
+    """Section A of _tutorial_regressions — post-generation corruption helpers."""
+
+    def _load_module(self):
+        import importlib
+        import sys
+
+        script_dir = _REPO_ROOT / "examples" / "verification"
+        if str(script_dir) not in sys.path:
+            sys.path.insert(0, str(script_dir))
+        return importlib.import_module("_tutorial_regressions")
+
+    def test_rotate_phase_preserves_magnitude(self):
+        import numpy as np
+
+        mod = self._load_module()
+        iq = (np.arange(64) + 1j * np.arange(64)).astype(np.complex64)
+        rotated = mod.rotate_phase(iq, radians=0.5)
+        np.testing.assert_allclose(np.abs(rotated), np.abs(iq), rtol=1e-5)
+        # Phase shifted by 0.5 rad on every non-zero sample
+        nonzero_mask = np.abs(iq) > 1e-6
+        np.testing.assert_allclose(
+            (np.angle(rotated) - np.angle(iq))[nonzero_mask],
+            0.5,
+            atol=1e-5,
+        )
+
+    def test_drop_cp_sample_shrinks_each_symbol_by_one(self):
+        import numpy as np
+
+        mod = self._load_module()
+        # 4 OFDM symbols of length 16 (N_FFT=12, N_CP=4)
+        n_fft, n_cp = 12, 4
+        sym_len = n_fft + n_cp
+        iq = np.arange(4 * sym_len, dtype=np.complex64)
+        out = mod.drop_cp_sample(iq, n_fft=n_fft, n_cp=n_cp)
+        assert len(out) == 4 * (sym_len - 1)
+
+    def test_flip_chip_inverts_one_chip(self):
+        import numpy as np
+
+        mod = self._load_module()
+        # 5 chips of 4 samples each, all +1
+        sps = 4
+        iq = np.ones(5 * sps, dtype=np.complex64)
+        out = mod.flip_chip(iq, samples_per_chip=sps, chip_index=2)
+        # Chip 0,1,3,4 unchanged; chip 2 inverted
+        assert np.all(out[: 2 * sps] == 1.0)
+        assert np.all(out[2 * sps : 3 * sps] == -1.0)
+        assert np.all(out[3 * sps :] == 1.0)
+
+    def test_broaden_pulse_returns_same_length(self):
+        import numpy as np
+
+        mod = self._load_module()
+        iq = np.random.default_rng(0).standard_normal(128).astype(np.complex64)
+        out = mod.broaden_pulse(iq, blur_kernel_len=5)
+        assert len(out) == len(iq)
