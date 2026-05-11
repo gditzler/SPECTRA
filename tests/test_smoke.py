@@ -2,7 +2,7 @@ def test_import():
     import spectra
 
     assert hasattr(spectra, "__version__")
-    assert spectra.__version__ == "0.1.0"
+    assert spectra.__version__ == "0.2.0"
 
 
 def test_radar_waveform_imports():
