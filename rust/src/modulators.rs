@@ -23,18 +23,38 @@ fn normalize_constellation(constellation: &mut [Complex32]) {
     }
 }
 
-/// Build a normalized QAM constellation for the given order.
+/// Build a normalised Gray-coded QAM constellation for the given order.
+///
+/// Square M-QAM only (M = 2^(2n)). Integer label k indexes the constellation
+/// such that physical nearest neighbours have labels whose Gray codes differ
+/// in exactly one bit [proakis2008:§4.3.2]. The constellation is normalised
+/// to unit average symbol energy.
+///
+/// Construction: for each grid position (i, j) the label is
+/// `(gray(i) << n) | gray(j)` where `gray(x) = x ^ (x >> 1)`.
+/// Placing the point for grid position (i, j) at `constellation[label]`
+/// guarantees that any two points differing by one step in the I or Q
+/// direction have labels whose XOR has exactly one bit set.
 fn build_qam_constellation(order: usize) -> Result<Vec<Complex32>, String> {
     let side = (order as f64).sqrt() as usize;
     if side * side != order {
         return Err("QAM order must be a perfect square (16, 64, 256, ...)".to_string());
     }
-    let mut constellation = Vec::with_capacity(order);
+    let n = (side as f64).log2() as u32;
+    if (1usize << n) != side {
+        return Err("QAM order must be 2^(2n) (16, 64, 256, 1024)".to_string());
+    }
+    let mut constellation = vec![Complex32::new(0.0, 0.0); order];
     for i in 0..side {
         for j in 0..side {
+            // Gray code for each axis index; combining them gives a label
+            // whose nearest-neighbour pairs differ in exactly one bit.
+            let gi = i ^ (i >> 1);
+            let gj = j ^ (j >> 1);
+            let label = (gi << n) | gj;
             let re = 2.0 * i as f64 - (side - 1) as f64;
             let im = 2.0 * j as f64 - (side - 1) as f64;
-            constellation.push(Complex32::new(re as f32, im as f32));
+            constellation[label] = Complex32::new(re as f32, im as f32);
         }
     }
     normalize_constellation(&mut constellation);
@@ -481,35 +501,31 @@ mod tests {
 
     #[test]
     fn qam16_constellation_properties() {
-        // 16QAM: 4x4 grid, normalized to unit average power
-        let side = 4usize;
-        let order = 16usize;
-        let mut constellation = Vec::with_capacity(order);
-        for i in 0..side {
-            for j in 0..side {
-                let re = 2.0 * i as f64 - (side - 1) as f64;
-                let im = 2.0 * j as f64 - (side - 1) as f64;
-                constellation.push(Complex32::new(re as f32, im as f32));
-            }
-        }
+        // After Gray-coding, the constellation still has 16 points and unit
+        // average power. The exact (Re, Im) values differ from the row-major
+        // version but the geometric invariants do not.
+        let constellation = build_qam_constellation(16).unwrap();
         assert_eq!(constellation.len(), 16);
         let avg_power: f64 = constellation
             .iter()
             .map(|c| (c.re * c.re + c.im * c.im) as f64)
             .sum::<f64>()
-            / order as f64;
-        let scale = 1.0 / avg_power.sqrt() as f32;
-        for c in &mut constellation {
-            c.re *= scale;
-            c.im *= scale;
-        }
-        // After normalization, average power should be ~1.0
-        let norm_power: f64 = constellation
+            / 16.0;
+        assert!((avg_power - 1.0).abs() < 1e-5, "avg power = {avg_power}");
+
+        // Constellation occupies the same 4-level grid ±{1, 3}/√10
+        // (only the label-to-point mapping changed).
+        let expected_levels: Vec<f32> = [-3.0, -1.0, 1.0, 3.0]
             .iter()
-            .map(|c| (c.re * c.re + c.im * c.im) as f64)
-            .sum::<f64>()
-            / order as f64;
-        assert!((norm_power - 1.0).abs() < 1e-5);
+            .map(|x| (*x as f64 / (10.0_f64).sqrt()) as f32)
+            .collect();
+        let mut re_levels: Vec<f32> = constellation.iter().map(|c| c.re).collect();
+        re_levels.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        re_levels.dedup_by(|a, b| (*a - *b).abs() < 1e-4);
+        assert_eq!(re_levels.len(), 4);
+        for (a, b) in re_levels.iter().zip(expected_levels.iter()) {
+            assert!((a - b).abs() < 1e-4, "level {a} vs {b}");
+        }
     }
 
     #[test]
