@@ -82,3 +82,100 @@ def broaden_pulse(iq: np.ndarray, blur_kernel_len: int) -> np.ndarray:
         raise ValueError("blur_kernel_len must be ≥ 1")
     kernel = np.ones(blur_kernel_len, dtype=iq.dtype) / blur_kernel_len
     return np.convolve(iq, kernel, mode="same").astype(iq.dtype)
+
+
+# ────────────────────────────────────────────────────────────────────────────
+# Section B — Buggy* waveform subclasses
+# ────────────────────────────────────────────────────────────────────────────
+
+import spectra as sp  # noqa: E402  (intentional: keep Section A self-contained)
+from spectra.waveforms.barker import BarkerCode  # noqa: E402
+
+
+class BuggyBPSK_WrongRolloff(sp.BPSK):
+    """RRC rolloff bumped from 0.35 to 0.5.
+
+    The PSD shape no longer matches the squared-RRC mask at α = 0.35.
+    Constellation and BER unaffected. The PSD-correlation check should
+    drop from ≥ 0.99 to ~0.74.
+    """
+
+    def __init__(self, samples_per_symbol: int = 8) -> None:
+        super().__init__(samples_per_symbol=samples_per_symbol, rolloff=0.5)
+
+
+class BuggyBPSK_NoRRC(sp.BPSK):
+    """Pulse-shape filter omitted; symbols are emitted as flat NRZ.
+
+    The symbol constellation at symbol-instants is unchanged (still ±1), so
+    BER vs theory still passes. PSD shape collapses — correlation against
+    squared-RRC drops toward 0. Demonstrates why layered checks matter.
+    """
+
+    def generate(
+        self,
+        num_symbols: int,
+        sample_rate: float,
+        seed: int | None = None,
+    ) -> np.ndarray:
+        from spectra._rust import generate_bpsk_symbols
+
+        s = seed if seed is not None else 0
+        symbols = generate_bpsk_symbols(num_symbols, seed=s)
+        sps = self.samples_per_symbol
+        # Repeat each ±1 symbol over sps samples — flat NRZ, no RRC.
+        return np.repeat(symbols.astype(np.complex64), sps)
+
+
+class BuggyOFDM_MissingCP(sp.OFDM):
+    """Cyclic prefix not prepended.
+
+    CP-correlation peak at lag N_FFT vanishes; EVM after ZF equalisation
+    blows up in the presence of any channel. Length is shorter by
+    ``cp_length`` per symbol than the clean OFDM output.
+    """
+
+    def generate(
+        self,
+        num_symbols: int,
+        sample_rate: float,
+        seed: int | None = None,
+    ) -> np.ndarray:
+        # Generate the clean signal, then strip the CP from each symbol.
+        clean = super().generate(num_symbols=num_symbols, sample_rate=sample_rate, seed=seed)
+        n_fft = self._fft_size
+        n_cp = self._cp_length
+        sym_len = n_fft + n_cp
+        n_sym = len(clean) // sym_len
+        reshaped = clean.reshape(n_sym, sym_len)
+        return reshaped[:, n_cp:].reshape(-1).astype(np.complex64)
+
+
+class BuggyBarker13_FlippedChip(BarkerCode):
+    """Chip 7 (0-indexed) inverted in the transmitted sequence.
+
+    The autocorrelation PSLR degrades from 13 to ~6–7 depending on which
+    chip is flipped. The exact-equality P1 check (sequence vs Levanon
+    Tab. 6.1) still passes because the *code definition* is not changed —
+    only the *transmitted IQ* is corrupted. This is intentionally
+    instructive: it shows the P1 check guards code storage, not
+    transmission integrity.
+    """
+
+    def __init__(self, samples_per_chip: int = 8, chip_to_flip: int = 7) -> None:
+        super().__init__(length=13, samples_per_chip=samples_per_chip)
+        self._chip_to_flip = chip_to_flip
+
+    def generate(
+        self,
+        num_symbols: int = 1,
+        sample_rate: float = 1e6,
+        seed: int | None = None,
+    ) -> np.ndarray:
+        clean = super().generate(num_symbols=num_symbols, sample_rate=sample_rate, seed=seed)
+        sps = self._samples_per_chip
+        start = self._chip_to_flip * sps
+        stop = start + sps
+        out = clean.copy()
+        out[start:stop] = -out[start:stop]
+        return out.astype(np.complex64)
