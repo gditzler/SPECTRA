@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (BREAKING)
+
+- 16-QAM (and all square M-QAM ≥ 16) constellation labelling is now Gray-coded. The prior row-major mapping produced a BER↔SER mismatch of up to log₂(M) at moderate-to-high SNR. Saved datasets and classifiers trained on the prior mapping must be regenerated. See `examples/verification/verify_qam16.py::P3` and `rust/src/modulators.rs::qam_constellation_gray_adjacency`.
+
+### Fixed
+
+- `GMSK` modulation index restored to h = 0.5; was previously h_eff = 0.5/sps = 0.0625 due to zero-insertion upsampling combined with a sum-normalised Gaussian filter. Affects spectral occupancy and BER curves for `sp.GMSK`. Regression guarded by `tests/test_waveforms_fsk.py::TestGMSKModulationIndex`.
+
 ### Added
 
 - `spectra.models` package with `CNNAMC` (1D CNN for raw IQ) and `ResNetAMC` (lightweight ResNet for spectrograms, no torchvision)

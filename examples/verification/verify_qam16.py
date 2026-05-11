@@ -5,58 +5,17 @@ Proves that the generated 16-QAM waveform satisfies:
   P1.  Real-axis levels at ±1/√10 and ±3/√10 (normalised grid).  [proakis2008:§4.3]
   P1b. Imag-axis levels identical to real-axis levels.            [proakis2008:§4.3]
   P2.  Average symbol energy ≈ 1.0 (energy-normalised symbols).  [proakis2008:§4.3]
+  P3.  Gray adjacency: every pair of physical nearest neighbours has integer
+       labels differing in exactly one bit.                       [proakis2008:§4.3.2]
   P4.  Bandwidth = (1+α)·R_s within 1 %.                         [sklar2001:§3.5,eq3.74]
   P5.  PSD shape correlation with squared-RRC ≥ 0.99.            [proakis2008:eq9.2-37]
-  P6.  OBW (99 %) within 5 % of theoretical 99%-OBW.             [itu_sm_328:§3]
+  P6.  OBW (99 %) within 5 % of theoretical 99 %-OBW.            [itu_sm_328:§3]
   P7.  ACLR at ±2·R_s offset ≥ 45 dB.                           [3gpp_38_104:T6.6.3.1-1]
-  S1.  SER vs Eb/N0 ∈ [4,11] dB, max |Δ| ≤ 1.0 dB.             [proakis2008:eq4.3-30]
+  S1.  SER vs Eb/N0 ∈ [4, 11] dB, max |Δ| ≤ 0.8 dB (quick) /
+       0.5 dB (full).                                            [proakis2008:eq4.3-30]
   S2.  EVM at SNR=40 dB ≤ 1.1 % RMS.                            [3gpp_38_104:§B.2]
-
-Implementation notes (plan defects corrected — same pattern as verify_bpsk.py and
-verify_qpsk.py):
-
-  Constellation normalisation (P1, P1b, P2):
-    The Rust ``generate_qam_symbols`` normalises the 16-QAM constellation so that
-    E[|s|²] ≈ 1.  The raw integer grid ±{1,3} has average energy 10; after
-    normalisation the levels become ±{1/√10, 3/√10} ≈ ±{0.316, 0.949}.  The plan's
-    P1 check expects ±{1,3} and P2 expects Es=10 — both are incorrect for the
-    energy-normalised Rust output.  Corrected here.
-
-  P3 Gray adjacency (DROPPED):
-    The Rust ``generate_qam_symbols_with_indices`` uses sequential (row-major) symbol
-    indexing rather than Gray coding: labels 0–15 are assigned in row-major order by
-    real then imag level, so horizontally/vertically adjacent points in the centre of
-    the grid differ by 2 bits (Hamming distance = 2).  The plan's P3 Gray-adjacency
-    check would FAIL on the current Rust implementation.  P3 is omitted; the check is
-    tracked as a known concern (the Rust QAM modulator lacks Gray labelling).
-
-  P5 OBW → now P6 (corrected reference):
-    The plan compares OBW to the Nyquist BW (1+α)·Rs, which is 14 % larger than the
-    true 99 % OBW for α=0.35.  The correct reference is the 99 %-containment integral
-    of the squared-RRC spectrum computed by ``_theoretical_obw_99()``.
-
-  P6 ACLR → now P7 (±2·Rs offset):
-    The adjacent channel at ±1·Rs (125 kHz offset with channel half-BW ≈ 84 kHz)
-    overlaps the main channel, making ACLR ill-defined.  The check uses ±2·Rs
-    (250 kHz) where the guard band is clear.
-
-  S1 SNR range [4, 11] dB (plan correction):
-    The plan proposes [4, 18] dB with only 100 k symbols (quick mode).  At Eb/N0 =
-    12 dB, the expected number of errors is ≈ 55 (SER ≈ 5.5 × 10⁻⁴ × 100 k), which
-    produces > 1 dB statistical noise.  The reliable range with ≥ 226 expected errors
-    is [4, 11] dB; tolerance 1.0 dB (quick) / 0.5 dB (full).
-
-  S1 noise sigma (plan correction):
-    The Rust symbols are energy-normalised (Es ≈ 1).  The correct per-dimension noise
-    std is σ = √(Es / (2·k·Eb/N0_lin)) where k = log₂(16) = 4.  The plan's
-    ``sigma = √(1/2)`` is a constant that does not depend on Eb/N0 at all and
-    produces incorrect SNR.  Decision uses nearest-neighbour on the constellation
-    returned by ``get_qam_constellation(16)``.
-
-  S2 EVM at SNR=40 dB (plan correction):
-    The plan uses SNR=30 dB, which gives EVM ≈ 3.16 % >> 1 %.  SNR=40 dB yields
-    EVM ≈ 1.0 %.  The tolerance is set to 1.1 % to account for finite-sample
-    variance; the measured value is consistently ≈ 1.00 ± 0.01 %.
+  S3.  BER ≈ SER/log₂(M) at high SNR: |BER − SER/4| ≤ 5e-3 at Eb/N0 = 11 dB.
+                                                                  [proakis2008:§4.3.2]
 
 Run:
     python examples/verification/verify_qam16.py            # quick mode
@@ -152,12 +111,29 @@ def properties() -> ResultTable:
         cite="proakis2008:§4.3",
     )
 
-    # P3 — Gray adjacency (SKIPPED: Rust uses sequential row-major labelling, not Gray)
-    # The Rust build_qam_constellation assigns indices 0..15 in row-major order
-    # (real then imag level), so horizontally/vertically adjacent centre points
-    # differ by 2 bits (Hamming distance = 2), not 1.  A Gray-adjacency check
-    # would fail.  This is a known concern: the Rust QAM modulator does not
-    # implement Gray labelling.  P3 is intentionally omitted.
+    # P3 — Gray adjacency. For every pair of physical nearest neighbours
+    # on the normalised constellation, the integer label XOR popcount must
+    # equal exactly 1. Nearest-neighbour spacing is 2/√10 (raw grid step 2
+    # divided by sqrt(avg power 10)).
+    const = get_qam_constellation(16)
+    min_d2 = np.inf
+    for i in range(len(const)):
+        for j in range(i + 1, len(const)):
+            d2 = float(np.abs(const[i] - const[j]) ** 2)
+            if d2 > 1e-6 and d2 < min_d2:
+                min_d2 = d2
+    violations = 0
+    for i in range(len(const)):
+        for j in range(i + 1, len(const)):
+            d2 = float(np.abs(const[i] - const[j]) ** 2)
+            if abs(d2 - min_d2) <= 1e-4:
+                if int(i ^ j).bit_count() != 1:
+                    violations += 1
+    t.add(
+        "P3", "nearest-neighbour Gray-adjacency violations",
+        measured=violations, expected=0, tol=0,
+        cite="proakis2008:§4.3.2",
+    )
 
     # P4 — analytical bandwidth = (1+α)·R_s
     wf = sp.QAM16(samples_per_symbol=SAMPLES_PER_SYMBOL, rolloff=ROLLOFF)
@@ -224,9 +200,9 @@ def performance(full: bool = False) -> ResultTable:
     # Reliable Eb/N0 range: only include points with ≥ 226 expected errors.
     # With n_symbols=100 k and SER at 11 dB ≈ 2.26e-3 → 226 errors.
     # At 12 dB, SER ≈ 5.5e-4 → 55 errors → statistical noise > 1 dB.
-    # Restrict to [4, 11] dB; tolerance 1.0 dB (quick) / 0.5 dB (full).
+    # Restrict to [4, 11] dB; tolerance 0.8 dB (quick) / 0.5 dB (full).
     ebn0_max = 13.0 if full else 11.0
-    tol_db = 0.5 if full else 1.0
+    tol_db = 0.5 if full else 0.8
 
     # S1 — SER vs theory
     # Correction (vs plan): sigma = √(Es/(2·k·Eb/N0_lin)) not √(1/2).
@@ -291,6 +267,32 @@ def performance(full: bool = False) -> ResultTable:
         "S2", "EVM RMS at SNR=40 dB",
         measured=evm, expected=0.0, tol=0.011,
         cite="3gpp_38_104:§B.2",
+    )
+
+    # S3 — At high SNR with Gray labelling, single-symbol errors are dominated
+    # by nearest-neighbour transitions which flip exactly one of log₂(M)=4
+    # bits. So BER ≈ SER/4 within statistical noise.
+    n_s3 = 1_000_000 if full else 200_000
+    ebn0_s3_db = 11.0
+    ebn0_s3_lin = 10.0 ** (ebn0_s3_db / 10.0)
+    tx_syms, tx_idx = generate_qam_symbols_with_indices(n_s3, 16, seed=42)
+    Es = float(np.mean(np.abs(tx_syms) ** 2))
+    sigma = np.sqrt(Es / (2.0 * 4 * ebn0_s3_lin))  # k = log2(16) = 4
+    rng_s3 = np.random.default_rng(42)
+    noise = sigma * (rng_s3.standard_normal(n_s3) + 1j * rng_s3.standard_normal(n_s3))
+    rx = tx_syms + noise.astype(np.complex64)
+    dists = np.abs(rx[:, None] - const[None, :])
+    rx_idx = np.argmin(dists, axis=1)
+    ser_s3 = float(np.mean(rx_idx != tx_idx))
+    # Bit errors per symbol: popcount(rx_idx XOR tx_idx).
+    xors = (rx_idx.astype(np.int64) ^ tx_idx.astype(np.int64))
+    bit_errors = int(np.sum([int(x).bit_count() for x in xors]))
+    ber_s3 = bit_errors / (n_s3 * 4)
+    diff = abs(ber_s3 - ser_s3 / 4.0)
+    t.add(
+        "S3", f"|BER − SER/log₂(M)| at Eb/N0 = {ebn0_s3_db:.0f} dB",
+        measured=diff, expected=0.0, tol=5e-3,
+        cite="proakis2008:§4.3.2",
     )
 
     return t
