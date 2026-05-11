@@ -48,6 +48,7 @@ dev = [
     "zarr>=2.16",
     "h5py>=3.0",
     "nbmake>=1.5",
+    "jupyter>=1.0",
 ]
 
 [project.urls]
