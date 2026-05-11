@@ -180,3 +180,46 @@ class TestBuggySubclasses:
         # (since chip is ±1 and inverted ±1 differs by ±2).
         n_diff = int(np.sum(np.abs(diff) > 0.1))
         assert n_diff == 4, f"expected one chip (4 samples) flipped, got {n_diff} samples"
+
+
+class TestBPSKMeasurements:
+    """Tutorial BPSK functions produce expected numeric values on clean signal."""
+
+    def _load_tutorial(self):
+        import importlib
+        import sys
+
+        script_dir = _REPO_ROOT / "examples" / "verification"
+        if str(script_dir) not in sys.path:
+            sys.path.insert(0, str(script_dir))
+        return importlib.import_module("tutorial_for_reviewers")
+
+    def test_bpsk_constellation_check(self):
+        from spectra._rust import generate_bpsk_symbols
+
+        tutorial = self._load_tutorial()
+        syms = generate_bpsk_symbols(10_000, seed=0)
+        max_imag = tutorial.bpsk_constellation_check(syms)
+        assert max_imag < 1e-6, f"BPSK symbols not on real axis: max(|imag|) = {max_imag}"
+
+    def test_bpsk_psd_correlation_high(self):
+        import spectra as sp
+
+        tutorial = self._load_tutorial()
+        iq = sp.BPSK(samples_per_symbol=8, rolloff=0.35).generate(
+            num_symbols=4096, sample_rate=1e6, seed=0
+        )
+        corr = tutorial.bpsk_psd_correlation(iq, sample_rate=1e6, rolloff=0.35)
+        assert corr >= 0.99, f"clean BPSK PSD correlation = {corr} < 0.99"
+
+    def test_bpsk_ber_matches_theory(self):
+        import numpy as np
+        tutorial = self._load_tutorial()
+        # Spot-check at a single SNR with a small symbol count for speed.
+        measured, theory = tutorial.bpsk_ber_curve(
+            ebn0_db_list=[0.0, 3.0, 6.0], n_bits=50_000, seed=0
+        )
+        # Each measured BER should be within 0.8 dB of theory at these SNRs.
+        meas_db = 10 * np.log10(np.maximum(measured, 1.0 / 50_000))
+        theo_db = 10 * np.log10(theory)
+        assert float(np.max(np.abs(meas_db - theo_db))) <= 0.8
