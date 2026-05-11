@@ -517,7 +517,7 @@ mod tests {
         // (only the label-to-point mapping changed).
         let expected_levels: Vec<f32> = [-3.0, -1.0, 1.0, 3.0]
             .iter()
-            .map(|x| (*x as f64 / (10.0_f64).sqrt()) as f32)
+            .map(|x| (*x / (10.0_f64).sqrt()) as f32)
             .collect();
         let mut re_levels: Vec<f32> = constellation.iter().map(|c| c.re).collect();
         re_levels.sort_by(|a, b| a.partial_cmp(b).unwrap());
