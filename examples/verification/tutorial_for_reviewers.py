@@ -23,7 +23,6 @@ bit-identical results (verified by the test suite).
 from __future__ import annotations
 
 import sys
-from typing import Optional
 
 import numpy as np
 from scipy.special import erfc
@@ -42,7 +41,9 @@ def bpsk_constellation_check(symbols: np.ndarray) -> float:
     return float(np.max(np.abs(symbols.imag)))
 
 
-def _welch_psd_inline(iq: np.ndarray, fs: float, nperseg: int = 512) -> tuple[np.ndarray, np.ndarray]:
+def _welch_psd_inline(
+    iq: np.ndarray, fs: float, nperseg: int = 512
+) -> tuple[np.ndarray, np.ndarray]:
     """Welch's method — self-contained reimplementation.
 
     Splits ``iq`` into 50 %-overlapping Hann-windowed segments of length
@@ -154,7 +155,132 @@ def bpsk_ber_curve(
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# OFDM, Barker-13 — added in subsequent tasks
+# OFDM
+# ════════════════════════════════════════════════════════════════════════════
+
+
+def _build_ofdm_symbol(
+    n_fft: int,
+    n_used: int,
+    n_cp: int,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Construct one (grid, time-domain) OFDM symbol with CP.
+
+    The grid has ``n_used`` QPSK-modulated subcarriers placed in standard
+    OFDM layout (DC bin 0 unused, symmetric lower/upper halves around
+    DC). The time-domain body is the inverse FFT scaled by √n_fft so
+    Parseval's theorem holds exactly: ``sum(|body|²) = sum(|grid|²)``.
+    """
+    half = n_used // 2
+    qpsk = (rng.choice([-1, 1], size=n_used) + 1j * rng.choice([-1, 1], size=n_used)) / np.sqrt(2)
+    grid = np.zeros(n_fft, dtype=np.complex128)
+    grid[1 : 1 + half] = qpsk[:half]
+    grid[n_fft - half :] = qpsk[half:]
+    body = np.fft.ifft(grid) * np.sqrt(n_fft)
+    sym = np.concatenate([body[-n_cp:], body])
+    return grid, sym
+
+
+def ofdm_orthogonality_error(n_fft: int, n_used: int, n_cp: int, seed: int = 0) -> float:
+    """P1: Subcarrier orthogonality is exact (no impairments).
+
+    Strip the CP, take the FFT, divide by √n_fft. Returns
+    max(|FFT(rx) − tx_grid|). For a correct OFDM symbol the value is at
+    float64 round-off (~1e-15); tolerance 1e-9 catches gross errors.
+    """
+    rng = np.random.default_rng(seed)
+    grid, sym = _build_ofdm_symbol(n_fft, n_used, n_cp, rng)
+    body = sym[n_cp:]
+    recovered = np.fft.fft(body) / np.sqrt(n_fft)
+    return float(np.max(np.abs(recovered - grid)))
+
+
+def ofdm_cp_correlation(
+    n_fft: int,
+    n_used: int,
+    n_cp: int,
+    n_symbols: int = 8,
+    seed: int = 0,
+) -> tuple[int, float]:
+    """P2: CP correlation peak at lag n_fft (van de Beek 1997).
+
+    Concatenate ``n_symbols`` OFDM symbols. For each candidate lag k in
+    [n_cp, n_fft + n_cp + n_cp//2 + 1], accumulate the n_cp-length
+    CP-window correlation from each symbol boundary. The argmax should
+    equal n_fft (the CP duplication distance), and the peak normalised
+    amplitude should exceed 0.5.
+
+    Using per-symbol-aligned windows of length n_cp prevents cross-symbol
+    dilution that would otherwise suppress the peak amplitude.
+    """
+    rng = np.random.default_rng(seed)
+    syms = np.concatenate(
+        [_build_ofdm_symbol(n_fft, n_used, n_cp, rng)[1] for _ in range(n_symbols)]
+    ).astype(np.complex128)
+    sym_len = n_fft + n_cp
+    lags = np.arange(n_cp, n_fft + n_cp + n_cp // 2 + 1)
+    corrs = np.zeros(len(lags), dtype=float)
+    for i, k in enumerate(lags):
+        total_num = 0.0
+        total_denom_a = 0.0
+        total_denom_b = 0.0
+        for sym_idx in range(n_symbols):
+            s = sym_idx * sym_len
+            if s + k + n_cp > len(syms):
+                break
+            a = syms[s : s + n_cp]
+            b = syms[s + k : s + k + n_cp]
+            total_num += float(np.abs(np.dot(a, np.conj(b))))
+            total_denom_a += float(np.dot(a, np.conj(a)).real)
+            total_denom_b += float(np.dot(b, np.conj(b)).real)
+        corrs[i] = total_num / max(float(np.sqrt(total_denom_a * total_denom_b)), 1e-30)
+    idx = int(np.argmax(corrs))
+    return int(lags[idx]), float(corrs[idx])
+
+
+def ofdm_evm_after_awgn(
+    snr_db: float,
+    n_fft: int,
+    n_used: int,
+    n_cp: int,
+    n_symbols: int = 200,
+    seed: int = 0,
+) -> float:
+    """S1: EVM (RMS) after AWGN + CP-removal + FFT + ZF.
+
+    For AWGN-only at SNR_lin = 10^(snr_db/10), the theoretical EVM is
+    1/√SNR_lin (Proakis). At 40 dB this is 1 %, comfortably below the
+    2 % tolerance the suite uses.
+    """
+    rng = np.random.default_rng(seed)
+    grids = []
+    syms = []
+    for _ in range(n_symbols):
+        g, s = _build_ofdm_symbol(n_fft, n_used, n_cp, rng)
+        grids.append(g)
+        syms.append(s)
+    iq = np.concatenate(syms).astype(np.complex128)
+    es = float(np.mean(np.abs(iq) ** 2))
+    snr_lin = 10.0 ** (snr_db / 10.0)
+    sigma = np.sqrt(es / snr_lin / 2.0)
+    noise = sigma * (rng.standard_normal(len(iq)) + 1j * rng.standard_normal(len(iq)))
+    rx = iq + noise
+    sym_len = n_fft + n_cp
+    rx_grids = np.empty((n_symbols, n_fft), dtype=np.complex128)
+    for i in range(n_symbols):
+        body_rx = rx[i * sym_len + n_cp : (i + 1) * sym_len]
+        rx_grids[i] = np.fft.fft(body_rx) / np.sqrt(n_fft)
+    half = n_used // 2
+    used = np.concatenate([np.arange(1, 1 + half), np.arange(n_fft - half, n_fft)])
+    tx_used = np.array(grids)[:, used].flatten()
+    rx_used = rx_grids[:, used].flatten()
+    err = rx_used - tx_used
+    return float(np.sqrt(np.mean(np.abs(err) ** 2)) / np.sqrt(np.mean(np.abs(tx_used) ** 2)))
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Barker-13 — added in subsequent tasks
 # ════════════════════════════════════════════════════════════════════════════
 
 
@@ -195,8 +321,20 @@ def run_all(full: bool = False) -> dict:
         ),
     }
 
-    # ── OFDM / Barker-13: populated in later tasks ─────────────────────────
-    results["ofdm"] = {"orthogonality_error": float("nan")}
+    # ── OFDM ────────────────────────────────────────────────────────────────
+    n_fft, n_used, n_cp = 64, 52, 16
+    orth_err = ofdm_orthogonality_error(n_fft, n_used, n_cp, seed=0)
+    cp_lag, cp_peak = ofdm_cp_correlation(n_fft, n_used, n_cp, n_symbols=8, seed=0)
+    n_ofdm = 2000 if full else 200
+    evm = ofdm_evm_after_awgn(40.0, n_fft, n_used, n_cp, n_symbols=n_ofdm, seed=0)
+    results["ofdm"] = {
+        "orthogonality_error": orth_err,
+        "cp_lag": cp_lag,
+        "cp_peak": cp_peak,
+        "evm_at_40db": evm,
+    }
+
+    # ── Barker-13: populated in next task ───────────────────────────────────
     results["barker13"] = {"pslr": float("nan")}
 
     return results
@@ -211,6 +349,14 @@ def _print_summary(results: dict) -> None:
     print(f"  P1  max(|imag(symbols)|)    = {bp['constellation_max_imag']:.2e}")
     print(f"  P4  PSD-theory correlation  = {bp['psd_correlation']:.4f}")
     print(f"  S1  max|Δ| BER vs theory    = {bp['ber_max_diff_db']:.3f} dB")
+    print("=" * 60)
+    print("OFDM")
+    print("-" * 60)
+    of = results["ofdm"]
+    print(f"  P1  max |FFT(rx) − tx_grid|  = {of['orthogonality_error']:.2e}")
+    print(f"  P2  CP corr argmax lag       = {of['cp_lag']} (expect 64)")
+    print(f"  P2b CP corr peak amplitude   = {of['cp_peak']:.3f}")
+    print(f"  S1  EVM at SNR = 40 dB       = {100 * of['evm_at_40db']:.2f} %")
     print("=" * 60)
 
 
@@ -227,6 +373,15 @@ def main() -> int:
         failed.append("BPSK P4")
     if bp["ber_max_diff_db"] > 0.8:
         failed.append("BPSK S1")
+    of = results["ofdm"]
+    if of["orthogonality_error"] > 1e-9:
+        failed.append("OFDM P1")
+    if of["cp_lag"] != 64:
+        failed.append("OFDM P2")
+    if of["cp_peak"] <= 0.5:
+        failed.append("OFDM P2b")
+    if of["evm_at_40db"] > 0.02:
+        failed.append("OFDM S1")
     if failed:
         print(f"\nFAILED: {', '.join(failed)}")
         return 1

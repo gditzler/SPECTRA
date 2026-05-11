@@ -148,7 +148,6 @@ class TestBuggySubclasses:
         assert np.all(np.abs(symbol_samples.imag) < 1e-3)
 
     def test_buggy_ofdm_missing_cp_shorter_than_clean(self):
-        import numpy as np
         import spectra as sp
 
         mod = self._load_module()
@@ -214,6 +213,7 @@ class TestBPSKMeasurements:
 
     def test_bpsk_ber_matches_theory(self):
         import numpy as np
+
         tutorial = self._load_tutorial()
         # Spot-check at a single SNR with a small symbol count for speed.
         measured, theory = tutorial.bpsk_ber_curve(
@@ -223,3 +223,35 @@ class TestBPSKMeasurements:
         meas_db = 10 * np.log10(np.maximum(measured, 1.0 / 50_000))
         theo_db = 10 * np.log10(theory)
         assert float(np.max(np.abs(meas_db - theo_db))) <= 0.8
+
+
+class TestOFDMMeasurements:
+    """Tutorial OFDM functions produce expected numeric values on clean signal."""
+
+    def _load_tutorial(self):
+        import importlib
+        import sys
+
+        script_dir = _REPO_ROOT / "examples" / "verification"
+        if str(script_dir) not in sys.path:
+            sys.path.insert(0, str(script_dir))
+        return importlib.import_module("tutorial_for_reviewers")
+
+    def test_orthogonality_exact(self):
+        tutorial = self._load_tutorial()
+        err = tutorial.ofdm_orthogonality_error(n_fft=64, n_used=52, n_cp=16, seed=0)
+        assert err < 1e-9, f"orthogonality error {err} not < 1e-9"
+
+    def test_cp_correlation_peak_at_n_fft(self):
+        tutorial = self._load_tutorial()
+        lag, peak = tutorial.ofdm_cp_correlation(n_fft=64, n_used=52, n_cp=16, n_symbols=8, seed=0)
+        assert lag == 64, f"CP peak lag = {lag}, expected 64"
+        assert peak > 0.5, f"CP peak amplitude = {peak}, expected > 0.5"
+
+    def test_ofdm_evm_at_40db(self):
+        tutorial = self._load_tutorial()
+        evm = tutorial.ofdm_evm_after_awgn(
+            snr_db=40.0, n_fft=64, n_used=52, n_cp=16, n_symbols=200, seed=0
+        )
+        # EVM at SNR=40 dB should be ~1 %; tolerance 2 %.
+        assert evm <= 0.02, f"EVM {evm} > 0.02 at SNR=40 dB"
