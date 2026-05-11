@@ -135,10 +135,12 @@ python examples/verification/verify_qam16.py --full
 
 ### GMSK — `verify_gmsk.py`
 
-CPM with Gaussian pulse shaping. The implementation produces h_eff = 0.5/sps = 0.0625 (not the standard MSK h = 0.5); this is documented and asserted as a regression guard. Strongest evidence:
+CPM with Gaussian pulse shaping; modulation index h = 0.5. Strongest evidence:
 
 - **P1** Constant envelope: std(|s|)/mean(|s|) ≤ 1e-3 (CPM definition)
-- **S1** BER < 0.05 at Eb/N0 = 40 dB using frequency-discriminator demodulation (Proakis 2008, eq. 4.4-43)
+- **P2** Steady-state |Δφ|/symbol = π/2 within 1 % on a constant-bit stream (Proakis 2008, §4.4-3)
+- **P4** PSD 3-dB main lobe ≈ 0.27·R_s for BT=0.3 (Laurent 1986, §III)
+- **P5** 99 % OBW ≈ 0.92·R_s (GSM/3GPP BT=0.3 GMSK reference; ITU SM.328 §3)
 
 ```python
 from spectra import GMSK
@@ -147,12 +149,11 @@ iq = wf.generate(num_symbols=4096, sample_rate=1e6, seed=0)
 ```
 
 ```bash
-python examples/verification/verify_gmsk.py
-python examples/verification/verify_gmsk.py --full
+python examples/verification/verify_gmsk.py        # quick mode
+python examples/verification/verify_gmsk.py --full # publication-grade
 ```
 
-![GMSK BER](../../assets/verification/gmsk_S1_ber.png)
-*GMSK BER at Eb/N0 = 40 dB via frequency-discriminator demodulation. h_eff = 0.0625 requires high SNR for reliable demodulation.*
+No BER figure is rendered. A per-bit matched filter loses ~26 dB on BT=0.3 GMSK because the Gaussian-shaped phase pulse spreads ISI over ~3 bit intervals; a proper coherent receiver (Laurent decomposition or Viterbi CPM) is tracked as follow-on work.
 
 ---
 
@@ -282,7 +283,7 @@ python examples/verification/verify_adsb.py --full  # (no extra checks)
 
 This suite surfaced two implementation observations:
 
-1. **GMSK h_eff = 0.5/sps = 0.0625, not the standard MSK h = 0.5.** Root cause: `delta_phi = π·0.5·filtered/sps` with a sum-normalised Gaussian filter in `python/spectra/waveforms/fsk.py`. Documented and asserted as a regression guard in `verify_gmsk.py`.
+1. **GMSK previously produced h_eff = 0.5/sps = 0.0625, not the standard h = 0.5.** Root cause: zero-insertion upsampling combined with a sum-normalised Gaussian filter in `python/spectra/waveforms/fsk.py`. Fixed by switching to repeat-upsampling (matching `MSK.generate` and `FSK.generate`); verifier now uses textbook MSK tolerances (P2 expects π/2 rad/symbol; P4 expects 0.27·R_s main-lobe BW; P5 expects 0.92·R_s 99 % OBW). A coherent BT=0.3 GMSK BER row is deferred (per-bit matched filter loses ~26 dB; needs a Laurent or Viterbi CPM detector). Regression guarded by `tests/test_waveforms_fsk.py::TestGMSKModulationIndex`.
 
 2. **16-QAM uses row-major indexing, not Gray coding** (`rust/src/modulators.rs`). Gray adjacency check omitted from `verify_qam16.py`; limitation is documented inline.
 
@@ -293,7 +294,7 @@ This suite surfaced two implementation observations:
 | `verify_bpsk.py`     | Linear binary     | BER-vs-theory exact; PSD correlation ≥ 0.99 |
 | `verify_qpsk.py`     | Linear M-ary      | SER-vs-theory; unit-circle constellation; ACLR |
 | `verify_qam16.py`    | Linear high-order | SER-vs-theory; EVM; energy-normalised constellation |
-| `verify_gmsk.py`     | CPM               | Constant envelope; h_eff documented; BER at high SNR |
+| `verify_gmsk.py`     | CPM               | h = 0.5 steady-state; constant envelope; PSD/OBW match BT=0.3 references |
 | `verify_ofdm.py`     | Multicarrier      | Subcarrier orthogonality; CP correlation; EVM |
 | `verify_nr_pss.py`   | Spec sequence     | Sample equality with 3GPP TS 38.211 §7.4.2.2.1 |
 | `verify_nr_sss.py`   | Spec sequence     | Gold-sequence equality with 3GPP TS 38.211 §7.4.2.3.1 |
