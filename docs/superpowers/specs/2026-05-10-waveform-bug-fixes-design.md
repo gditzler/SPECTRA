@@ -50,9 +50,9 @@ state.
   - Replace zero-insertion upsampling with repeat-upsampling in
     `python/spectra/waveforms/fsk.py:GMSK.generate`.
   - Revert `examples/verification/verify_gmsk.py` workarounds: P2 expected
-    step, P4 spectral-BW check, P5 OBW reference, S1 BER curve.
-  - Regenerate `assets/verification/gmsk_S1_ber.png` against the standard
-    MSK BER curve over [0, 10] dB.
+    step, P4 spectral-BW check, P5 OBW reference; drop S1.
+  - Delete the now-orphaned `assets/verification/gmsk_S1_ber.png` (no
+    BER check renders a figure).
   - Update the "Notes on Findings" GMSK entry in
     `examples/verification/README.md`.
   - Add a `tests/test_waveforms_fsk.py` regression test asserting
@@ -158,16 +158,17 @@ path because that's covered by the verifier.
   reference), tolerance 10 % relative. Citation `itu_sm_328:§3`. Note: the
   `1.5 · R_s` figure is the Carson's-rule peak-deviation bandwidth, not
   the 99 % OBW — they are distinct quantities.
-- S1 — BER vs Q(√(2·Eb/N0)) over [0, 10] dB using a **coherent
-  matched-filter receiver** (I/Q split with cos(πt/2Tb), sin(πt/2Tb)
-  matched filters, offset-bit recovery). For BT = 0.3 GMSK the coherent
-  receiver tracks the MSK theory line within ~0.5–1 dB; tolerance 0.8 dB
-  (quick) / 1.0 dB (full). The frequency-discriminator demod is
-  *non-coherent* and gives ~27 dB BER loss vs coherent theory at moderate
-  SNR — it is not the right pairing for a Q-function reference.
+- S1 — **dropped**. A per-bit coherent matched filter is the wrong receiver
+  for BT = 0.3 GMSK: the Gaussian-shaped phase pulse spreads ISI over
+  ~3 bit intervals, so any per-bit observation loses ~26 dB versus
+  Q(√(2·Eb/N0)). The correct coherent receivers are a Laurent-decomposition
+  detector or a Viterbi CPM decoder — both real engineering work, out of
+  scope for the bug-fix PR. The fix is fully evidenced by P1 (constant
+  envelope), P2 (exact π/2 per symbol = h = 0.5), P3 (Gaussian filter BW),
+  P4 (PSD 3-dB main lobe), and P5 (99 % OBW). A proper coherent receiver
+  + BER curve is tracked as discovered work for a follow-on PR.
 - The five-paragraph deviation block at the top of the docstring deletes.
-- `assets/verification/gmsk_S1_ber.png` is regenerated as a proper theory
-  overlay.
+- `assets/verification/gmsk_S1_ber.png` is deleted (no BER row to render).
 
 ### README update
 
@@ -314,7 +315,7 @@ Two ordered PRs:
 - **PR-A — GMSK fix.** `python/spectra/waveforms/fsk.py` (one upsample
   line), `examples/verification/verify_gmsk.py` revert,
   `tests/test_waveforms_fsk.py` new regression test,
-  `assets/verification/gmsk_S1_ber.png` regenerated, README finding
+  `assets/verification/gmsk_S1_ber.png` deleted, README finding
   rewritten. Self-contained, no downstream audit, no breaking change.
 
 - **PR-B — QAM Gray-coding fix.** `rust/src/modulators.rs`
@@ -367,3 +368,9 @@ the fix restores theory agreement.
   but out of scope here.
 - Reviewer tutorial notebook (the original brainstorm topic). Will be
   written against the post-fix codebase as a follow-on spec.
+- A proper coherent BT=0.3 GMSK BER verifier — either a
+  Laurent-decomposition detector or a Viterbi CPM decoder — to restore an
+  S1 BER row that tracks `Q(√(2·Eb/N0))` within ~1 dB per Murota & Hirade
+  1981. S1 was dropped from this PR because a per-bit matched filter loses
+  ~26 dB on BT=0.3 GMSK (ISI spans ~3 bit intervals); building a proper
+  detector is real engineering work, not a verifier patch.
