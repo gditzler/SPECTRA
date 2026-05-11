@@ -568,4 +568,53 @@ mod tests {
             assert!((-1.0_f32..=1.0_f32).contains(&v));
         }
     }
+
+    #[test]
+    fn qam_constellation_gray_adjacency() {
+        // For Gray-coded square M-QAM, every pair of physical
+        // nearest neighbours has integer labels whose Gray codes
+        // differ by exactly one bit [proakis2008:§4.3.2].
+        for order in [16usize, 64usize, 256usize] {
+            let constellation = build_qam_constellation(order).unwrap();
+            let side = (order as f64).sqrt() as usize;
+
+            // Nearest-neighbour spacing equals the minimum |Δ| in the
+            // normalised grid: in raw coords it is 2; after
+            // normalisation by sqrt(avg_power), the spacing is
+            // 2 / sqrt(avg_power_raw). Determine empirically by
+            // taking the smallest non-zero distance in the constellation.
+            let mut min_d2 = f32::INFINITY;
+            for (i, a) in constellation.iter().enumerate() {
+                for b in constellation.iter().skip(i + 1) {
+                    let dr = a.re - b.re;
+                    let di = a.im - b.im;
+                    let d2 = dr * dr + di * di;
+                    if d2 > 1e-6 && d2 < min_d2 {
+                        min_d2 = d2;
+                    }
+                }
+            }
+
+            // Every nearest-neighbour pair must have Gray-adjacent labels.
+            for (i, a) in constellation.iter().enumerate() {
+                for (j, b) in constellation.iter().enumerate().skip(i + 1) {
+                    let dr = a.re - b.re;
+                    let di = a.im - b.im;
+                    let d2 = dr * dr + di * di;
+                    if (d2 - min_d2).abs() <= 1e-4 {
+                        let xor = (i ^ j) as u32;
+                        assert_eq!(
+                            xor.count_ones(),
+                            1,
+                            "order={order}: labels {i} and {j} are physical nearest neighbours but their integer XOR popcount = {} (expected 1 for Gray-coded)",
+                            xor.count_ones()
+                        );
+                    }
+                }
+            }
+
+            // Sanity: the side count matches the perfect-square invariant.
+            assert_eq!(side * side, order);
+        }
+    }
 }
