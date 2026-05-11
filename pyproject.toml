@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "spectra"
-version = "0.1.0"
+version = "0.2.0"
 description = "Realistic radar and communication waveform generation with PyTorch integration"
 requires-python = ">=3.10"
 license = {text = "MIT"}

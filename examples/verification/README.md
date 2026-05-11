@@ -109,10 +109,12 @@ python examples/verification/verify_qpsk.py --full
 
 ### 16-QAM — `verify_qam16.py`
 
-High-order linear modulation with 16 energy-normalised points (levels ±1/√10, ±3/√10). The Rust modulator uses row-major indexing rather than Gray coding; the Gray adjacency check is omitted and documented. Strongest evidence:
+High-order linear modulation with 16 Gray-coded energy-normalised points (levels ±1/√10, ±3/√10). Strongest evidence:
 
+- **P3** Every pair of physical nearest neighbours has integer labels differing in exactly one bit (Proakis 2008, §4.3.2)
 - **P5** PSD shape correlation ≥ 0.99 with theoretical squared-RRC (Proakis 2008, eq. 9.2-37)
-- **S1** SER vs Eb/N0 ∈ [4, 11] dB, max |Δ| ≤ 1.0 dB (Proakis 2008, eq. 4.3-30)
+- **S1** SER vs Eb/N0 ∈ [4, 11] dB, max |Δ| ≤ 0.5 dB at full mode (Proakis 2008, eq. 4.3-30)
+- **S3** |BER − SER/log₂(M)| ≤ 5e-3 at Eb/N0 = 11 dB (Proakis 2008, §4.3.2)
 
 ```python
 from spectra import QAM16
@@ -285,7 +287,7 @@ This suite surfaced two implementation observations:
 
 1. **GMSK previously produced h_eff = 0.5/sps = 0.0625, not the standard h = 0.5.** Root cause: zero-insertion upsampling combined with a sum-normalised Gaussian filter in `python/spectra/waveforms/fsk.py`. Fixed by switching to repeat-upsampling (matching `MSK.generate` and `FSK.generate`); verifier now uses textbook MSK tolerances (P2 expects π/2 rad/symbol; P4 expects 0.27·R_s main-lobe BW; P5 expects 0.92·R_s 99 % OBW). A coherent BT=0.3 GMSK BER row is deferred (per-bit matched filter loses ~26 dB; needs a Laurent or Viterbi CPM detector). Regression guarded by `tests/test_waveforms_fsk.py::TestGMSKModulationIndex`.
 
-2. **16-QAM uses row-major indexing, not Gray coding** (`rust/src/modulators.rs`). Gray adjacency check omitted from `verify_qam16.py`; limitation is documented inline.
+2. **16-QAM (and all square M-QAM ≥ 16) is now Gray-coded.** Root cause: `build_qam_constellation` in `rust/src/modulators.rs` swept the I/Q grid in row-major order, so adjacent integer labels were not physical neighbours and the BER↔SER relationship deviated from `BER ≈ SER/log₂(M)` by up to a factor of `log₂(M)` at moderate-to-high SNR. Fixed by Gray-encoding each axis index independently and placing the point at `(gray(i) << n) | gray(j)`. **BREAKING:** datasets and classifiers trained on the prior mapping must be regenerated. Regression guarded by `rust/src/modulators.rs::qam_constellation_gray_adjacency` and `verify_qam16.py::P3`.
 
 ## Waveform coverage (see Per-Waveform Evidence above)
 
@@ -293,7 +295,7 @@ This suite surfaced two implementation observations:
 |--------|-------|--------------------|
 | `verify_bpsk.py`     | Linear binary     | BER-vs-theory exact; PSD correlation ≥ 0.99 |
 | `verify_qpsk.py`     | Linear M-ary      | SER-vs-theory; unit-circle constellation; ACLR |
-| `verify_qam16.py`    | Linear high-order | SER-vs-theory; EVM; energy-normalised constellation |
+| `verify_qam16.py`    | Linear high-order | Gray adjacency; SER-vs-theory; BER↔SER coupling; EVM |
 | `verify_gmsk.py`     | CPM               | h = 0.5 steady-state; constant envelope; PSD/OBW match BT=0.3 references |
 | `verify_ofdm.py`     | Multicarrier      | Subcarrier orthogonality; CP correlation; EVM |
 | `verify_nr_pss.py`   | Spec sequence     | Sample equality with 3GPP TS 38.211 §7.4.2.2.1 |
