@@ -98,7 +98,7 @@ def bpsk_psd_correlation(iq: np.ndarray, sample_rate: float, rolloff: float = 0.
     segment averages with 64+ segments gives Welch variance ≈ 1/N_seg
     ≈ 1.5 %; the correlation threshold of 0.99 is comfortably above this).
     """
-    sps = 8  # default in the suite; the function does not need to know exactly
+    sps = 8
     Rs = sample_rate / sps
     f, p = _welch_psd_inline(iq, fs=sample_rate, nperseg=512)
     t = _psd_rrc_squared_inline(f, Rs=Rs, alpha=rolloff)
@@ -395,6 +395,7 @@ def run_all(full: bool = False) -> dict:
     results["ofdm"] = {
         "orthogonality_error": orth_err,
         "cp_lag": cp_lag,
+        "n_fft": n_fft,
         "cp_peak": cp_peak,
         "evm_at_40db": evm,
     }
@@ -426,7 +427,7 @@ def _print_summary(results: dict) -> None:
     print("-" * 60)
     of = results["ofdm"]
     print(f"  P1  max |FFT(rx) − tx_grid|  = {of['orthogonality_error']:.2e}")
-    print(f"  P2  CP corr argmax lag       = {of['cp_lag']} (expect 64)")
+    print(f"  P2  CP corr argmax lag       = {of['cp_lag']} (expect {of['n_fft']})")
     print(f"  P2b CP corr peak amplitude   = {of['cp_peak']:.3f}")
     print(f"  S1  EVM at SNR = 40 dB       = {100 * of['evm_at_40db']:.2f} %")
     print("=" * 60)
@@ -455,7 +456,7 @@ def main() -> int:
     of = results["ofdm"]
     if of["orthogonality_error"] > 1e-9:
         failed.append("OFDM P1")
-    if of["cp_lag"] != 64:
+    if of["cp_lag"] != of["n_fft"]:
         failed.append("OFDM P2")
     if of["cp_peak"] <= 0.5:
         failed.append("OFDM P2b")

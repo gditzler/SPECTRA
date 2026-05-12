@@ -80,7 +80,7 @@ def broaden_pulse(iq: np.ndarray, blur_kernel_len: int) -> np.ndarray:
     """
     if blur_kernel_len < 1:
         raise ValueError("blur_kernel_len must be ≥ 1")
-    kernel = np.ones(blur_kernel_len, dtype=iq.dtype) / blur_kernel_len
+    kernel = np.ones(blur_kernel_len, dtype=np.float64) / blur_kernel_len
     return np.convolve(iq, kernel, mode="same").astype(iq.dtype)
 
 

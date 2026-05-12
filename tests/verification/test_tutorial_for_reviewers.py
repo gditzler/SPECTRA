@@ -1,13 +1,37 @@
 """Pytest wrapper for examples/verification/tutorial_for_reviewers.ipynb."""
 
+from __future__ import annotations
+
+import importlib
+import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
+import spectra as sp
+from spectra._rust import generate_bpsk_symbols
+from spectra.waveforms.barker import BarkerCode
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _NOTEBOOK = _REPO_ROOT / "examples" / "verification" / "tutorial_for_reviewers.ipynb"
 
 pytestmark = [pytest.mark.verification, pytest.mark.slow]
+
+
+def _import_regressions():
+    """Load _tutorial_regressions from examples/verification/."""
+    script_dir = _REPO_ROOT / "examples" / "verification"
+    if str(script_dir) not in sys.path:
+        sys.path.insert(0, str(script_dir))
+    return importlib.import_module("_tutorial_regressions")
+
+
+def _import_tutorial():
+    """Load tutorial_for_reviewers from examples/verification/."""
+    script_dir = _REPO_ROOT / "examples" / "verification"
+    if str(script_dir) not in sys.path:
+        sys.path.insert(0, str(script_dir))
+    return importlib.import_module("tutorial_for_reviewers")
 
 
 @pytest.mark.skipif(not _NOTEBOOK.exists(), reason="notebook not yet created")
@@ -23,42 +47,17 @@ def test_notebook_executes():
 
 def test_script_module_importable():
     """The companion script must import cleanly and expose required entry points."""
-    import importlib
-    import sys
-
-    script_dir = _REPO_ROOT / "examples" / "verification"
-    sys.path.insert(0, str(script_dir))
-    try:
-        tutorial = importlib.import_module("tutorial_for_reviewers")
-    finally:
-        sys.path.remove(str(script_dir))
-
-    # Required top-level entry points
+    tutorial = _import_tutorial()
     assert hasattr(tutorial, "run_all"), "must expose run_all() that returns a results dict"
     results = tutorial.run_all(full=False)
     assert isinstance(results, dict)
-    # Spot-check three pinned reference values that should be robust to RNG.
-    assert results["bpsk"]["psd_correlation"] >= 0.99, results["bpsk"]
-    assert results["ofdm"]["orthogonality_error"] <= 1e-9, results["ofdm"]
-    assert results["barker13"]["pslr"] == pytest.approx(13.0, abs=1e-9), results["barker13"]
 
 
 class TestPostIQCorruption:
     """Section A of _tutorial_regressions — post-generation corruption helpers."""
 
-    def _load_module(self):
-        import importlib
-        import sys
-
-        script_dir = _REPO_ROOT / "examples" / "verification"
-        if str(script_dir) not in sys.path:
-            sys.path.insert(0, str(script_dir))
-        return importlib.import_module("_tutorial_regressions")
-
     def test_rotate_phase_preserves_magnitude(self):
-        import numpy as np
-
-        mod = self._load_module()
+        mod = _import_regressions()
         iq = (np.arange(64) + 1j * np.arange(64)).astype(np.complex64)
         rotated = mod.rotate_phase(iq, radians=0.5)
         np.testing.assert_allclose(np.abs(rotated), np.abs(iq), rtol=1e-5)
@@ -71,9 +70,7 @@ class TestPostIQCorruption:
         )
 
     def test_drop_cp_sample_shrinks_each_symbol_by_one(self):
-        import numpy as np
-
-        mod = self._load_module()
+        mod = _import_regressions()
         # 4 OFDM symbols of length 16 (N_FFT=12, N_CP=4)
         n_fft, n_cp = 12, 4
         sym_len = n_fft + n_cp
@@ -82,9 +79,7 @@ class TestPostIQCorruption:
         assert len(out) == 4 * (sym_len - 1)
 
     def test_flip_chip_inverts_one_chip(self):
-        import numpy as np
-
-        mod = self._load_module()
+        mod = _import_regressions()
         # 5 chips of 4 samples each, all +1
         sps = 4
         iq = np.ones(5 * sps, dtype=np.complex64)
@@ -95,9 +90,7 @@ class TestPostIQCorruption:
         assert np.all(out[3 * sps :] == 1.0)
 
     def test_broaden_pulse_returns_same_length(self):
-        import numpy as np
-
-        mod = self._load_module()
+        mod = _import_regressions()
         iq = np.random.default_rng(0).standard_normal(128).astype(np.complex64)
         out = mod.broaden_pulse(iq, blur_kernel_len=5)
         assert len(out) == len(iq)
@@ -106,20 +99,8 @@ class TestPostIQCorruption:
 class TestBuggySubclasses:
     """Section B of _tutorial_regressions — Buggy* waveform subclasses."""
 
-    def _load_module(self):
-        import importlib
-        import sys
-
-        script_dir = _REPO_ROOT / "examples" / "verification"
-        if str(script_dir) not in sys.path:
-            sys.path.insert(0, str(script_dir))
-        return importlib.import_module("_tutorial_regressions")
-
     def test_buggy_bpsk_wrong_rolloff_differs_from_clean(self):
-        import numpy as np
-        import spectra as sp
-
-        mod = self._load_module()
+        mod = _import_regressions()
         clean = sp.BPSK(samples_per_symbol=8, rolloff=0.35).generate(
             num_symbols=256, sample_rate=1e6, seed=0
         )
@@ -131,13 +112,9 @@ class TestBuggySubclasses:
         assert not np.allclose(clean, buggy)
 
     def test_buggy_bpsk_no_rrc_constellation_is_clean(self):
-        import numpy as np
-
-        mod = self._load_module()
-        # BuggyBPSK_NoRRC skips pulse-shaping entirely. Samples should still
-        # be ±1 ± tiny noise — the BPSK *symbols* are intact, only the
-        # pulse-shape filter is missing. PSD will be degraded; constellation
-        # at symbol-instants is unchanged.
+        mod = _import_regressions()
+        # BuggyBPSK_NoRRC repeats each ±1 symbol sps times; no pulse shape, no noise.
+        # Constellation at symbol-instants is exactly ±1+0j.
         buggy = mod.BuggyBPSK_NoRRC(samples_per_symbol=8).generate(
             num_symbols=256, sample_rate=1e6, seed=0
         )
@@ -148,9 +125,7 @@ class TestBuggySubclasses:
         assert np.all(np.abs(symbol_samples.imag) < 1e-3)
 
     def test_buggy_ofdm_missing_cp_shorter_than_clean(self):
-        import spectra as sp
-
-        mod = self._load_module()
+        mod = _import_regressions()
         n_sym = 4
         clean = sp.OFDM(num_subcarriers=64, cp_length=16).generate(
             num_symbols=n_sym, sample_rate=1e6, seed=0
@@ -162,10 +137,7 @@ class TestBuggySubclasses:
         assert len(buggy) == len(clean) - n_sym * 16
 
     def test_buggy_barker13_flipped_chip_differs(self):
-        import numpy as np
-        from spectra.waveforms.barker import BarkerCode
-
-        mod = self._load_module()
+        mod = _import_regressions()
         clean = BarkerCode(length=13, samples_per_chip=4).generate(
             num_symbols=1, sample_rate=1e6, seed=0
         )
@@ -184,27 +156,14 @@ class TestBuggySubclasses:
 class TestBPSKMeasurements:
     """Tutorial BPSK functions produce expected numeric values on clean signal."""
 
-    def _load_tutorial(self):
-        import importlib
-        import sys
-
-        script_dir = _REPO_ROOT / "examples" / "verification"
-        if str(script_dir) not in sys.path:
-            sys.path.insert(0, str(script_dir))
-        return importlib.import_module("tutorial_for_reviewers")
-
     def test_bpsk_constellation_check(self):
-        from spectra._rust import generate_bpsk_symbols
-
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
         syms = generate_bpsk_symbols(10_000, seed=0)
         max_imag = tutorial.bpsk_constellation_check(syms)
         assert max_imag < 1e-6, f"BPSK symbols not on real axis: max(|imag|) = {max_imag}"
 
     def test_bpsk_psd_correlation_high(self):
-        import spectra as sp
-
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
         iq = sp.BPSK(samples_per_symbol=8, rolloff=0.35).generate(
             num_symbols=4096, sample_rate=1e6, seed=0
         )
@@ -212,15 +171,14 @@ class TestBPSKMeasurements:
         assert corr >= 0.99, f"clean BPSK PSD correlation = {corr} < 0.99"
 
     def test_bpsk_ber_matches_theory(self):
-        import numpy as np
-
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
+        n_bits = 50_000
         # Spot-check at a single SNR with a small symbol count for speed.
         measured, theory = tutorial.bpsk_ber_curve(
-            ebn0_db_list=[0.0, 3.0, 6.0], n_bits=50_000, seed=0
+            ebn0_db_list=[0.0, 3.0, 6.0], n_bits=n_bits, seed=0
         )
         # Each measured BER should be within 0.8 dB of theory at these SNRs.
-        meas_db = 10 * np.log10(np.maximum(measured, 1.0 / 50_000))
+        meas_db = 10 * np.log10(np.maximum(measured, 1.0 / n_bits))
         theo_db = 10 * np.log10(theory)
         assert float(np.max(np.abs(meas_db - theo_db))) <= 0.8
 
@@ -228,28 +186,19 @@ class TestBPSKMeasurements:
 class TestOFDMMeasurements:
     """Tutorial OFDM functions produce expected numeric values on clean signal."""
 
-    def _load_tutorial(self):
-        import importlib
-        import sys
-
-        script_dir = _REPO_ROOT / "examples" / "verification"
-        if str(script_dir) not in sys.path:
-            sys.path.insert(0, str(script_dir))
-        return importlib.import_module("tutorial_for_reviewers")
-
     def test_orthogonality_exact(self):
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
         err = tutorial.ofdm_orthogonality_error(n_fft=64, n_used=52, n_cp=16, seed=0)
         assert err < 1e-9, f"orthogonality error {err} not < 1e-9"
 
     def test_cp_correlation_peak_at_n_fft(self):
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
         lag, peak = tutorial.ofdm_cp_correlation(n_fft=64, n_used=52, n_cp=16, n_symbols=8, seed=0)
         assert lag == 64, f"CP peak lag = {lag}, expected 64"
         assert peak > 0.5, f"CP peak amplitude = {peak}, expected > 0.5"
 
     def test_ofdm_evm_at_40db(self):
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
         evm = tutorial.ofdm_evm_after_awgn(
             snr_db=40.0, n_fft=64, n_used=52, n_cp=16, n_symbols=200, seed=0
         )
@@ -260,26 +209,17 @@ class TestOFDMMeasurements:
 class TestBarker13Measurements:
     """Tutorial Barker-13 functions produce expected numeric values."""
 
-    def _load_tutorial(self):
-        import importlib
-        import sys
-
-        script_dir = _REPO_ROOT / "examples" / "verification"
-        if str(script_dir) not in sys.path:
-            sys.path.insert(0, str(script_dir))
-        return importlib.import_module("tutorial_for_reviewers")
-
     def test_canonical_code_equality(self):
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
         match = tutorial.barker13_canonical_equality()
         assert match == 1, "Barker-13 code does not match Levanon Tab. 6.1"
 
     def test_pslr_equals_13(self):
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
         pslr = tutorial.barker13_pslr()
         assert pslr == pytest.approx(13.0, abs=1e-9)
 
     def test_detection_rate_at_10db(self):
-        tutorial = self._load_tutorial()
+        tutorial = _import_tutorial()
         rate = tutorial.barker13_detection_rate(snr_db=10.0, n_trials=200, seed=0)
         assert rate >= 0.95, f"detection rate {rate} below 0.95 at SNR=10 dB"
