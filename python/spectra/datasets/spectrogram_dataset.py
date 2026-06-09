@@ -53,7 +53,7 @@ class SpectrogramDataset(Dataset[Tuple[torch.Tensor, T_co]], Generic[T_co]):
             seed=42,
         )
         spec_ds = SpectrogramDataset(iq_ds, transform=STFT(nfft=256), cache="memory")
-        spec, label = spec_ds[0]   # spec: [1, 129, 16]
+        spec, label = spec_ds[0]   # spec: [1, 256, T]
     """
 
     def __init__(
@@ -66,7 +66,7 @@ class SpectrogramDataset(Dataset[Tuple[torch.Tensor, T_co]], Generic[T_co]):
         self.dataset = dataset
         self.transform = transform
         self.cache_mode = cache
-        self.cache: Dict[int, torch.Tensor] = {}
+        self.cache: Dict[int, Tuple[torch.Tensor, Any]] = {}
         self.cache_size = cache_size
         self._shape: Optional[Tuple[int, int, int]] = None
 
@@ -79,29 +79,23 @@ class SpectrogramDataset(Dataset[Tuple[torch.Tensor, T_co]], Generic[T_co]):
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, T_co]:
         if self.cache_mode == "memory" and index in self.cache:
-            return self.cache[index], self._get_target(index)
+            spec, target = self.cache[index]
+            return spec, target
 
         iq, target = self.dataset[index]
 
         # Accept numpy complex arrays or torch tensors shaped [2, N]
         if isinstance(iq, torch.Tensor):
-            # Convert [2, N] back to complex for the transform if needed
             if iq.dim() == 2 and iq.shape[0] == 2:
                 iq = iq[0].numpy() + 1j * iq[1].numpy()
-            else:
-                # Already a complex tensor / spectrogram
-                pass
 
-        # Ensure numpy array for the transform (STFT expects np.ndarray)
         if isinstance(iq, torch.Tensor) and not torch.is_complex(iq):
             iq = iq.numpy()
         elif hasattr(iq, "numpy"):
             iq = iq.numpy()
 
-        # Apply the spectrogram transform
-        spec = self.transform(iq)  # type: ignore[arg-type]
+        spec = self.transform(iq) # type: ignore[arg-type]
 
-        # Normalize to [1, F, T]
         if spec.dim() == 2:
             spec = spec.unsqueeze(0)
         if spec.dim() != 3:
@@ -114,7 +108,7 @@ class SpectrogramDataset(Dataset[Tuple[torch.Tensor, T_co]], Generic[T_co]):
 
         if self.cache_mode == "memory":
             _trim_cache(self.cache, self.cache_size)
-            self.cache[index] = spec.detach().clone()
+            self.cache[index] = (spec.detach().clone(), target)
 
         return spec, target
 
@@ -161,11 +155,10 @@ class SpectrogramDataset(Dataset[Tuple[torch.Tensor, T_co]], Generic[T_co]):
 # ---------------------------------------------------------------------------
 
 
-def _trim_cache(cache: Dict[int, torch.Tensor], max_size: Optional[int]) -> None:
+def _trim_cache(cache: Dict[int, Tuple[torch.Tensor, Any]], max_size: Optional[int]) -> None:
     """Evict oldest entry if cache exceeds max_size."""
     if max_size is None:
         return
     while len(cache) >= max_size:
-        # Arbitrary eviction – oldest key
         first_key = next(iter(cache))
         del cache[first_key]

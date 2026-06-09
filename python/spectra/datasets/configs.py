@@ -143,7 +143,10 @@ class BaseDatasetConfig:
         with open(path, "r") as f:
             d = yaml.safe_load(f)
         ctype = d.pop("config_type", "base")
-        target_cls = resolve_config(ctype)
+        if ctype == "base":
+            target_cls = cls
+        else:
+            target_cls = resolve_config(ctype)
         return target_cls.from_dict(d)
 
     # ------------------------------------------------------------------

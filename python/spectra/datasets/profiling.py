@@ -180,7 +180,7 @@ class DatasetProfiler:
                 power_db_values.append(avg_pwr)
 
             # Try to collect spectrogram stats
-            if isinstance(spec, torch.Tensor) and spec.dim() >= 2:
+            if isinstance(spec, torch.Tensor) and spec.dim() >= 3:
                 spec_np = spec.detach().cpu().float().numpy()
                 spec_values.append(spec_np)
 
