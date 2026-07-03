@@ -294,3 +294,41 @@ class TestFSKAliasWarning:
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             waveform.generate(num_symbols=64, sample_rate=sample_rate)
+
+
+class TestGFSKModulationIndex:
+    """Regression test: GFSK steady-state per-symbol phase change.
+
+    A constant +1 symbol stream must drive the phase by π·mod_index per
+    symbol. A prior implementation used zero-insertion upsampling with the
+    sum-normalised Rust gaussian_taps kernel, attenuating the frequency-pulse
+    train by sps and producing h_eff = mod_index/sps (a factor-of-sps error).
+    This mirrors TestGMSKModulationIndex, which guards the same bug in GMSK.
+    """
+
+    def test_constant_symbol_stream_gives_full_mod_index(self, monkeypatch):
+        from spectra.waveforms import fsk as fsk_mod
+        from spectra.waveforms.fsk import GFSK
+
+        sps = 8
+        num_symbols = 256
+
+        def all_plus_one(n, order, seed=0):
+            return np.ones(n, dtype=np.float32)
+
+        monkeypatch.setattr(fsk_mod, "generate_fsk_symbols", all_plus_one)
+
+        wf = GFSK(order=2, mod_index=1.0, bt=0.3, samples_per_symbol=sps)
+        iq = wf.generate(num_symbols=num_symbols, sample_rate=1.0e6, seed=0)
+
+        # Steady-state per-symbol phase change; skip filter transients.
+        phase = np.unwrap(np.angle(iq))
+        per_symbol = phase[sps::sps] - phase[:-sps:sps]
+        inner = per_symbol[16:-16]
+        median_step = float(np.median(np.abs(inner)))
+
+        expected = np.pi * 1.0  # h = mod_index = 1.0
+        assert abs(median_step - expected) <= 0.01 * expected, (
+            f"steady-state |Δφ|/symbol = {median_step:.4f} rad, "
+            f"expected {expected:.4f} rad (h = 1.0)"
+        )
