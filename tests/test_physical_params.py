@@ -200,3 +200,37 @@ class TestRadarPhysical:
         wf = sp.FMCW(sweep_bandwidth=12e6, sweep_time=50e-6)
         with pytest.raises(ValueError, match="bandwidth"):
             wf.generate(num_symbols=1, sample_rate=10e6, seed=1)
+
+
+class TestLFMBarkerPhysical:
+    def test_lfm_physical(self):
+        wf = sp.LFM(sweep_bandwidth=3e6, pulse_duration=50e-6)
+        iq = wf.generate(num_symbols=2, sample_rate=10e6, seed=1)
+        assert len(iq) == 2 * 500
+        assert wf.bandwidth(10e6) == pytest.approx(3e6)
+        assert wf.bandwidth(40e6) == pytest.approx(3e6)
+
+    def test_lfm_conflict_raises(self):
+        with pytest.raises(ValueError, match="sweep_bandwidth"):
+            sp.LFM(sweep_bandwidth=3e6, bandwidth_fraction=0.4)
+
+    def test_barker_chip_rate(self):
+        wf = sp.BarkerCode(length=13, chip_rate=1e6)
+        iq = wf.generate(num_symbols=1, sample_rate=10e6, seed=1)
+        assert len(iq) == 13 * 10          # 10 samples per chip
+        assert wf.bandwidth(10e6) == pytest.approx(1e6)
+
+    def test_barker_legacy_unchanged(self):
+        a = sp.BarkerCode(length=13).generate(num_symbols=2, sample_rate=10e6, seed=1)
+        b = sp.BarkerCode(length=13, samples_per_chip=8).generate(
+            num_symbols=2, sample_rate=10e6, seed=1
+        )
+        np.testing.assert_array_equal(a, b)
+
+    def test_polyphase_chip_rate(self):
+        wf = sp.FrankCode(code_order=4, chip_rate=1e6)
+        iq = wf.generate(num_symbols=1, sample_rate=10e6, seed=1)
+        assert len(iq) == 16 * 10           # order^2 chips * 10 samples/chip
+        assert wf.bandwidth(10e6) == pytest.approx(1e6)
+        with pytest.raises(ValueError, match="chip_rate"):
+            sp.FrankCode(chip_rate=1e6, samples_per_chip=4)
