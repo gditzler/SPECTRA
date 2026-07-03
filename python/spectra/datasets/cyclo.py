@@ -86,11 +86,13 @@ class CyclostationaryDataset(BaseIQDataset[Tuple[Dict[str, torch.Tensor], int]])
         if self.impairments is not None:
             from spectra.scene.signal_desc import SignalDescription
 
+            bw = waveform.bandwidth(self.sample_rate)
+            offset = waveform.center_offset(self.sample_rate)
             desc = SignalDescription(
                 t_start=0.0,
                 t_stop=self.num_iq_samples / self.sample_rate,
-                f_low=-waveform.bandwidth(self.sample_rate) / 2,
-                f_high=waveform.bandwidth(self.sample_rate) / 2,
+                f_low=offset - bw / 2,
+                f_high=offset + bw / 2,
                 label=waveform.label,
                 snr=0.0,
             )

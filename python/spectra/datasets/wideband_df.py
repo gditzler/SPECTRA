@@ -164,9 +164,11 @@ class WidebandDirectionFindingDataset(BaseIQDataset[Tuple[torch.Tensor, Wideband
             )
             iq = truncate_pad(iq, self.num_snapshots)
 
-            # Frequency-shift to center_freqs[k]
+            # Frequency-shift so the occupied band lands centered at
+            # center_freqs[k], compensating any baseband center offset
+            offset = waveform.center_offset(self.sample_rate)
             t = np.arange(self.num_snapshots) / self.sample_rate
-            iq = iq * np.exp(1j * 2 * np.pi * center_freqs[k] * t)
+            iq = iq * np.exp(1j * 2 * np.pi * (center_freqs[k] - offset) * t)
 
             bw = waveform.bandwidth(self.sample_rate)
             desc = SignalDescription(

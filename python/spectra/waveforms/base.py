@@ -48,6 +48,23 @@ class Waveform(ABC):
         """
         ...
 
+    def center_offset(self, sample_rate: float) -> float:
+        """Offset of the occupied band's center from baseband 0 Hz.
+
+        Most waveforms are symmetric about DC and use the default of 0.
+        Waveforms whose occupancy is asymmetric (e.g. OFDM with asymmetric
+        guard bands) override this so scene composers can place ground-truth
+        boxes on the band actually occupied:
+        ``[center_offset - bandwidth/2, center_offset + bandwidth/2]``.
+
+        Args:
+            sample_rate: Receiver sample rate in Hz.
+
+        Returns:
+            Signed offset in Hz.
+        """
+        return 0.0
+
     @property
     @abstractmethod
     def label(self) -> str:

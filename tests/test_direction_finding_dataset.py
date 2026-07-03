@@ -186,3 +186,20 @@ def test_public_export_from_datasets():
 
     assert DirectionFindingDataset is not None
     assert DirectionFindingTarget is not None
+
+
+def test_offset_waveform_desc_band_matches_occupancy():
+    """f_low/f_high must cover the occupied band, not assume it is centered."""
+    from spectra.waveforms.ofdm import OFDM
+
+    fs = 10e6
+    wf = OFDM(num_subcarriers=64, fft_size=256, guard_bands=(16, 0))
+    ds = _make_dataset(signal_pool=[wf], sample_rate=fs, num_snapshots=1024)
+    _, target = ds[0]
+    desc = target.signal_descs[0]
+
+    offset = wf.center_offset(fs)
+    bw = wf.bandwidth(fs)
+    assert offset != 0.0
+    assert abs(desc.f_low - (offset - bw / 2)) < 1e-6
+    assert abs(desc.f_high - (offset + bw / 2)) < 1e-6

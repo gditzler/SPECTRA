@@ -59,3 +59,37 @@ class TestSNRSweepDataset:
         d1, l1, s1 = ds1[7]
         d2, l2, s2 = ds2[7]
         assert torch.equal(d1, d2) and l1 == l2 and s1 == s2
+
+    def test_offset_waveform_desc_band(self):
+        """f_low/f_high must cover the occupied band, not assume it is centered."""
+        from spectra.datasets.snr_sweep import SNRSweepDataset
+        from spectra.waveforms.ofdm import OFDM
+
+        fs = 10e6
+        wf = OFDM(num_subcarriers=64, fft_size=256, guard_bands=(16, 0))
+        captured = []
+
+        def imps_fn(snr_db):
+            def recorder(iq, desc, sample_rate=None):
+                captured.append(desc)
+                return iq, desc
+
+            return recorder
+
+        ds = SNRSweepDataset(
+            waveform_pool=[wf],
+            snr_levels=[10.0],
+            samples_per_cell=1,
+            num_iq_samples=1024,
+            sample_rate=fs,
+            impairments_fn=imps_fn,
+            seed=0,
+        )
+        ds[0]
+        desc = captured[0]
+
+        offset = wf.center_offset(fs)
+        bw = wf.bandwidth(fs)
+        assert offset != 0.0
+        assert abs(desc.f_low - (offset - bw / 2)) < 1e-6
+        assert abs(desc.f_high - (offset + bw / 2)) < 1e-6

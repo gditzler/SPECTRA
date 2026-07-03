@@ -69,10 +69,11 @@ class Composer:
             # Pick a waveform from the pool
             waveform = cfg.signal_pool[rng.integers(0, len(cfg.signal_pool))]
 
-            # Determine signal bandwidth
+            # Determine signal bandwidth and baseband center offset
             sig_bw = waveform.bandwidth(cfg.sample_rate)
+            sig_offset = waveform.center_offset(cfg.sample_rate)
 
-            # Random center frequency within capture bandwidth
+            # Random center frequency (of the occupied band) within capture bandwidth
             max_center = half_bw - sig_bw / 2.0
             if max_center <= -half_bw + sig_bw / 2.0:
                 f_center = 0.0
@@ -118,8 +119,9 @@ class Composer:
                 )
                 iq, desc_temp = impairments(iq, desc_temp, sample_rate=cfg.sample_rate)
 
-            # Frequency-shift to center frequency
-            iq = frequency_shift(iq, f_center, cfg.sample_rate)
+            # Frequency-shift so the occupied band lands centered at f_center,
+            # compensating any baseband offset of the waveform's occupancy
+            iq = frequency_shift(iq, f_center - sig_offset, cfg.sample_rate)
 
             # Scale to target SNR (relative to unit noise)
             sig_power = np.mean(np.abs(iq) ** 2)

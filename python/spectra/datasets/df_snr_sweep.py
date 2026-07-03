@@ -116,11 +116,12 @@ class DirectionFindingSNRSweepDataset(Dataset[Tuple[torch.Tensor, DirectionFindi
             iq = wf.generate(num_symbols=num_symbols, sample_rate=self.sample_rate, seed=sig_seed)
             iq = truncate_pad(iq, self.num_snapshots)
             bw = wf.bandwidth(self.sample_rate)
+            offset = wf.center_offset(self.sample_rate)
             desc = SignalDescription(
                 t_start=0.0,
                 t_stop=self.num_snapshots / self.sample_rate,
-                f_low=-bw / 2,
-                f_high=bw / 2,
+                f_low=offset - bw / 2,
+                f_high=offset + bw / 2,
                 label=wf.label,
                 snr=snr_db,
                 modulation_params={

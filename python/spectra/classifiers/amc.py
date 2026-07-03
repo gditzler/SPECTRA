@@ -211,11 +211,13 @@ class CyclostationaryAMC:
         if dataset.impairments is not None:
             from spectra.scene.signal_desc import SignalDescription
 
+            bw = waveform.bandwidth(dataset.sample_rate)
+            offset = waveform.center_offset(dataset.sample_rate)
             desc = SignalDescription(
                 t_start=0.0,
                 t_stop=dataset.num_iq_samples / dataset.sample_rate,
-                f_low=-waveform.bandwidth(dataset.sample_rate) / 2,
-                f_high=waveform.bandwidth(dataset.sample_rate) / 2,
+                f_low=offset - bw / 2,
+                f_high=offset + bw / 2,
                 label=waveform.label,
                 snr=0.0,
             )

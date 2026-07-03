@@ -2,6 +2,58 @@ import pytest
 import torch
 
 
+class TestNarrowbandOffsetWaveforms:
+    """Labels for waveforms with off-center baseband occupancy (OFDM with
+    asymmetric guard bands) must cover the measured occupied band."""
+
+    def test_impairment_desc_and_output_band_match(self):
+        import numpy as np
+        from spectra.datasets import NarrowbandDataset
+        from spectra.waveforms.ofdm import OFDM
+
+        fs, fft_size = 10e6, 256
+        wf = OFDM(num_subcarriers=64, fft_size=fft_size, guard_bands=(16, 0))
+        captured = []
+
+        def recorder(iq, desc, sample_rate=None):
+            captured.append(desc)
+            return iq, desc
+
+        ds = NarrowbandDataset(
+            waveform_pool=[wf],
+            num_samples=1,
+            num_iq_samples=8192,
+            sample_rate=fs,
+            impairments=recorder,
+            seed=0,
+        )
+        data, _ = ds[0]
+        desc = captured[0]
+
+        offset = wf.center_offset(fs)
+        bw = wf.bandwidth(fs)
+        assert offset != 0.0
+        assert desc.f_low == pytest.approx(offset - bw / 2)
+        assert desc.f_high == pytest.approx(offset + bw / 2)
+
+        # Welch PSD of the emitted IQ: measured band center must match the label
+        iq = data[0].numpy() + 1j * data[1].numpy()
+        nperseg = 1024
+        win = np.hanning(nperseg)
+        step = nperseg // 2
+        nseg = (len(iq) - nperseg) // step + 1
+        psd = np.zeros(nperseg)
+        for k in range(nseg):
+            seg = np.asarray(iq[k * step : k * step + nperseg], dtype=np.complex128) * win
+            psd += np.abs(np.fft.fft(seg)) ** 2
+        freqs = np.fft.fftshift(np.fft.fftfreq(nperseg, 1.0 / fs))
+        psd = np.fft.fftshift(psd)
+        occupied = freqs[psd > 1e-2 * np.max(psd)]  # -20 dB threshold
+        measured_center = (occupied.min() + occupied.max()) / 2.0
+        label_center = (desc.f_low + desc.f_high) / 2.0
+        assert measured_center == pytest.approx(label_center, abs=2 * fs / fft_size)
+
+
 class TestNarrowbandDataset:
     def test_len(self):
         from spectra.datasets import NarrowbandDataset

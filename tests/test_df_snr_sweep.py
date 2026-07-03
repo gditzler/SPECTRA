@@ -51,3 +51,31 @@ def test_df_snr_sweep_deterministic():
     d2, t2, s2 = ds[3]
     assert torch.allclose(d1, d2)
     assert np.allclose(t1.azimuths, t2.azimuths)
+
+
+def test_df_snr_sweep_offset_waveform_desc_band():
+    """f_low/f_high must cover the occupied band, not assume it is centered."""
+    from spectra.datasets.df_snr_sweep import DirectionFindingSNRSweepDataset
+    from spectra.waveforms.ofdm import OFDM
+
+    fs = 10e6
+    wf = OFDM(num_subcarriers=64, fft_size=256, guard_bands=(16, 0))
+    arr = ula(num_elements=4, spacing=0.5, frequency=1e9)
+    ds = DirectionFindingSNRSweepDataset(
+        array=arr,
+        signal_pool=[wf],
+        snr_levels=[10.0],
+        samples_per_snr=1,
+        num_signals=1,
+        num_snapshots=256,
+        sample_rate=fs,
+        seed=0,
+    )
+    _, target, _ = ds[0]
+    desc = target.signal_descs[0]
+
+    offset = wf.center_offset(fs)
+    bw = wf.bandwidth(fs)
+    assert offset != 0.0
+    assert abs(desc.f_low - (offset - bw / 2)) < 1e-6
+    assert abs(desc.f_high - (offset + bw / 2)) < 1e-6

@@ -26,8 +26,15 @@ _CONSTELLATIONS = {
 class OFDM(Waveform):
     """OFDM waveform with configurable subcarriers and cyclic prefix.
 
-    Uses QPSK subcarrier modulation. Active subcarriers are placed
-    symmetrically around DC in the frequency domain.
+    Uses QPSK subcarrier modulation. Subcarrier indices are in spectral
+    order: index 0 is the lowest (most negative) frequency carrier and
+    index ``num_subcarriers - 1`` the highest. Carriers are placed
+    symmetrically around DC; the DC bin itself is never occupied, so
+    ``dc_null`` is always satisfied and removes no carrier. Guard bands
+    trim carriers from the band edges: ``guard_bands=(lower, upper)``
+    removes the ``lower`` lowest-frequency and ``upper``
+    highest-frequency carriers. ``pilot_indices`` follow the same
+    spectral-order convention.
     """
 
     def __init__(
@@ -62,23 +69,34 @@ class OFDM(Waveform):
     def _build_active_mask(self) -> np.ndarray:
         """Return boolean mask over num_subcarriers indicating active data carriers."""
         mask = np.ones(self._num_subcarriers, dtype=bool)
-        # Guard bands: lower guard removes first N, upper guard removes last N
+        # Guard bands: lower guard removes the lowest-frequency carriers,
+        # upper guard the highest-frequency carriers
         lower, upper = self._guard_bands
         if lower > 0:
             mask[:lower] = False
         if upper > 0:
             mask[self._num_subcarriers - upper :] = False
-        # DC null: the subcarrier at index num_subcarriers//2 maps to DC
-        if self._dc_null:
-            dc_idx = self._num_subcarriers // 2
-            if dc_idx < self._num_subcarriers:
-                mask[dc_idx] = False
+        # dc_null needs no mask entry: the DC bin is structurally unoccupied
+        # (no subcarrier index maps to it — see _map_to_fft_bins)
         # Pilot indices
         if self._pilot_indices:
             for idx in self._pilot_indices:
                 if 0 <= idx < self._num_subcarriers:
                     mask[idx] = False
         return mask
+
+    def _map_to_fft_bins(self, subcarrier_symbols: np.ndarray) -> np.ndarray:
+        """Map spectral-order subcarrier symbols onto IFFT input bins.
+
+        Indices ``0..half-1`` fill the negative-frequency bins (ascending
+        toward DC) and indices ``half..`` fill positive-frequency bins
+        starting at bin 1. DC (bin 0) is left empty.
+        """
+        fft_bins = np.zeros(self._fft_size, dtype=np.complex128)
+        half = self._num_subcarriers // 2
+        fft_bins[self._fft_size - half :] = subcarrier_symbols[:half]
+        fft_bins[1 : self._num_subcarriers - half + 1] = subcarrier_symbols[half:]
+        return fft_bins
 
     def generate(
         self,
@@ -107,13 +125,7 @@ class OFDM(Waveform):
                     if 0 <= idx < self._num_subcarriers:
                         subcarrier_symbols[idx] = self._pilot_value
 
-            # Place subcarriers symmetrically around DC in FFT bins
-            fft_bins = np.zeros(self._fft_size, dtype=np.complex128)
-            half = self._num_subcarriers // 2
-            # Positive frequencies: bins 1..half
-            fft_bins[1 : half + 1] = subcarrier_symbols[:half]
-            # Negative frequencies: bins fft_size-half..fft_size-1
-            fft_bins[self._fft_size - half :] = subcarrier_symbols[half:]
+            fft_bins = self._map_to_fft_bins(subcarrier_symbols)
 
             # IFFT to time domain
             time_signal = np.fft.ifft(fft_bins)
@@ -131,12 +143,19 @@ class OFDM(Waveform):
         return iq
 
     def bandwidth(self, sample_rate: float) -> float:
-        active = self._num_subcarriers - self._guard_bands[0] - self._guard_bands[1]
-        if self._dc_null:
-            active -= 1
-        if self._pilot_indices:
-            active -= len(self._pilot_indices)
-        return max(active, 1) * sample_rate / self._fft_size
+        """Occupied bandwidth: the spectral extent of transmitted carriers.
+
+        Pilots transmit energy and the DC bin is structurally unoccupied,
+        so neither shrinks the extent — only edge guard bands do. With
+        asymmetric guard bands the occupied band is offset from baseband
+        center; see :meth:`center_offset`.
+        """
+        span = self._num_subcarriers - self._guard_bands[0] - self._guard_bands[1]
+        return max(span, 1) * sample_rate / self._fft_size
+
+    def center_offset(self, sample_rate: float) -> float:
+        lower, upper = self._guard_bands
+        return (lower - upper) / 2.0 * sample_rate / self._fft_size
 
     @property
     def label(self) -> str:
@@ -178,11 +197,7 @@ class SCFDMA(OFDM):
                     if 0 <= idx < self._num_subcarriers:
                         subcarrier_symbols[idx] = self._pilot_value
 
-            # Place subcarriers symmetrically around DC in FFT bins
-            fft_bins = np.zeros(self._fft_size, dtype=np.complex128)
-            half = self._num_subcarriers // 2
-            fft_bins[1 : half + 1] = subcarrier_symbols[:half]
-            fft_bins[self._fft_size - half :] = subcarrier_symbols[half:]
+            fft_bins = self._map_to_fft_bins(subcarrier_symbols)
 
             # IFFT to time domain
             time_signal = np.fft.ifft(fft_bins)

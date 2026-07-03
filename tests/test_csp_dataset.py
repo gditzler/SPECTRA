@@ -295,3 +295,35 @@ class TestCyclostationaryDatasetDataLoader:
             torch.testing.assert_close(l1, l2)
             for key in d1:
                 torch.testing.assert_close(d1[key], d2[key])
+
+
+@pytest.mark.csp
+def test_offset_waveform_impairment_desc_band():
+    """f_low/f_high must cover the occupied band, not assume it is centered."""
+    from spectra.waveforms.ofdm import OFDM
+
+    fs = 10e6
+    wf = OFDM(num_subcarriers=64, fft_size=256, guard_bands=(16, 0))
+    captured = []
+
+    def recorder(iq, desc, sample_rate=None):
+        captured.append(desc)
+        return iq, desc
+
+    ds = CyclostationaryDataset(
+        waveform_pool=[wf],
+        num_samples=1,
+        num_iq_samples=1024,
+        sample_rate=fs,
+        representations={"raw": lambda iq: torch.zeros(1)},
+        impairments=recorder,
+        seed=0,
+    )
+    ds[0]
+    desc = captured[0]
+
+    offset = wf.center_offset(fs)
+    bw = wf.bandwidth(fs)
+    assert offset != 0.0
+    assert abs(desc.f_low - (offset - bw / 2)) < 1e-6
+    assert abs(desc.f_high - (offset + bw / 2)) < 1e-6

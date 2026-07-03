@@ -114,3 +114,68 @@ class TestComposer:
         composer = Composer(config)
         _, descs = composer.generate(seed=42)
         assert len(descs) == 3
+
+
+def _welch_psd(iq, sample_rate, nperseg=1024):
+    win = np.hanning(nperseg)
+    step = nperseg // 2
+    nseg = (len(iq) - nperseg) // step + 1
+    psd = np.zeros(nperseg)
+    for k in range(nseg):
+        seg = np.asarray(iq[k * step : k * step + nperseg], dtype=np.complex128) * win
+        psd += np.abs(np.fft.fft(seg)) ** 2
+    freqs = np.fft.fftshift(np.fft.fftfreq(nperseg, 1.0 / sample_rate))
+    return freqs, np.fft.fftshift(psd / nseg)
+
+
+class TestComposerOffsetWaveforms:
+    """Ground-truth boxes must track the measured occupied band even for
+    waveforms whose baseband occupancy is not centered at DC (e.g. OFDM
+    with asymmetric guard bands)."""
+
+    FS = 10e6
+    FFT = 256
+
+    @pytest.fixture
+    def offset_config(self):
+        from spectra.scene.composer import SceneConfig
+        from spectra.waveforms.ofdm import OFDM
+
+        return SceneConfig(
+            capture_duration=5e-3,
+            capture_bandwidth=8e6,
+            sample_rate=self.FS,
+            num_signals=1,
+            signal_pool=[OFDM(num_subcarriers=64, fft_size=self.FFT, guard_bands=(16, 0))],
+            snr_range=(10, 10),
+            allow_overlap=True,
+        )
+
+    def test_box_matches_measured_occupied_band(self, offset_config):
+        from spectra.scene.composer import Composer
+
+        composer = Composer(offset_config)
+        iq, descs = composer.generate(seed=42)
+        assert len(descs) == 1
+        desc = descs[0]
+
+        freqs, psd = _welch_psd(iq, self.FS)
+        occupied = freqs[psd > 1e-2 * np.max(psd)]  # -20 dB threshold
+        measured_center = (occupied.max() + occupied.min()) / 2.0
+        box_center = (desc.f_low + desc.f_high) / 2.0
+
+        subcarrier_spacing = self.FS / self.FFT
+        assert measured_center == pytest.approx(box_center, abs=2 * subcarrier_spacing)
+
+    def test_box_width_matches_measured_extent(self, offset_config):
+        from spectra.scene.composer import Composer
+
+        composer = Composer(offset_config)
+        iq, descs = composer.generate(seed=42)
+        desc = descs[0]
+
+        freqs, psd = _welch_psd(iq, self.FS)
+        shifted_cum = np.cumsum(psd) / np.sum(psd)
+        lo = freqs[np.searchsorted(shifted_cum, 0.005)]
+        hi = freqs[np.searchsorted(shifted_cum, 0.995)]
+        assert (hi - lo) == pytest.approx(desc.f_high - desc.f_low, rel=0.10)

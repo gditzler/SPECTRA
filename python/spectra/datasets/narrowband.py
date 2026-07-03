@@ -108,11 +108,12 @@ class NarrowbandDataset(BaseIQDataset[Tuple[torch.Tensor, int]]):
             from spectra.scene.signal_desc import SignalDescription as SD
 
             bw = waveform.bandwidth(self.sample_rate)
+            offset = waveform.center_offset(self.sample_rate)
             mimo_desc = SD(
                 t_start=0.0,
                 t_stop=self.num_iq_samples / self.sample_rate,
-                f_low=-bw / 2,
-                f_high=bw / 2,
+                f_low=offset - bw / 2,
+                f_high=offset + bw / 2,
                 label=waveform.label,
                 snr=0.0,
             )
@@ -138,11 +139,12 @@ class NarrowbandDataset(BaseIQDataset[Tuple[torch.Tensor, int]]):
             from spectra.scene.signal_desc import SignalDescription
 
             bw = waveform.bandwidth(self.sample_rate)
+            offset = waveform.center_offset(self.sample_rate)
             desc = SignalDescription(
                 t_start=0.0,
                 t_stop=self.num_iq_samples / self.sample_rate,
-                f_low=-bw / 2,
-                f_high=bw / 2,
+                f_low=offset - bw / 2,
+                f_high=offset + bw / 2,
                 label=waveform.label,
                 snr=0.0,
             )

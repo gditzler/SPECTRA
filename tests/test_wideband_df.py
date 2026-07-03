@@ -100,3 +100,39 @@ def test_wbdf_variable_num_signals():
     )
     counts = {ds[i][1].num_signals for i in range(30)}
     assert len(counts) > 1, "With variable num_signals, should see different counts"
+
+
+def _welch_psd(iq, sample_rate, nperseg=1024):
+    win = np.hanning(nperseg)
+    step = nperseg // 2
+    nseg = (len(iq) - nperseg) // step + 1
+    psd = np.zeros(nperseg)
+    for k in range(nseg):
+        seg = np.asarray(iq[k * step : k * step + nperseg], dtype=np.complex128) * win
+        psd += np.abs(np.fft.fft(seg)) ** 2
+    freqs = np.fft.fftshift(np.fft.fftfreq(nperseg, 1.0 / sample_rate))
+    return freqs, np.fft.fftshift(psd / nseg)
+
+
+def test_wbdf_offset_waveform_box_matches_measured_band():
+    """Ground-truth box must track the measured occupied band for waveforms
+    whose baseband occupancy is off-center (OFDM with asymmetric guards)."""
+    from spectra.waveforms.ofdm import OFDM
+
+    fs, fft_size = 10e6, 256
+    ds = _make_ds(
+        signal_pool=[OFDM(num_subcarriers=64, fft_size=fft_size, guard_bands=(16, 0))],
+        num_signals=1,
+        num_snapshots=8192,
+        snr_range=(40.0, 40.0),
+    )
+    data, target = ds[0]
+    desc = target.signal_descs[0]
+
+    iq = data[0, 0].numpy() + 1j * data[0, 1].numpy()
+    freqs, psd = _welch_psd(iq, fs)
+    occupied = freqs[psd > 1e-2 * np.max(psd)]  # -20 dB threshold
+    measured_center = (occupied.min() + occupied.max()) / 2.0
+    box_center = (desc.f_low + desc.f_high) / 2.0
+
+    assert abs(measured_center - box_center) < 2 * fs / fft_size

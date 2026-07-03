@@ -209,3 +209,34 @@ class TestClassificationAccuracy:
         preds = amc.predict(X_test)
         accuracy = (preds == test_labels2).mean()
         assert accuracy >= 0.80, f"BPSK vs QPSK accuracy {accuracy:.2f} < 0.80"
+
+
+def test_regenerate_iq_offset_waveform_desc_band():
+    """f_low/f_high must cover the occupied band, not assume it is centered."""
+    from spectra.waveforms.ofdm import OFDM
+
+    fs = 10e6
+    wf = OFDM(num_subcarriers=64, fft_size=256, guard_bands=(16, 0))
+    captured = []
+
+    def recorder(iq, desc, sample_rate=None):
+        captured.append(desc)
+        return iq, desc
+
+    ds = CyclostationaryDataset(
+        waveform_pool=[wf],
+        num_samples=1,
+        num_iq_samples=1024,
+        sample_rate=fs,
+        representations={"cum": Cumulants(max_order=4)},
+        impairments=recorder,
+        seed=0,
+    )
+    CyclostationaryAMC._regenerate_iq(ds, 0)
+    desc = captured[-1]
+
+    offset = wf.center_offset(fs)
+    bw = wf.bandwidth(fs)
+    assert offset != 0.0
+    assert abs(desc.f_low - (offset - bw / 2)) < 1e-6
+    assert abs(desc.f_high - (offset + bw / 2)) < 1e-6
