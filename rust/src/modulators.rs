@@ -443,8 +443,9 @@ pub fn get_ask_constellation(
     Ok(Array1::from_vec(constellation).into_pyarray(py))
 }
 
-/// Generate random FSK frequency symbols as normalized floats in [-1, 1].
-/// Returns M-ary frequency values: linspace(-1+1/M, 1-1/M, M).
+/// Generate random FSK frequency symbols using the standard CPFSK
+/// convention: odd-integer levels ±1, ±3, ..., ±(M-1), so that a phase
+/// step of π·h·a_k per symbol yields adjacent-tone spacing h·Rs.
 #[pyfunction]
 pub fn generate_fsk_symbols<'py>(
     py: Python<'py>,
@@ -452,9 +453,9 @@ pub fn generate_fsk_symbols<'py>(
     order: usize,
     seed: u64,
 ) -> Bound<'py, PyArray1<f32>> {
-    // Build frequency map: M equally spaced values in (-1, 1)
+    // Build frequency map: M odd-integer levels -(M-1), ..., -1, 1, ..., M-1
     let freq_map: Vec<f32> = (0..order)
-        .map(|k| (-1.0 + (2.0 * k as f64 + 1.0) / order as f64) as f32)
+        .map(|k| (2 * k as i64 - (order as i64 - 1)) as f32)
         .collect();
     let mut rng = Xorshift64::new(seed);
     let symbols = Array1::from_shape_fn(num_symbols, |_| {
@@ -577,12 +578,9 @@ mod tests {
     fn fsk_freq_map_values() {
         let order = 4usize;
         let freq_map: Vec<f32> = (0..order)
-            .map(|k| (-1.0 + (2.0 * k as f64 + 1.0) / order as f64) as f32)
+            .map(|k| (2 * k as i64 - (order as i64 - 1)) as f32)
             .collect();
-        assert_eq!(freq_map.len(), 4);
-        for &v in &freq_map {
-            assert!((-1.0_f32..=1.0_f32).contains(&v));
-        }
+        assert_eq!(freq_map, vec![-3.0, -1.0, 1.0, 3.0]);
     }
 
     #[test]

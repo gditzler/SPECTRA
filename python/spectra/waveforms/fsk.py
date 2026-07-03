@@ -211,9 +211,11 @@ class GFSK(Waveform):
         freq_symbols = generate_fsk_symbols(num_symbols, self._order, seed=s)
         sps = self.samples_per_symbol
 
-        # Upsample with zero-insertion
-        symbols_up = np.zeros(num_symbols * sps, dtype=np.float32)
-        symbols_up[::sps] = freq_symbols
+        # Repeat-upsample so the frequency-pulse train averages to the
+        # symbol level. A sum-normalised Gaussian preserves the DC level
+        # of its input; zero-insertion would attenuate it by sps,
+        # yielding h_eff = h/sps.
+        symbols_up = np.repeat(freq_symbols.astype(np.float32), sps)
 
         # Gaussian filter (from Rust)
         h = np.array(gaussian_taps(self._bt, self._filter_span, sps))

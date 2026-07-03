@@ -1,5 +1,77 @@
 import numpy as np
 import numpy.testing as npt
+import pytest
+
+
+def _occupied_bandwidth_99(iq: np.ndarray, sample_rate: float, nperseg: int = 1024) -> float:
+    """99% occupied bandwidth from a Welch PSD (Hann window, 50% overlap)."""
+    window = np.hanning(nperseg)
+    step = nperseg // 2
+    num_segments = (len(iq) - nperseg) // step + 1
+    psd = np.zeros(nperseg)
+    for i in range(num_segments):
+        seg = iq[i * step : i * step + nperseg] * window
+        psd += np.abs(np.fft.fft(seg)) ** 2
+    psd = np.fft.fftshift(psd)
+    freqs = np.fft.fftshift(np.fft.fftfreq(nperseg, d=1.0 / sample_rate))
+    cum = np.cumsum(psd) / np.sum(psd)
+    f_lo = freqs[np.searchsorted(cum, 0.005)]
+    f_hi = freqs[np.searchsorted(cum, 0.995)]
+    return f_hi - f_lo
+
+
+class TestFSKSymbolLevels:
+    """FSK frequency symbols follow the standard CPFSK convention:
+    odd-integer levels ±1, ±3, ..., ±(M-1), giving adjacent-tone
+    spacing h·Rs when the per-sample phase step is π·h·a_k/sps."""
+
+    @pytest.mark.rust
+    @pytest.mark.parametrize("order", [2, 4, 8])
+    def test_levels_are_odd_integers(self, order):
+        from spectra._rust import generate_fsk_symbols
+
+        symbols = generate_fsk_symbols(1000, order, seed=42)
+        expected = set(range(-(order - 1), order, 2))
+        observed = set(np.unique(symbols).astype(int).tolist())
+        npt.assert_allclose(np.unique(symbols), np.round(np.unique(symbols)), atol=1e-6)
+        assert observed <= expected
+        # With 1000 draws all levels should appear
+        assert observed == expected
+
+
+class TestFSKOccupiedBandwidth:
+    """The 99% occupied bandwidth measured from a Welch PSD must be
+    consistent with the Carson-rule claim of bandwidth(): no more than
+    the claim, and not smaller by more than ~2x (which would indicate a
+    modulation-index or symbol-level scaling bug)."""
+
+    @pytest.mark.parametrize(
+        "cls_name, kwargs",
+        [
+            ("FSK", {"order": 2, "mod_index": 1.0}),
+            ("FSK", {"order": 4, "mod_index": 1.0}),
+            ("MSK4", {}),
+            ("GFSK", {"order": 2}),
+            ("GFSK", {"order": 4}),
+            ("GMSK4", {}),
+        ],
+        ids=["FSK2", "FSK4", "MSK4", "GFSK2", "GFSK4", "GMSK4"],
+    )
+    def test_obw_matches_bandwidth_claim(self, cls_name, kwargs):
+        from spectra.waveforms import fsk as fsk_mod
+
+        fs = 10e6
+        waveform = getattr(fsk_mod, cls_name)(**kwargs)
+        iq = waveform.generate(num_symbols=8192, sample_rate=fs, seed=42)
+        obw = _occupied_bandwidth_99(iq, fs)
+        claim = waveform.bandwidth(fs)
+        assert obw <= 1.05 * claim, (
+            f"99% OBW {obw / 1e6:.2f} MHz exceeds claim {claim / 1e6:.2f} MHz"
+        )
+        assert obw >= 0.45 * claim, (
+            f"99% OBW {obw / 1e6:.2f} MHz far below claim {claim / 1e6:.2f} MHz "
+            "(modulation-index or symbol-level scaling bug)"
+        )
 
 
 class TestFSKWaveform:
