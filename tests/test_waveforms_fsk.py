@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import numpy.testing as npt
 import pytest
@@ -218,3 +220,77 @@ class TestGMSKModulationIndex:
             f"steady-state |Δφ|/symbol = {median_step:.4f} rad, "
             f"expected {expected:.4f} rad (h = 0.5)"
         )
+
+
+class TestFSKNyquistDefaults:
+    """High-order FSK/GFSK defaults must fit within the sampling bandwidth.
+
+    With odd-integer CPFSK levels ±1..±(M-1), the Carson-rule band edge is
+    ((M-1)·h + 2)·R_s. At the old default sps=8 this exceeded the sample
+    rate for M=8 and M=16 (outermost 16FSK tones at ±0.94·fs — aliased).
+    """
+
+    @pytest.mark.parametrize(
+        "cls_name", ["FSK", "FSK4", "FSK8", "FSK16", "GFSK", "GFSK4", "GFSK8", "GFSK16"]
+    )
+    def test_default_bandwidth_claim_fits_sample_rate(self, cls_name, sample_rate):
+        import spectra.waveforms.fsk as fsk_mod
+
+        waveform = getattr(fsk_mod, cls_name)()
+        assert waveform.bandwidth(sample_rate) <= sample_rate, (
+            f"{cls_name} default config claims bandwidth "
+            f"{waveform.bandwidth(sample_rate):.0f} Hz > sample rate {sample_rate:.0f} Hz"
+        )
+
+    @pytest.mark.parametrize("cls_name", ["FSK8", "FSK16"])
+    def test_default_measured_obw_within_claim(self, cls_name, sample_rate):
+        """Empirical check: 99% OBW is below the Carson claim, not alias-saturated."""
+        import spectra.waveforms.fsk as fsk_mod
+
+        waveform = getattr(fsk_mod, cls_name)()
+        iq = waveform.generate(num_symbols=4096, sample_rate=sample_rate, seed=7)
+        measured = _occupied_bandwidth_99(iq, sample_rate)
+        claimed = waveform.bandwidth(sample_rate)
+        assert measured <= claimed, (
+            f"{cls_name}: measured 99% OBW {measured:.0f} Hz exceeds claim {claimed:.0f} Hz"
+        )
+        # An aliased signal saturates the whole capture (~0.99·fs).
+        assert measured <= 0.75 * sample_rate, (
+            f"{cls_name}: measured 99% OBW {measured:.0f} Hz saturates the capture "
+            f"bandwidth ({sample_rate:.0f} Hz) — spectrum is aliased"
+        )
+
+
+class TestFSKAliasWarning:
+    def test_fsk_generate_warns_when_carson_exceeds_sample_rate(self, sample_rate):
+        from spectra.waveforms.fsk import FSK
+
+        waveform = FSK(order=8, mod_index=1.0, samples_per_symbol=8)
+        with pytest.warns(UserWarning, match="alias"):
+            waveform.generate(num_symbols=64, sample_rate=sample_rate)
+
+    def test_fsk16_sps8_warns(self, sample_rate):
+        from spectra.waveforms.fsk import FSK
+
+        waveform = FSK(order=16, mod_index=1.0, samples_per_symbol=8)
+        with pytest.warns(UserWarning, match="alias"):
+            waveform.generate(num_symbols=64, sample_rate=sample_rate)
+
+    def test_gfsk_generate_warns_when_carson_exceeds_sample_rate(self, sample_rate):
+        from spectra.waveforms.fsk import GFSK
+
+        waveform = GFSK(order=16, mod_index=1.0, samples_per_symbol=8)
+        with pytest.warns(UserWarning, match="alias"):
+            waveform.generate(num_symbols=64, sample_rate=sample_rate)
+
+    @pytest.mark.parametrize(
+        "cls_name",
+        ["FSK", "FSK4", "FSK8", "FSK16", "MSK4", "MSK8", "GFSK", "GFSK4", "GFSK8", "GFSK16"],
+    )
+    def test_default_configs_do_not_warn(self, cls_name, sample_rate):
+        import spectra.waveforms.fsk as fsk_mod
+
+        waveform = getattr(fsk_mod, cls_name)()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            waveform.generate(num_symbols=64, sample_rate=sample_rate)

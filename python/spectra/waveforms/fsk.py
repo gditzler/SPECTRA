@@ -1,9 +1,32 @@
+import math
+import warnings
 from typing import Optional
 
 import numpy as np
 
 from spectra._rust import gaussian_taps, generate_bpsk_symbols, generate_fsk_symbols
 from spectra.waveforms.base import Waveform
+
+
+def _warn_if_aliased(label: str, order: int, mod_index: float, samples_per_symbol: int) -> None:
+    """Warn when the Carson-rule band edge extends beyond Nyquist.
+
+    CPFSK levels are ±1, ±3, …, ±(order-1), so the outermost tone sits at
+    (order-1)·mod_index/(2·sps) of the sample rate and the Carson edge adds one
+    symbol rate on each side. The signal aliases when
+    ((order-1)·mod_index + 2) > sps.
+    """
+    carson = (order - 1) * mod_index + 2
+    if carson > samples_per_symbol:
+        warnings.warn(
+            f"{label}: order={order}, mod_index={mod_index}, "
+            f"samples_per_symbol={samples_per_symbol} places the Carson bandwidth "
+            f"({carson:.2f}× the symbol rate) beyond the sampling bandwidth; the "
+            f"generated signal will alias. Increase samples_per_symbol to at least "
+            f"{math.ceil(carson)} or reduce mod_index.",
+            UserWarning,
+            stacklevel=3,
+        )
 
 
 class FSK(Waveform):
@@ -25,6 +48,7 @@ class FSK(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
+        _warn_if_aliased(self.label, self._order, self._mod_index, self.samples_per_symbol)
         s = seed if seed is not None else np.random.randint(0, 2**32)
         freq_symbols = generate_fsk_symbols(num_symbols, self._order, seed=s)
         # Upsample: repeat each symbol sps times
@@ -139,7 +163,9 @@ class FSK4(FSK):
 
 
 class FSK8(FSK):
-    def __init__(self, mod_index: float = 1.0, samples_per_symbol: int = 8):
+    # Default sps=16 keeps the Carson bandwidth (9× the symbol rate for
+    # mod_index=1) inside the sampling bandwidth; sps=8 would alias.
+    def __init__(self, mod_index: float = 1.0, samples_per_symbol: int = 16):
         super().__init__(order=8, mod_index=mod_index, samples_per_symbol=samples_per_symbol)
 
     @property
@@ -148,7 +174,10 @@ class FSK8(FSK):
 
 
 class FSK16(FSK):
-    def __init__(self, mod_index: float = 1.0, samples_per_symbol: int = 8):
+    # Default sps=32 keeps the Carson bandwidth (17× the symbol rate for
+    # mod_index=1) inside the sampling bandwidth; sps=8 put the outermost
+    # tones at ±0.94·fs — heavily aliased.
+    def __init__(self, mod_index: float = 1.0, samples_per_symbol: int = 32):
         super().__init__(order=16, mod_index=mod_index, samples_per_symbol=samples_per_symbol)
 
     @property
@@ -207,6 +236,7 @@ class GFSK(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
+        _warn_if_aliased(self.label, self._order, self._mod_index, self.samples_per_symbol)
         s = seed if seed is not None else np.random.randint(0, 2**32)
         freq_symbols = generate_fsk_symbols(num_symbols, self._order, seed=s)
         sps = self.samples_per_symbol
@@ -250,7 +280,8 @@ class GFSK4(GFSK):
 
 
 class GFSK8(GFSK):
-    def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 8):
+    # sps=16 for the same Nyquist-fit reason as FSK8.
+    def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 16):
         super().__init__(
             order=8,
             bt=bt,
@@ -264,7 +295,8 @@ class GFSK8(GFSK):
 
 
 class GFSK16(GFSK):
-    def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 8):
+    # sps=32 for the same Nyquist-fit reason as FSK16.
+    def __init__(self, bt: float = 0.3, filter_span: int = 4, samples_per_symbol: int = 32):
         super().__init__(
             order=16,
             bt=bt,
