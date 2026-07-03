@@ -85,8 +85,7 @@ class Composer:
             snr_linear = 10.0 ** (snr_db / 10.0)
 
             # Determine number of symbols to fill the capture
-            sps = getattr(waveform, "samples_per_symbol", 8)
-            num_symbols = num_capture_samples // sps
+            num_symbols = waveform.num_symbols_for(num_capture_samples, cfg.sample_rate)
 
             # Generate baseband IQ
             sig_seed = int(rng.integers(0, 2**32))

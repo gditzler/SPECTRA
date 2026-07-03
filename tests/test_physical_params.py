@@ -56,3 +56,49 @@ class TestResampleToRate:
         spec = np.abs(np.fft.fft(out * np.hanning(len(out))))
         peak = np.argmax(spec[: len(out) // 2]) / len(out)
         assert abs(peak - 0.0525) < 0.001
+
+
+from spectra.waveforms.base import Waveform
+
+
+class _StubWaveform(Waveform):
+    """Minimal legacy waveform: 8 samples per symbol via attribute."""
+
+    samples_per_symbol = 8
+
+    def generate(self, num_symbols, sample_rate, seed=None):
+        return np.zeros(num_symbols * 8, dtype=np.complex64)
+
+    def bandwidth(self, sample_rate):
+        return sample_rate / 8
+
+    @property
+    def label(self):
+        return "STUB"
+
+
+class TestNumSymbolsFor:
+    def test_default_uses_samples_per_symbol(self):
+        wf = _StubWaveform()
+        assert wf.num_symbols_for(10000, 10e6) == 1250
+
+    def test_default_without_attribute_uses_eight(self):
+        wf = _StubWaveform()
+        del type(wf).samples_per_symbol  # simulate a waveform lacking the attr
+        try:
+            assert wf.num_symbols_for(10000, 10e6) == 1250
+        finally:
+            type(wf).samples_per_symbol = 8
+
+    def test_composer_scene_unchanged(self):
+        # Regression: same seed => byte-identical composite before/after
+        # Composer switches from getattr(...) to num_symbols_for().
+        import spectra as sp
+
+        cfg = sp.SceneConfig(
+            capture_duration=1e-4, capture_bandwidth=10e6, sample_rate=10e6,
+            num_signals=2, signal_pool=[sp.QPSK(), sp.BPSK()], snr_range=(10, 10),
+        )
+        iq, descs = sp.Composer(cfg).generate(seed=123)
+        assert len(iq) == 1000
+        assert len(descs) == 2

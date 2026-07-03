@@ -65,6 +65,16 @@ class Waveform(ABC):
         """
         return 0.0
 
+    def num_symbols_for(self, num_samples: int, sample_rate: float) -> int:
+        """Number of symbols needed to fill ``num_samples`` at ``sample_rate``.
+
+        Default reproduces the legacy Composer heuristic
+        (``num_samples // samples_per_symbol``, falling back to 8).
+        Waveforms with physical-unit parameters override this.
+        """
+        sps = getattr(self, "samples_per_symbol", 8)
+        return int(num_samples // sps)
+
     @property
     @abstractmethod
     def label(self) -> str:
