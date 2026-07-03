@@ -161,3 +161,42 @@ class TestRRCSymbolRate:
         c = np.cumsum(psd) / np.sum(psd)
         obw = f[np.searchsorted(c, 0.995)] - f[np.searchsorted(c, 0.005)]
         assert 0.9 * 500e3 < obw < 1.35 * 500e3
+
+
+class TestRadarPhysical:
+    def test_pulsed_physical_derivation(self):
+        wf = sp.PulsedRadar(pulse_width=1e-6, pri=100e-6, num_pulses=4)
+        iq = wf.generate(num_symbols=1, sample_rate=10e6, seed=1)
+        # 4 pulses of 10 samples each in 4*1000 samples
+        assert len(iq) == 4000
+        on = np.abs(iq) > 1e-9
+        assert on.sum() == 4 * 10
+        assert wf.bandwidth(10e6) == pytest.approx(1e6)  # 1 / pulse_width
+
+    def test_pulsed_conflicting_kwargs_raise(self):
+        with pytest.raises(ValueError, match="pulse_width"):
+            sp.PulsedRadar(pulse_width=1e-6, pulse_width_samples=32)
+
+    def test_pulsed_pri_shorter_than_pulse_raises(self):
+        wf = sp.PulsedRadar(pulse_width=2e-6, pri=1e-6)
+        with pytest.raises(ValueError, match="pri"):
+            wf.generate(num_symbols=1, sample_rate=10e6, seed=1)
+
+    def test_pulsed_legacy_unchanged(self):
+        a = sp.PulsedRadar().generate(num_symbols=1, sample_rate=10e6, seed=2)
+        b = sp.PulsedRadar(pulse_width_samples=64, pri_samples=512).generate(
+            num_symbols=1, sample_rate=10e6, seed=2
+        )
+        np.testing.assert_array_equal(a, b)
+
+    def test_fmcw_physical_derivation(self):
+        wf = sp.FMCW(sweep_bandwidth=2e6, sweep_time=50e-6, idle_time=10e-6, num_sweeps=2)
+        iq = wf.generate(num_symbols=1, sample_rate=10e6, seed=1)
+        assert len(iq) == 2 * (500 + 100)
+        assert wf.bandwidth(10e6) == pytest.approx(2e6)
+        assert wf.bandwidth(20e6) == pytest.approx(2e6)   # fs-independent
+
+    def test_fmcw_sweep_wider_than_fs_raises(self):
+        wf = sp.FMCW(sweep_bandwidth=12e6, sweep_time=50e-6)
+        with pytest.raises(ValueError, match="bandwidth"):
+            wf.generate(num_symbols=1, sample_rate=10e6, seed=1)
