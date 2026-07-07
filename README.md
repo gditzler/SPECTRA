@@ -139,8 +139,18 @@ amc.fit_from_dataset(dataset)
 | `spectra.datasets` | `NarrowbandDataset`, `WidebandDataset`, `DirectionFindingDataset`, `WidebandDirectionFindingDataset`, `CyclostationaryDataset`, `MixUpDataset`, `CutMixDataset`, `balanced_sampler`, ... | PyTorch dataset classes with balancing and augmentation wrappers |
 | `spectra.classifiers` | `CyclostationaryAMC` | Traditional AMC with cumulant/cyclic-peak features |
 | `spectra.environment` | `Environment`, `Emitter`, `ReceiverConfig`, `Position`, `LinkParams`, `FreeSpacePathLoss`, `LogDistancePL`, `COST231HataPL`, `OkumuraHataPL`, `GPP38901UMa`/`UMi`/`RMa`/`InH`, `link_params_to_impairments`, `propagation_presets` | Geometry-driven path loss, link budgets, and auto-wired channel impairments |
+| `spectra.antennas` | `IsotropicElement`, `ShortDipoleElement`, `HalfWaveDipoleElement`, `CosinePowerElement`, `YagiElement`, `MSIAntennaElement` | Antenna element pattern models |
+| `spectra.arrays` | `AntennaArray`, `ula`, `uca`, `rectangular`, `CalibrationErrors` | Antenna array geometries with steering vectors |
+| `spectra.algorithms` | `music`, `esprit`, `root_music`, `capon`, `delay_and_sum`, `mvdr`, `lcmv`, `matched_filter`, `ca_cfar`, `os_cfar` | DoA estimation, beamforming, and radar signal processing |
 | `spectra.benchmarks` | `load_benchmark` | Reproducible benchmark dataset loader |
-| `spectra.cli` | `spectra-build` | Interactive dataset config builder |
+| `spectra.cli` | `spectra` (studio, generate, viz, build), `spectra-build` | Unified CLI: UI launch, headless generation, visualization, config wizard |
+| `spectra.models` | `CNNAMC`, `ResNetAMC` | PyTorch model architectures for AMC |
+| `spectra.metrics` | `confusion_matrix`, `accuracy`, `classification_report`, `per_snr_accuracy`, `bit_error_rate`, `symbol_error_rate`, `packet_error_rate` | Evaluation metrics |
+| `spectra.profiles` | `EmitterProfile`, `Fixed`, `Uniform`, `LogUniform`, `Choice` | Emitter parameter distributions for realistic waveform sampling |
+| `spectra.receivers` | `CoherentReceiver`, `PassthroughDecoder` | Receiver architectures with matched filter and decoding |
+| `spectra.link` | `LinkSimulator`, `LinkResults` | BER/SER/PER vs. Eb/N0 link-level simulation |
+| `spectra.targets` | `ConstantVelocity`, `ConstantTurnRate`, `SwerlingRCS`, `NonFluctuatingRCS` | Trajectory and RCS models for radar target simulation |
+| `spectra.tracking` | `KalmanFilter`, `ConstantVelocityKF`, `RangeDopplerKF` | Kalman filter tracking for radar |
 | `spectra.curriculum` | `CurriculumSchedule` | Progressive difficulty scheduling |
 | `spectra.streaming` | `StreamingDataLoader` | Epoch-aware DataLoader with curriculum |
 | `spectra.utils` | `frequency_shift`, `srrc_taps`, `low_pass`, `DatasetWriter`, ... | DSP utilities and I/O |
@@ -165,11 +175,19 @@ Built-in names: `spectra-18`, `spectra-40`, `spectra-18-wideband`, `spectra-5g`,
 Build a custom dataset config interactively — no Python code required:
 
 ```bash
-spectra-build          # installed console script
-python -m spectra.cli  # or run as module
+spectra-build          # installed console script (config wizard only)
+spectra build          # same wizard via the unified CLI
 ```
 
-The CLI walks you through waveform selection, impairment presets, and dataset parameters, then outputs a benchmark-compatible YAML config file. Optionally generate the dataset to Zarr on the spot.
+The unified `spectra` CLI also supports:
+
+```bash
+spectra studio         # launch SPECTRA Studio (Gradio UI)
+spectra generate       # headless batch generation from YAML config
+spectra viz            # quick IQ file visualization (FFT, IQ, waterfall, constellation)
+```
+
+The build wizard walks you through waveform selection, impairment presets, and dataset parameters, then outputs a benchmark-compatible YAML config file. Optionally generate the dataset to Zarr on the spot.
 
 ## Examples
 
@@ -189,6 +207,7 @@ See [`examples/`](examples/) for 30+ runnable scripts (with matching Jupyter not
 | `communications/` | Link simulator, BER/SER/PER curves |
 | `environment/` | Propagation + link budgets, terrestrial models, urban 5G scene with auto-impairments |
 | `benchmarks/` | Loading and evaluating built-in benchmarks |
+| `verification/` | Signal-generation verification scripts (BPSK, QAM16 Gray code, GMSK, LFM, ADS-B, Barker-13, 5G NR PSS) |
 
 ## Running Tests
 
@@ -201,6 +220,15 @@ pytest -m rust
 
 # Cyclostationary signal processing tests
 pytest -m csp
+
+# Signal-generation verification suite
+pytest -m verification
+
+# File I/O tests (requires spectra[io])
+pytest -m io
+
+# Benchmark output format and logic tests
+pytest -m benchmark
 
 # Single test
 pytest tests/test_waveforms_psk.py::TestQPSKWaveform::test_bandwidth -v
