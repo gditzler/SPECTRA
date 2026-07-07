@@ -3,6 +3,7 @@ from typing import List, Tuple, Union
 
 import numpy as np
 
+from spectra.profiles.spec import EmitterProfile
 from spectra.scene.signal_desc import SignalDescription
 from spectra.utils.dsp import frequency_shift
 from spectra.waveforms.base import Waveform
@@ -18,8 +19,11 @@ class SceneConfig:
         sample_rate: Sample rate in samples per second.
         num_signals: Number of signals to place. Either a fixed int or a
             ``(min, max)`` tuple for uniform random count per scene.
-        signal_pool: List of :class:`~spectra.waveforms.base.Waveform` instances
-            to draw from uniformly at random.
+        signal_pool: List of :class:`~spectra.waveforms.base.Waveform` or
+            :class:`~spectra.profiles.spec.EmitterProfile` instances to draw
+            from uniformly at random. Profile entries are sampled via
+            ``profile.sample(rng, sample_rate)`` to produce a concrete
+            waveform for each draw.
         snr_range: ``(min_db, max_db)`` per-signal SNR range drawn uniformly.
         allow_overlap: If ``False``, signals are frequency-packed to avoid
             spectral overlap. Default ``True``.
@@ -40,7 +44,7 @@ class SceneConfig:
     capture_bandwidth: float
     sample_rate: float
     num_signals: Union[int, Tuple[int, int]]
-    signal_pool: List[Waveform]
+    signal_pool: List[Union[Waveform, "EmitterProfile"]]
     snr_range: Tuple[float, float]
     allow_overlap: bool = True
 
@@ -66,8 +70,14 @@ class Composer:
         half_bw = cfg.capture_bandwidth / 2.0
 
         for i in range(n_signals):
-            # Pick a waveform from the pool
-            waveform = cfg.signal_pool[rng.integers(0, len(cfg.signal_pool))]
+            # Pick a waveform or emitter profile from the pool
+            entry = cfg.signal_pool[rng.integers(0, len(cfg.signal_pool))]
+            if isinstance(entry, EmitterProfile):
+                waveform = entry.sample(rng, cfg.sample_rate)
+                sig_label = entry.label
+            else:
+                waveform = entry
+                sig_label = entry.label
 
             # Determine signal bandwidth and baseband center offset
             sig_bw = waveform.bandwidth(cfg.sample_rate)
@@ -85,8 +95,7 @@ class Composer:
             snr_linear = 10.0 ** (snr_db / 10.0)
 
             # Determine number of symbols to fill the capture
-            sps = getattr(waveform, "samples_per_symbol", 8)
-            num_symbols = num_capture_samples // sps
+            num_symbols = waveform.num_symbols_for(num_capture_samples, cfg.sample_rate)
 
             # Generate baseband IQ
             sig_seed = int(rng.integers(0, 2**32))
@@ -114,7 +123,7 @@ class Composer:
                     t_stop=cfg.capture_duration,
                     f_low=f_center - sig_bw / 2.0,
                     f_high=f_center + sig_bw / 2.0,
-                    label=waveform.label,
+                    label=sig_label,
                     snr=snr_db,
                 )
                 iq, desc_temp = impairments(iq, desc_temp, sample_rate=cfg.sample_rate)
@@ -145,7 +154,7 @@ class Composer:
                     t_stop=t_stop,
                     f_low=f_center - sig_bw / 2.0,
                     f_high=f_center + sig_bw / 2.0,
-                    label=waveform.label,
+                    label=sig_label,
                     snr=snr_db,
                 )
             )

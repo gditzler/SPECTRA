@@ -56,6 +56,7 @@ After any Rust code change, re-run `maturin develop --release` before running Py
 - `cyclo_temporal.rs` — cumulants, CAF
 - `s3ca.rs` — S³CA-based SCD estimation (**work in progress** — algorithm produces incorrect output; full implementation tracked on `feature/s3ca` branch)
 - `cwd.rs` — Choi-Williams Distribution
+- `wvd.rs` — Wigner-Ville Distribution
 - `reassigned_gabor.rs` — Reassigned Gabor (spectrogram) Transform
 - `sfft.rs` — sliding FFT utilities
 - `lib.rs` — PyO3 module entry point, registers all Rust functions as `spectra._rust`
@@ -101,6 +102,7 @@ After any Rust code change, re-run `maturin develop --release` before running Py
 - `cli/` — Unified CLI: `spectra studio` (launch UI), `spectra generate` (headless batch from YAML config), `spectra viz` (quick IQ file plots), `spectra build` (interactive config wizard via `config_builder.py`). Also `spectra-build` entry point via `signal_builder.py`.
 - `models/` — PyTorch model architectures for AMC: `CNNAMC` (1D CNN), `ResNetAMC`.
 - `metrics.py` — `confusion_matrix`, `accuracy`, `classification_report`, `per_snr_accuracy`, `per_snr_rmse`, `bit_error_rate`, `symbol_error_rate`, `packet_error_rate`.
+- `profiles/` — `EmitterProfile` describes a real-world emitter class as a waveform type plus sampleable physical-parameter distributions (`Fixed`, `Uniform`, `LogUniform`, `Choice`) with a citation to the defining standard. `ProfileNotRepresentable` raised when a profile cannot fit inside the capture bandwidth.
 
 **Key design rule:** Rust functions are pure/stateless. All state, composition, and randomness management lives in Python.
 
@@ -115,17 +117,17 @@ Maturin bridges Rust and Python. The Rust crate (`rust/Cargo.toml`, name `spectr
 - `spectra[ui]` — gradio, scipy
 - `spectra[yaml]` — pyyaml
 - `spectra[zarr]` — zarr
-- `spectra[docs]` — mkdocs, mkdocs-material, mkdocstrings
-- `spectra[dev]` — maturin, pytest, pytest-cov, pyyaml, zarr, h5py
+- `spectra[docs]` — mkdocs, mkdocs-material, mkdocstrings, mkdocs-exclude, pymdown-extensions
+- `spectra[dev]` — maturin, pytest, pytest-cov, pyyaml, zarr, h5py, nbmake, jupyter
 - `spectra[all]` — all optional deps combined
 
 ## Testing
 
-Tests live in `tests/` with shared fixtures in `conftest.py` (`rng`, `sample_rate`, `assert_valid_iq`). Test markers: `@pytest.mark.rust` for Rust FFI tests, `@pytest.mark.slow` for slow tests, `@pytest.mark.csp` for cyclostationary signal processing tests, `@pytest.mark.io` for file I/O tests, `@pytest.mark.benchmark` for benchmark output format and logic tests. Strict markers are enforced.
+Tests live in `tests/` with shared fixtures in `conftest.py` (`rng`, `sample_rate`, `assert_valid_iq`). Test markers: `@pytest.mark.rust` for Rust FFI tests, `@pytest.mark.slow` for slow tests, `@pytest.mark.csp` for cyclostationary signal processing tests, `@pytest.mark.io` for file I/O tests, `@pytest.mark.benchmark` for benchmark output format and logic tests, `@pytest.mark.verification` for signal-generation verification suite. Strict markers are enforced.
 
 ## Documentation
 
-MkDocs with Material theme. Config in `mkdocs.yml`, source in `docs/`. API docs auto-generated via mkdocstrings. Sections: Getting Started, User Guide, API Reference, Contributing. User guide pages: `waveforms`, `impairments`, `transforms`, `scene-composition`, `datasets`, `propagation`, `curriculum-streaming`, `benchmarks`, `file-io`.
+MkDocs with Material theme. Config in `mkdocs.yml`, source in `docs/`. API docs auto-generated via mkdocstrings. Sections: Getting Started, User Guide, API Reference, Contributing. User guide pages: `waveforms`, `5g-nr`, `protocols`, `multifunction-emitters`, `impairments`, `propagation`, `scene-composition`, `datasets`, `direction-finding`, `link-simulation`, `transforms`, `file-io`, `benchmarks`, `curriculum-streaming`, `studio`.
 
 ## Pre-commit
 
@@ -137,7 +139,7 @@ Ruff is configured in `pyproject.toml` (`line-length = 100`, `target-version = "
 
 ## CI
 
-No CI workflow is configured yet. When added, it should live at `.github/workflows/ci.yml` and cover:
+A GitHub Actions workflow exists at `.github/workflows/docs.yml` for building and deploying the MkDocs site to GitHub Pages (triggers on push to `main`). No test/CI workflow is configured yet. When added, it should live at `.github/workflows/ci.yml` and cover:
 - Rust checks: `cargo fmt --check`, `cargo clippy`, `cargo test`
 - Python tests: matrix of (Ubuntu, macOS) × (Python 3.10, 3.11, 3.12) with CPU-only PyTorch
 - Lint: Ruff check + format

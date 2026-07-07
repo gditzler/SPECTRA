@@ -30,6 +30,8 @@ examples/outputs/verification/
 
 # Working directories
 .claude/
+.pi/
+.omo/
 .worktrees/
 benchmarks/comparison/results/
 examples/.ipynb_checkpoints/

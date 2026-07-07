@@ -60,20 +60,48 @@ class PulsedRadar(Waveform):
 
     def __init__(
         self,
-        pulse_width_samples: int = 64,
-        pri_samples: int = 512,
+        pulse_width_samples: Optional[int] = None,
+        pri_samples: Optional[int] = None,
         num_pulses: int = 16,
         pulse_shape: str = "rect",
         pri_stagger: Optional[List[int]] = None,
         pri_jitter_fraction: float = 0.0,
+        pulse_width: Optional[float] = None,
+        pri: Optional[float] = None,
     ):
-        self._pulse_width_samples = pulse_width_samples
-        self._pri_samples = pri_samples
+        if pulse_width is not None and pulse_width_samples is not None:
+            raise ValueError("pulse_width and pulse_width_samples are mutually exclusive")
+        if pri is not None and pri_samples is not None:
+            raise ValueError("pri and pri_samples are mutually exclusive")
+        self._pulse_width = pulse_width
+        self._pri = pri
+        self._pulse_width_samples = 64 if pulse_width_samples is None else pulse_width_samples
+        self._pri_samples = 512 if pri_samples is None else pri_samples
         self._num_pulses = num_pulses
         self._pulse_shape = pulse_shape
         self._pri_stagger = pri_stagger
         self._pri_jitter_fraction = pri_jitter_fraction
-        self.samples_per_symbol = pri_samples * num_pulses
+        self.samples_per_symbol = self._pri_samples * num_pulses
+
+    def _resolved_samples(self, sample_rate: float):
+        """Return (pulse_width_samples, pri_samples) at ``sample_rate``."""
+        pw = self._pulse_width_samples
+        pri = self._pri_samples
+        if self._pulse_width is not None:
+            pw = max(1, round(self._pulse_width * sample_rate))
+            if pw < 4:
+                import warnings
+
+                warnings.warn(
+                    f"pulse_width {self._pulse_width:g}s is only {pw} samples at "
+                    f"{sample_rate:g} Hz; pulse fidelity will be poor",
+                    stacklevel=2,
+                )
+        if self._pri is not None:
+            pri = round(self._pri * sample_rate)
+        if pri < pw:
+            raise ValueError(f"pri ({pri} samples) must be >= pulse width ({pw} samples)")
+        return pw, pri
 
     def generate(
         self,
@@ -81,14 +109,15 @@ class PulsedRadar(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
-        pulse = _make_pulse_shape(self._pulse_width_samples, self._pulse_shape)
+        pw_samples, pri_samples = self._resolved_samples(sample_rate)
+        pulse = _make_pulse_shape(pw_samples, self._pulse_shape)
 
         if self._pri_stagger is not None:
             stagger = np.array(self._pri_stagger, dtype=np.int64)
         elif self._pri_jitter_fraction > 0.0:
             s = seed if seed is not None else np.random.randint(0, 2**32)
             rng = np.random.default_rng(s)
-            max_jitter = int(self._pri_samples * self._pri_jitter_fraction)
+            max_jitter = int(pri_samples * self._pri_jitter_fraction)
             stagger = rng.integers(
                 -max_jitter, max_jitter + 1, size=self._num_pulses, dtype=np.int64
             )
@@ -97,13 +126,19 @@ class PulsedRadar(Waveform):
 
         bursts = []
         for _ in range(num_symbols):
-            train = generate_pulse_train(pulse, self._pri_samples, self._num_pulses, stagger)
+            train = generate_pulse_train(pulse, pri_samples, self._num_pulses, stagger)
             bursts.append(train)
 
         return np.concatenate(bursts) if bursts else np.array([], dtype=np.complex64)
 
     def bandwidth(self, sample_rate: float) -> float:
+        if self._pulse_width is not None:
+            return 1.0 / self._pulse_width
         return sample_rate / self._pulse_width_samples
+
+    def num_symbols_for(self, num_samples: int, sample_rate: float) -> int:
+        _, pri_samples = self._resolved_samples(sample_rate)
+        return max(1, int(num_samples // (pri_samples * self._num_pulses)))
 
     @property
     def label(self) -> str:
@@ -263,18 +298,57 @@ class FMCW(Waveform):
 
     def __init__(
         self,
-        sweep_bandwidth_fraction: float = 0.5,
-        sweep_samples: int = 256,
-        idle_samples: int = 64,
+        sweep_bandwidth_fraction: Optional[float] = None,
+        sweep_samples: Optional[int] = None,
+        idle_samples: Optional[int] = None,
         num_sweeps: int = 16,
         sweep_type: str = "sawtooth",
+        sweep_bandwidth: Optional[float] = None,
+        sweep_time: Optional[float] = None,
+        idle_time: Optional[float] = None,
     ):
-        self._sweep_bandwidth_fraction = sweep_bandwidth_fraction
-        self._sweep_samples = sweep_samples
-        self._idle_samples = idle_samples
+        if sweep_bandwidth is not None and sweep_bandwidth_fraction is not None:
+            raise ValueError(
+                "sweep_bandwidth and sweep_bandwidth_fraction are mutually exclusive"
+            )
+        if sweep_time is not None and sweep_samples is not None:
+            raise ValueError("sweep_time and sweep_samples are mutually exclusive")
+        if idle_time is not None and idle_samples is not None:
+            raise ValueError("idle_time and idle_samples are mutually exclusive")
+        self._sweep_bandwidth = sweep_bandwidth
+        self._sweep_time = sweep_time
+        self._idle_time = idle_time
+        self._sweep_bandwidth_fraction = (
+            0.5 if sweep_bandwidth_fraction is None else sweep_bandwidth_fraction
+        )
+        self._sweep_samples = 256 if sweep_samples is None else sweep_samples
+        self._idle_samples = 64 if idle_samples is None else idle_samples
         self._num_sweeps = num_sweeps
         self._sweep_type = sweep_type
-        self.samples_per_symbol = (sweep_samples + idle_samples) * num_sweeps
+        self.samples_per_symbol = (self._sweep_samples + self._idle_samples) * num_sweeps
+
+    def _resolved(self, sample_rate: float):
+        """Return (bw_hz, sweep_samples, idle_samples) at ``sample_rate``."""
+        bw = (
+            self._sweep_bandwidth
+            if self._sweep_bandwidth is not None
+            else sample_rate * self._sweep_bandwidth_fraction
+        )
+        sweep = (
+            round(self._sweep_time * sample_rate)
+            if self._sweep_time is not None
+            else self._sweep_samples
+        )
+        idle = (
+            round(self._idle_time * sample_rate)
+            if self._idle_time is not None
+            else self._idle_samples
+        )
+        if bw > sample_rate:
+            raise ValueError(
+                f"FMCW sweep bandwidth {bw:g} Hz exceeds sample_rate {sample_rate:g} Hz"
+            )
+        return bw, sweep, idle
 
     def generate(
         self,
@@ -282,22 +356,28 @@ class FMCW(Waveform):
         sample_rate: float,
         seed: Optional[int] = None,
     ) -> np.ndarray:
-        bw = sample_rate * self._sweep_bandwidth_fraction
-        sweep = generate_fmcw_sweep(self._sweep_samples, bw, sample_rate, self._sweep_type)
-        idle = np.zeros(self._idle_samples, dtype=np.complex64)
+        bw, sweep_samples, idle_samples = self._resolved(sample_rate)
+        sweep = generate_fmcw_sweep(sweep_samples, bw, sample_rate, self._sweep_type)
+        idle = np.zeros(idle_samples, dtype=np.complex64)
 
         # One symbol = num_sweeps repetitions of (sweep + idle)
         one_symbol_parts = []
         for _ in range(self._num_sweeps):
             one_symbol_parts.append(sweep)
-            if self._idle_samples > 0:
+            if idle_samples > 0:
                 one_symbol_parts.append(idle)
         one_symbol = np.concatenate(one_symbol_parts)
 
         return np.tile(one_symbol, num_symbols)
 
     def bandwidth(self, sample_rate: float) -> float:
+        if self._sweep_bandwidth is not None:
+            return self._sweep_bandwidth
         return sample_rate * self._sweep_bandwidth_fraction
+
+    def num_symbols_for(self, num_samples: int, sample_rate: float) -> int:
+        _, sweep_samples, idle_samples = self._resolved(sample_rate)
+        return max(1, int(num_samples // ((sweep_samples + idle_samples) * self._num_sweeps)))
 
     @property
     def label(self) -> str:
