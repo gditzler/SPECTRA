@@ -13,17 +13,25 @@ class LFM(Waveform):
     configured bandwidth.
     """
 
+    _VALID_DIRECTIONS = ("up", "down", "random")
+
     def __init__(
         self,
         bandwidth_fraction: Optional[float] = None,
         samples_per_pulse: Optional[int] = None,
         sweep_bandwidth: Optional[float] = None,
         pulse_duration: Optional[float] = None,
+        direction: str = "up",
     ):
         if sweep_bandwidth is not None and bandwidth_fraction is not None:
             raise ValueError("sweep_bandwidth and bandwidth_fraction are mutually exclusive")
         if pulse_duration is not None and samples_per_pulse is not None:
             raise ValueError("pulse_duration and samples_per_pulse are mutually exclusive")
+        if direction not in self._VALID_DIRECTIONS:
+            raise ValueError(
+                f"direction must be one of {self._VALID_DIRECTIONS}, got {direction!r}"
+            )
+        self._direction = direction
         self._sweep_bandwidth = sweep_bandwidth
         self._pulse_duration = pulse_duration
         self._bandwidth_fraction = 0.5 if bandwidth_fraction is None else bandwidth_fraction
@@ -46,7 +54,17 @@ class LFM(Waveform):
             if self._pulse_duration is not None
             else self._samples_per_pulse
         )
-        f0, f1 = -bw / 2.0, bw / 2.0
+        if self._direction == "random":
+            s = seed if seed is not None else np.random.randint(0, 2**32)
+            rng = np.random.default_rng(s)
+            direction = "down" if rng.random() < 0.5 else "up"
+        else:
+            direction = self._direction
+
+        if direction == "down":
+            f0, f1 = bw / 2.0, -bw / 2.0
+        else:  # "up"
+            f0, f1 = -bw / 2.0, bw / 2.0
         duration = n / sample_rate
 
         pulses = [generate_chirp(duration, sample_rate, f0, f1) for _ in range(num_symbols)]
