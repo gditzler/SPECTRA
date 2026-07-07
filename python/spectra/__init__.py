@@ -215,7 +215,6 @@ from spectra.waveforms import (
     PSK16,
     PSK32,
     PSK64,
-    PulsedRadar,
     QAM16,
     QAM32,
     QAM64,
@@ -237,6 +236,7 @@ from spectra.waveforms import (
     P2Code,
     P3Code,
     P4Code,
+    PulsedRadar,
     Tone,
     ZadoffChu,
 )

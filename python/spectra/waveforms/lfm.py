@@ -38,7 +38,9 @@ class LFM(Waveform):
     ) -> np.ndarray:
         bw = self.bandwidth(sample_rate)
         if bw > sample_rate:
-            raise ValueError(f"LFM sweep bandwidth {bw:g} Hz exceeds sample_rate {sample_rate:g} Hz")
+            raise ValueError(
+                f"LFM sweep bandwidth {bw:g} Hz exceeds sample_rate {sample_rate:g} Hz"
+            )
         n = (
             round(self._pulse_duration * sample_rate)
             if self._pulse_duration is not None
