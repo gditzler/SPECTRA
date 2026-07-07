@@ -308,9 +308,7 @@ class FMCW(Waveform):
         idle_time: Optional[float] = None,
     ):
         if sweep_bandwidth is not None and sweep_bandwidth_fraction is not None:
-            raise ValueError(
-                "sweep_bandwidth and sweep_bandwidth_fraction are mutually exclusive"
-            )
+            raise ValueError("sweep_bandwidth and sweep_bandwidth_fraction are mutually exclusive")
         if sweep_time is not None and sweep_samples is not None:
             raise ValueError("sweep_time and sweep_samples are mutually exclusive")
         if idle_time is not None and idle_samples is not None:
